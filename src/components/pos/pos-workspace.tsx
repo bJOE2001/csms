@@ -1,61 +1,474 @@
 "use client";
-import {useCallback,useEffect,useRef,useState} from "react";
-import Link from "next/link";
-import {liveQuery} from "dexie";
-import {cartTotal,canCheckoutOffline,posSessionSchema,type PosSession} from "@/lib/pos/domain";
-import {enqueueOrder,exportQueue,getSavedSession,importQueue,posDatabase,queueFor,saveSession,scopeOf,updateQueued,type QueueOrder} from "@/lib/pos/storage";
-import {money,object,rows,text,type Row} from "@/lib/business/data";
-import type {Json} from "@/lib/supabase/database.types";
-import {phpToCents} from "@/lib/menu/domain";
+import { useEffect, useState } from "react";
+import { WorkspaceShell } from "../workspace-shell";
+import { Icon } from "../ui/icon";
+import { ProductThumbnail } from "./product-thumbnail";
+import { ProductCard } from "./product-card";
+import { Button } from "../ui/button";
+import { Input } from "../ui/primitives/input";
+import { Card } from "../ui/card";
+import {
+  cents,
+  money,
+  checkoutSchema,
+  type Checkout,
+} from "@/lib/sales/domain";
 
-async function post(body:unknown){const response=await fetch("/api/pos",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const result=await response.json();if(!response.ok)throw new Error(result.error??"Server did not confirm the transaction.");return result.data;}
-async function deviceLock<T>(scope:string,fn:()=>Promise<T>):Promise<T>{return navigator.locks?navigator.locks.request(`csms-pos-${scope}`,fn):fn();}
+import { defaultSizeId, isAvailable } from "@/lib/menu/domain";
+import { useCatalog } from "@/lib/menu/use-catalog";
+import {
+  addLine,
+  cartIssue,
+  lineKey,
+  reviewLine,
+  type CartLine,
+} from "@/lib/pos/cart";
 
-export function PosWorkspace(){
-  const[session,setSession]=useState<PosSession>();const[bootstrap,setBootstrap]=useState<Row>({});const[queue,setQueue]=useState<QueueOrder[]>([]);
-  const[online,setOnline]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(""),[message,setMessage]=useState("");
-  const[search,setSearch]=useState(""),[category,setCategory]=useState(""),[cart,setCart]=useState<{variant_id:string;quantity:number}[]>([]);
-  const[orderType,setOrderType]=useState<"dine_in"|"takeout">("takeout"),[table,setTable]=useState(""),[method,setMethod]=useState("cash"),[tender,setTender]=useState(""),[discount,setDiscount]=useState("0"),[reference,setReference]=useState("");
-  const[locked,setLocked]=useState(false);const syncing=useRef(false);const[currentTime,setCurrentTime]=useState(Date.now());
-  useEffect(()=>{const timer=setInterval(()=>setCurrentTime(Date.now()),30000);return()=>clearInterval(timer);},[]);
-  useEffect(()=>{
-    const update=()=>setOnline(navigator.onLine);update();addEventListener("online",update);addEventListener("offline",update);
-    setLocked(document.cookie.split(";").some(v=>v.trim()==="csms_pos_locked=1"));
-    void getSavedSession().then(s=>{if(s)setSession(s);}).catch(()=>setError("POS storage is unavailable. Do not accept offline orders until browser storage works."));
-    if(navigator.onLine)void fetch("/api/pos",{cache:"no-store"}).then(async r=>{const b=await r.json();if(!r.ok){setLocked(true);throw new Error(b.error);}setBootstrap(object(b));const saved=await getSavedSession();if(saved&&(saved.user_id!==b.user_id||saved.shop_id!==b.shop_id)){setSession(undefined);setLocked(true);}else setLocked(false);}).catch(e=>{setError(e.message);setOnline(false);});
-    return()=>{removeEventListener("online",update);removeEventListener("offline",update);};
-  },[]);
-  useEffect(()=>{if(!session)return;const sub=liveQuery(()=>queueFor(session)).subscribe({next:setQueue,error:()=>setError("Queue could not be read. Keep this device and export recovery data.")});return()=>sub.unsubscribe();},[session]);
-  const synchronize=useCallback(async(retryId?:string,recoveryReason?:string)=>{
-    if(!session||syncing.current||!navigator.onLine||locked)return;syncing.current=true;
-    try{await deviceLock(scopeOf(session),async()=>{const orders=await queueFor(session);for(const order of orders.filter(o=>o.status!=="synced"&&(retryId?o.id===retryId:o.status==="pending"))){try{const result=await post({action:"order",shop_id:session.shop_id,operation_id:order.id,payload:order.payload,...(recoveryReason?{recovery_reason:recoveryReason}:{})});await updateQueued(order.id,{status:"synced",attempts:order.attempts+1,error:"",result});}catch(e){await updateQueued(order.id,{status:"failed",attempts:order.attempts+1,error:e instanceof Error?e.message:"Synchronization failed"});}}});}finally{syncing.current=false;}
-  },[session,locked]);
-  useEffect(()=>{if(!online)return;void synchronize();const interval=setInterval(()=>void synchronize(),30000);return()=>clearInterval(interval);},[online,synchronize]);
-  const run=async(fn:()=>Promise<void>)=>{setBusy(true);setError("");setMessage("");try{await fn();}catch(e){setError(e instanceof Error?e.message:"The operation failed; saved queue entries are retained.");}finally{setBusy(false);}};
-  const connect=(shift:Row)=>run(async()=>{const s=posSessionSchema.parse(await post({action:"open",shop_id:text(bootstrap,"shop_id"),device_id:text(shift,"device_id"),shift_id:text(shift,"id"),browser_key:localStorage.getItem(`csms-device-${text(shift,"device_id")}`)??undefined}));await saveSession(s);setSession(s);setLocked(false);setMessage("Menu snapshot saved. Local checkout is ready on this device.");});
-  const total=session?cartTotal(cart,session.menu):0;
-  const checkout=()=>run(async()=>{if(!session||!canCheckoutOffline(session,Date.now(),online,locked||document.cookie.split(";").some(v=>v.trim()==="csms_pos_locked=1")))throw new Error("Reconnect and review the POS authorization before accepting another order.");const discountCents=phpToCents(discount);if(discountCents>total||(!session.founder&&discountCents>0))throw new Error("Invalid founder discount.");const tenderCents=method==="cash"?phpToCents(tender):null;if(method==="cash"&&(tenderCents??0)<total-discountCents)throw new Error("Cash tender must cover the amount due.");await deviceLock(scopeOf(session),()=>enqueueOrder(session,{order_type:orderType,table_label:table,items:cart,discount_cents:discountCents,method,tendered_cents:tenderCents,reference}));setCart([]);setTender("");setReference("");setDiscount("0");setMessage("Order saved on this device. It remains pending until the server confirms it.");void synchronize();});
-  const close=(form:FormData)=>run(async()=>{if(!session||!navigator.onLine)throw new Error("Reconnect before closing a shift.");await deviceLock(scopeOf(session),async()=>{const q=await queueFor(session);if(q.some(o=>o.status!=="synced"))throw new Error("Resolve every pending or failed order before closing.");const saved=await posDatabase().sessions.get(scopeOf(session));await post({action:"close",shop_id:session.shop_id,operation_id:crypto.randomUUID(),data:{shift_id:session.shift_id,last_sequence:saved?.sequence??0,counted_cents:phpToCents(String(form.get("counted"))),reason:String(form.get("reason")??"")}});await posDatabase().sessions.delete(scopeOf(session));});setSession(undefined);setMessage("Shift closed and cash reconciliation saved.");});
-  const refreshMenu=()=>run(async()=>{if(!session||!navigator.onLine)throw new Error("Reconnect to refresh the menu.");await deviceLock(scopeOf(session),async()=>{if((await queueFor(session)).some(o=>o.status!=="synced"))throw new Error("Resolve every queued order first.");const saved=await posDatabase().sessions.get(scopeOf(session));const next=posSessionSchema.parse(await post({action:"open",shop_id:session.shop_id,device_id:session.device_id,shift_id:session.shift_id,last_sequence:saved?.sequence??0,browser_key:localStorage.getItem(`csms-device-${session.device_id}`)??undefined}));await saveSession(next);setSession(next);setCart([]);});setMessage("Current prices and recipes saved in a new authorization snapshot.");});
-  const exportData=()=>run(async()=>{if(!session)return;const blob=new Blob([JSON.stringify(await exportQueue(session),null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`pos-queue-${session.device_id}-${Date.now()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
-  const pairDevice=(device:Row)=>run(async()=>{const key=crypto.randomUUID();await post({action:"pair",shop_id:text(bootstrap,"shop_id"),device_id:text(device,"id"),browser_key:key});localStorage.setItem(`csms-device-${text(device,"id")}`,key);setMessage("This browser is paired. Open its shift in Cashier shifts, then connect here.");});
-  const openShifts=rows(object(bootstrap.data).cashier_shifts).filter(s=>!s.closed_at&&s.cashier_id===bootstrap.user_id);
-  const canSell=!!session&&canCheckoutOffline(session,currentTime,online,locked);
-  return <main className="shell pos-shell"><header className="topbar"><Link className="brand" href="/app">{(!locked?session?.settings.name:undefined)??"Coffee POS"}</Link><div className="pos-connection"><span className="status">{online?"ONLINE":"OFFLINE"} · {locked?0:queue.filter(o=>o.status!=="synced").length} pending</span><Link className="top-link" href="/app">Workspace</Link><Link className="top-link" href="/app/shifts">Shifts</Link>{bootstrap.user_id&&!locked?<Link className="top-link" href="/app/orders">Orders</Link>:<Link className="top-link" href="/sign-in">Sign in</Link>}</div></header><div className="workspace-content">
-    <div className="page-heading"><div><p className="eyebrow">Internal point of sale</p><h1>Take an order</h1><p className="hint">{session?`Menu authorization until ${new Date(session.expires_at).toLocaleString()} · ${session.offline_capable?"Designated offline device":"Online-only device"}`:"Open a cashier shift, then save its menu to begin."}</p></div></div>
-    {locked&&<p className="hint">POS session locked. Sign in to use or recover this account’s saved queue.</p>}{error&&<p role="alert" className="form-message error">{error}</p>}{message&&<p role="status" className="form-message success">{message}</p>}
-    {!session&&<section className="panel"><h2>Connect assigned shift</h2>{bootstrap.role==="founder"&&rows(object(bootstrap.data).pos_devices).filter(d=>d.enabled&&d.offline_capable).map(d=><p key={text(d,"id")}><button className="button secondary" disabled={busy} onClick={()=>void pairDevice(d)}>Pair this browser to {text(d,"name")}</button></p>)}{!openShifts.length&&<p className="hint">Sign in and <Link className="top-link" href="/app/shifts">open an assigned shift</Link> first.</p>}{openShifts.map(s=><button key={text(s,"id")} className="button" disabled={busy} onClick={()=>void connect(s)}>Use shift {text(s,"id").slice(0,8)}</button>)}</section>}
-    {session&&!locked&&<><div className="pos-layout"><section><div className="pos-filters"><label className="field">Find product or add-on<input type="search" value={search} onChange={e=>setSearch(e.target.value)}/></label><label className="field">Category<select value={category} onChange={e=>setCategory(e.target.value)}><option value="">All categories</option>{Array.from(new Set(session.menu.map(m=>m.category))).map(c=><option key={c}>{c}</option>)}</select></label></div><div className="pos-products">{session.menu.filter(m=>(!category||m.category===category)&&`${m.product_name} ${m.variant_name}`.toLowerCase().includes(search.toLowerCase())).map(m=><button className="pos-product" key={m.variant_id} disabled={!canSell||busy} onClick={()=>setCart(old=>{const current=old.find(i=>i.variant_id===m.variant_id);return current?old.map(i=>i===current?{...i,quantity:Math.min(100,i.quantity+1)}:i):[...old,{variant_id:m.variant_id,quantity:1}];})}><span>{m.product_name}</span><small>{m.variant_name}</small><strong>{money(m.price_cents)}</strong></button>)}</div>{!session.menu.length&&<p className="empty-state">No available recipe-backed menu variants. Enable reviewed items, then start a new shift to obtain a new snapshot.</p>}</section>
-      <aside className="panel pos-cart"><h2>Current order</h2>{cart.length===0&&<p className="hint">Select a product or add-on.</p>}{cart.map(i=>{const m=session.menu.find(m=>m.variant_id===i.variant_id)!;return <div className="cart-line" key={i.variant_id}><strong>{m.product_name} · {m.variant_name}</strong><label className="field">Quantity<input aria-label={`${m.product_name} ${m.variant_name} quantity`} type="number" min="1" max="100" value={i.quantity} onChange={e=>{const q=Number(e.target.value);if(Number.isInteger(q)&&q>=1&&q<=100)setCart(cart.map(v=>v===i?{...v,quantity:q}:v));}}/></label><span>{money(m.price_cents*i.quantity)}</span><button className="text-button" onClick={()=>setCart(cart.filter(v=>v!==i))}>Remove {m.product_name}</button></div>;})}
-        <label className="field">Order type<select value={orderType} onChange={e=>setOrderType(e.target.value as "dine_in"|"takeout")}><option value="takeout">Takeout</option><option value="dine_in">Dine-in</option></select></label>{orderType==="dine_in"&&<label className="field">Table label<input maxLength={40} value={table} onChange={e=>setTable(e.target.value)}/></label>}
-        <label className="field">Payment method<select value={method} onChange={e=>setMethod(e.target.value)}>{session.settings.methods.map(m=><option key={m}>{m}</option>)}</select></label>{session.founder&&<label className="field">Founder discount (PHP)<input inputMode="decimal" value={discount} onChange={e=>setDiscount(e.target.value)}/></label>}{method==="cash"?<label className="field">Cash tendered (PHP)<input inputMode="decimal" value={tender} onChange={e=>setTender(e.target.value)}/></label>:<label className="field">Payment reference<input maxLength={120} value={reference} onChange={e=>setReference(e.target.value)}/></label>}
-        <p className="business-amount">Subtotal {money(total)}</p><p className="hint">Wallet payments require founder confirmation. The server validates the final total and recorded stock.</p><button className="button" disabled={!cart.length||!canSell||busy} onClick={()=>void checkout()}>{busy?"Saving…":"Save checkout on device"}</button>{!canSell&&<p className="hint">New checkout is locked. Queued orders are retained for synchronization or founder recovery.</p>}
-      </aside></div>
-      <section className="panel"><div className="section-heading"><h2>Orders on this device</h2><button className="button secondary" disabled={busy||!online} onClick={()=>void refreshMenu()}>Refresh menu after sync</button><button className="button secondary" disabled={busy||!online} onClick={()=>void synchronize()}>Synchronize pending</button></div>{queue.length===0&&<p className="hint">No local orders yet.</p>}{queue.map(o=><article className="ledger-row" key={o.id}><strong>#{o.payload.sequence} · {o.id.slice(0,8)} · {o.status}</strong><p className="hint">{o.payload.created_at} · Attempts {o.attempts}{o.status==="synced"?` · Server total ${money(object(o.result as Json).total_cents)}`:""}</p>{o.error&&<p role="alert">{o.error}</p>}{o.status==="failed"&&<><button className="button secondary" disabled={!online||busy} onClick={()=>void synchronize(o.id)}>Retry original order</button>{session.founder&&<button className="text-button" disabled={!online||busy} onClick={()=>{const reason=prompt("Explain the real offline sale, cash received, and inventory or authorization exception. This will be audited and may create negative recorded stock requiring a physical count.");if(reason?.trim())void synchronize(o.id,reason.trim());}}>Founder: reconcile real offline sale</button>}</>}</article>)}
-        <div className="recovery-controls"><button className="button secondary" disabled={busy} onClick={()=>void exportData()}>Export pending recovery file</button><label className="field">Recover a saved queue<input type="file" accept="application/json" onChange={e=>{const f=e.target.files?.[0];if(f)void run(async()=>{if(f.size>5_000_000)throw new Error("Recovery file exceeds 5 MB.");await importQueue(JSON.parse(await f.text()),session);setMessage("Recovery entries validated and retained. Review each failed entry before reconciliation.");});}}/></label></div><p className="hint">Export before replacing a device. Browser storage loss destroys unexported unsynchronized orders; server-confirmed receipts remain in order history.</p>
-      </section>
-      <section className="panel"><h2>Close shift after synchronization</h2><form action={close}><label className="field">Physical cash counted (PHP)<input name="counted" inputMode="decimal" required/></label><label className="field">Reconciliation note<input name="reason" maxLength={500}/></label><button className="button" disabled={busy||!online||queue.some(o=>o.status!=="synced")}>Close assigned shift</button></form></section>
-    </>}
-  </div></main>;
+export function PosWorkspace() {
+  const { data, error: loadError, refresh: load } = useCatalog();
+  const [error, setError] = useState(""),
+    [query, setQuery] = useState(""),
+    [categoryId, setCategoryId] = useState("all"),
+    [selectedSizes, setSelectedSizes] = useState<Record<string, string>>({}),
+    [cart, setCart] = useState<CartLine[]>([]),
+    [method, setMethod] = useState<"cash" | "gcash">("cash"),
+    [cash, setCash] = useState(""),
+    [busy, setBusy] = useState(false),
+    [pending, setPending] = useState<Checkout>(),
+    [message, setMessage] = useState("");
+  const key = data ? `simple-pos:${data.shop.id}:${data.user_id}` : "";
+  useEffect(() => {
+    if (!key) return;
+    try {
+      const saved = localStorage.getItem(key);
+      if (saved) setPending(checkoutSchema.parse(JSON.parse(saved)));
+    } catch {
+      setError(
+        "The pending sale could not be read. Keep this browser's storage and contact support.",
+      );
+    }
+  }, [key]);
+  const lines = cart;
+  const issues = lines.map((line) => cartIssue(line, data?.products ?? []));
+  const blocked = issues.some(Boolean);
+  const total = lines.reduce((n, p) => n + p.price_cents * p.quantity, 0);
+  let change = 0;
+  try {
+    change = cash ? Math.max(0, cents(cash) - total) : 0;
+  } catch {}
+  async function submit() {
+    if (!data || busy) return;
+    setError("");
+    setMessage("");
+    setBusy(true);
+    try {
+      let sale = pending;
+      if (!sale) {
+        if (!lines.length) throw Error("Add a product first.");
+        if (blocked)
+          throw Error("Review changed or unavailable items in the cart first.");
+        const tendered =
+          method === "cash" ? (cash ? cents(cash) : total) : undefined;
+        if (tendered !== undefined && tendered < total)
+          throw Error("Cash received must cover the total.");
+        sale = checkoutSchema.parse({
+          id: crypto.randomUUID(),
+          method,
+          tendered_cents: tendered,
+          items: lines.map((p) => ({
+            product_id: p.product_id,
+            ...(p.size_id
+              ? { size_id: p.size_id, size_label: p.size_label }
+              : {}),
+            quantity: p.quantity,
+            price_cents: p.price_cents,
+          })),
+        });
+        localStorage.setItem(key, JSON.stringify(sale));
+        setPending(sale);
+      }
+      const response = await fetch("/api/pos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "checkout",
+          shop_id: data.shop.id,
+          data: sale,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        if (response.status === 400 || response.status === 422) {
+          localStorage.removeItem(key);
+          setPending(undefined);
+          await load();
+        }
+        throw Error(result.error);
+      }
+      localStorage.removeItem(key);
+      setPending(undefined);
+      setCart([]);
+      setCash("");
+      setMessage(
+        `Sale complete · ${money(result.data.total_cents)} · Receipt ${sale.id.slice(0, 8).toUpperCase()}`,
+      );
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Connection interrupted. Retry the saved sale before starting another.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+  if (!data)
+    return (
+      <main className="workspace-content">
+        <h1>Open POS</h1>
+        {error || loadError ? (
+          <>
+            <p role="alert" className="form-message error">
+              {error || loadError}
+            </p>
+            <Button onClick={load}>Try again</Button>
+            <a className="nav-link" href="/app/setup">
+              Shop setup
+            </a>
+            <a className="nav-link" href="/sign-in">
+              Sign in
+            </a>
+          </>
+        ) : (
+          <p role="status">Loading your products…</p>
+        )}
+      </main>
+    );
+
+  const visibleProducts = data.products.filter(
+    (product) =>
+      product.name.toLowerCase().includes(query.toLowerCase()) &&
+      (categoryId === "all" || (product.category_id ?? "none") === categoryId),
+  );
+  const itemCount = lines.reduce((sum, p) => sum + p.quantity, 0);
+  return (
+    <WorkspaceShell active="pos" shopName={data.shop.name}>
+      <div className="pos-layout">
+        <section className="pos-menu" aria-label="Product menu" tabIndex={0}>
+          <div className="pos-toolbar">
+            <label className="pos-search">
+              <Icon name="search" size={20} />
+              <span className="sr-only">Search products</span>
+              <Input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search your menu…"
+              />
+            </label>
+            <Button
+              variant="ghost"
+              onClick={load}
+              aria-label="Refresh product menu"
+            >
+              <Icon name="refresh" size={18} />
+              Refresh
+            </Button>
+          </div>
+          <div className="pos-menu-content">
+            {data.categories.length > 0 && (
+              <div
+                className="menu-filters"
+                role="group"
+                aria-label="Filter products by category"
+              >
+                <button
+                  type="button"
+                  aria-pressed={categoryId === "all"}
+                  onClick={() => setCategoryId("all")}
+                >
+                  All products
+                </button>
+                {data.categories.map((category) => (
+                  <button
+                    key={category.id}
+                    type="button"
+                    aria-pressed={categoryId === category.id}
+                    onClick={() => setCategoryId(category.id)}
+                  >
+                    {category.name}
+                  </button>
+                ))}
+                {data.products.some((product) => !product.category_id) && (
+                  <button
+                    type="button"
+                    aria-pressed={categoryId === "none"}
+                    onClick={() => setCategoryId("none")}
+                  >
+                    Uncategorized
+                  </button>
+                )}
+              </div>
+            )}
+            <div className="menu-section-heading">
+              <h1>Product menu</h1>
+              <span>
+                {visibleProducts.length}{" "}
+                {visibleProducts.length === 1 ? "item" : "items"} ·{" "}
+                {data.products.filter(isAvailable).length} available
+              </span>
+            </div>
+            {(error || loadError) && (
+              <p role="alert" className="form-message error">
+                {error || loadError}
+              </p>
+            )}
+            {message && (
+              <p role="status" className="form-message success">
+                {message}
+              </p>
+            )}
+            {lines.length > 0 && !pending && (
+              <a className="button mobile-order-link" href="#current-order">
+                <Icon name="bag" size={18} />
+                View order · {money(total)}
+              </a>
+            )}
+            <div className="pos-products">
+              {visibleProducts.map((product) => {
+                const chosen = selectedSizes[product.id];
+                const sizeId = product.sizes?.some((size) => size.id === chosen)
+                  ? chosen
+                  : defaultSizeId(product);
+                return (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    sizeId={sizeId}
+                    onSizeChange={(id) =>
+                      setSelectedSizes((current) => ({
+                        ...current,
+                        [product.id]: id,
+                      }))
+                    }
+                    quantity={
+                      cart.find(
+                        (line) => line.key === lineKey(product.id, sizeId),
+                      )?.quantity ?? 0
+                    }
+                    disabled={busy || !!pending}
+                    onAdd={() => {
+                      try {
+                        const next = addLine(cart, product, sizeId);
+                        setCart(next);
+                        setError("");
+                      } catch (error) {
+                        setError((error as Error).message);
+                      }
+                    }}
+                  />
+                );
+              })}
+            </div>
+            {!data.products.length && (
+              <p className="empty-state">
+                No products yet. An owner can add products in Menu Management.
+              </p>
+            )}
+            {!!data.products.length && !visibleProducts.length && (
+              <div className="empty-state">
+                <p>
+                  {query
+                    ? `No products match “${query}”.`
+                    : "No products in this category."}
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setQuery("");
+                    setCategoryId("all");
+                  }}
+                >
+                  {query ? "Clear search" : "Show all products"}
+                </Button>
+              </div>
+            )}
+          </div>
+        </section>
+        <Card className="pos-cart" id="current-order" tabIndex={-1}>
+          <div className="cart-heading">
+            <h2>Cart</h2>
+            <span
+              className="cart-count"
+              aria-label={`${itemCount} items in order`}
+            >
+              {itemCount}
+            </span>
+          </div>
+          {pending ? (
+            <div className="cart-body">
+              <p className="hint">
+                Receipt {pending.id.slice(0, 8).toUpperCase()} is saved on this
+                browser. Retry it to confirm the result before starting another
+                sale.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="cart-body">
+                {!lines.length && (
+                  <div className="cart-empty">
+                    <Icon name="bag" size={32} />
+                    <strong>Your cart is empty</strong>
+                    <p>Add a product to start a sale.</p>
+                  </div>
+                )}
+                {lines.map((p, index) => (
+                  <div className="order-line" key={p.key}>
+                    <ProductThumbnail name={p.name} imageUrl={p.image_url} />
+                    <div className="order-description">
+                      <strong>{p.name}</strong>
+                      {p.size_label && <small>Size: {p.size_label}</small>}
+                      <small>{money(p.price_cents)} each</small>
+                    </div>
+                    <div className="order-controls">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        aria-label={`Decrease ${p.name}${p.size_label ? ` ${p.size_label}` : ""}`}
+                        onClick={() =>
+                          setCart((current) =>
+                            current
+                              .map((line) =>
+                                line.key === p.key
+                                  ? { ...line, quantity: line.quantity - 1 }
+                                  : line,
+                              )
+                              .filter((line) => line.quantity > 0),
+                          )
+                        }
+                      >
+                        −
+                      </Button>
+                      <span>{p.quantity}</span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        aria-label={`Increase ${p.name}${p.size_label ? ` ${p.size_label}` : ""}`}
+                        disabled={p.quantity >= 100 || !!issues[index]}
+                        onClick={() =>
+                          setCart((current) =>
+                            current.map((line) =>
+                              line.key === p.key
+                                ? { ...line, quantity: line.quantity + 1 }
+                                : line,
+                            ),
+                          )
+                        }
+                      >
+                        +
+                      </Button>
+                    </div>
+                    <strong className="order-line-total">
+                      {money(p.quantity * p.price_cents)}
+                    </strong>
+                    {issues[index] && (
+                      <div className="cart-item-issue" role="alert">
+                        <p>{issues[index]}</p>
+                        {reviewLine(p, data.products) && (
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              const reviewed = reviewLine(p, data.products);
+                              if (reviewed)
+                                setCart((current) =>
+                                  current.map((line) =>
+                                    line.key === p.key ? reviewed : line,
+                                  ),
+                                );
+                            }}
+                          >
+                            Use{" "}
+                            {reviewLine(p, data.products)?.size_label ??
+                              "current item"}{" "}
+                            · {money(reviewLine(p, data.products)!.price_cents)}
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          aria-label={`Remove ${p.name}${p.size_label ? ` ${p.size_label}` : ""}`}
+                          onClick={() =>
+                            setCart((current) =>
+                              current.filter((line) => line.key !== p.key),
+                            )
+                          }
+                        >
+                          Remove item
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="cart-checkout">
+                <p className="pos-total">
+                  <span>Total</span>
+                  <strong>{money(total)}</strong>
+                </p>
+                <fieldset disabled={busy}>
+                  <legend>Payment method</legend>
+                  <div className="payment-methods">
+                    <Button
+                      variant={method === "cash" ? "default" : "outline"}
+                      aria-pressed={method === "cash"}
+                      onClick={() => setMethod("cash")}
+                    >
+                      Cash
+                    </Button>
+                    <Button
+                      variant={method === "gcash" ? "default" : "outline"}
+                      aria-pressed={method === "gcash"}
+                      onClick={() => setMethod("gcash")}
+                    >
+                      GCash
+                    </Button>
+                  </div>
+                  {method === "cash" ? (
+                    <>
+                      <label className="field">
+                        Cash received
+                        <Input
+                          value={cash}
+                          onChange={(e) => setCash(e.target.value)}
+                          inputMode="decimal"
+                          placeholder="Leave blank for exact payment"
+                        />
+                      </label>
+                      <p className="cart-change">Change {money(change)}</p>
+                    </>
+                  ) : (
+                    <p className="hint my-5">
+                      Check that the wallet payment arrived before completing
+                      the sale.
+                    </p>
+                  )}
+                </fieldset>
+              </div>
+            </>
+          )}
+          <Button
+            className="checkout-button"
+            pending={busy}
+            pendingLabel="Saving sale…"
+            disabled={!pending && (!lines.length || blocked || !!loadError)}
+            onClick={submit}
+          >
+            {pending ? "Retry saved sale" : "Complete sale"}
+            <Icon name="arrow" size={18} />
+          </Button>
+          <p className="cart-footnote">All amounts in PHP</p>
+        </Card>
+      </div>
+    </WorkspaceShell>
+  );
 }
-

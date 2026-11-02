@@ -1,44 +1,147 @@
 import { describe, expect, it } from "vitest";
-import { centavoDecimalToPhp, estimateRecipeCost, phpToCents, phpToCentavoDecimal, recipeInputSchema } from "./domain";
+import {
+  isAvailable,
+  priceRange,
+  productSchema,
+  defaultSizeId,
+} from "./domain";
+import { addLine, cartIssue, reviewLine } from "../pos/cart";
+import { checkoutSchema } from "../sales/domain";
 
-describe("fixed precision menu amounts", () => {
-  it("converts PHP strings exactly and rejects fractional centavos for prices", () => {
-    expect(phpToCents("125.05")).toBe(12505);
-    expect(phpToCentavoDecimal("0.01234567")).toBe("1.234567");
-    expect(centavoDecimalToPhp(phpToCentavoDecimal("0.01234567"))).toBe("0.01234567");
-    expect(() => phpToCents("1.001")).toThrow();
-    expect(() => phpToCents("-1")).toThrow();
-    expect(() => phpToCents("90071992547410.00")).toThrow();
+const id = "00000000-0000-4000-8000-000000000001";
+const small = "00000000-0000-4000-8000-000000000002";
+const large = "00000000-0000-4000-8000-000000000003";
+const product = {
+  id,
+  name: "Latte",
+  price_cents: 12000,
+  cost_cents: 4000,
+  active: true,
+  sizes: [
+    {
+      id: small,
+      label: "12 oz",
+      price_cents: 12000,
+      cost_cents: 4000,
+      active: true,
+      is_default: true,
+    },
+    {
+      id: large,
+      label: "16 oz",
+      price_cents: 14500,
+      cost_cents: 5000,
+      active: true,
+      is_default: false,
+    },
+  ],
+};
+describe("Menu and size integrity", () => {
+  it("supports regular products and custom single/multiple sizes", () => {
+    expect(productSchema.safeParse({ ...product, sizes: [] }).success).toBe(
+      true,
+    );
+    expect(
+      productSchema.safeParse({ ...product, sizes: [product.sizes[0]] })
+        .success,
+    ).toBe(true);
+    expect(productSchema.safeParse(product).success).toBe(true);
+    expect(priceRange(product)).toEqual({ min: 12000, max: 14500 });
   });
-});
-
-describe("estimated recipe cost", () => {
-  it("adds exact fractional ingredient costs and rounds only the final total up", () => {
-    expect(estimateRecipeCost([
-      { quantity: "18", wasteBps: 500, unitCostCentavos: "60" },
-      { quantity: "150", wasteBps: 0, unitCostCentavos: "8.25" },
-    ])).toEqual({ status: "estimated", cents: 2372 });
-    expect(estimateRecipeCost([
-      { quantity: "0.1", wasteBps: 0, unitCostCentavos: "1" },
-      { quantity: "0.1", wasteBps: 0, unitCostCentavos: "1" },
-    ])).toEqual({ status: "estimated", cents: 1 });
+  it("rejects duplicate labels, invalid prices/IDs and missing defaults", () => {
+    for (const sizes of [
+      [product.sizes[0], { ...product.sizes[1], label: " 12 OZ " }],
+      [product.sizes[0], { ...product.sizes[1], id: small }],
+      [{ ...product.sizes[0], price_cents: -1 }],
+      [{ ...product.sizes[0], price_cents: 1.5 }],
+      [{ ...product.sizes[0], is_default: false }],
+      [{ ...product.sizes[0], label: " " }],
+    ])
+      expect(productSchema.safeParse({ ...product, sizes }).success).toBe(
+        false,
+      );
   });
-
-  it("reports unavailable when any estimate is missing, including an empty recipe", () => {
-    expect(estimateRecipeCost([])).toEqual({ status: "unavailable", cents: null });
-    expect(estimateRecipeCost([{ quantity: "18", wasteBps: 0, unitCostCentavos: null }])).toEqual({ status: "unavailable", cents: null });
+  it("limits image protocols to HTTPS or local image paths", () => {
+    for (const image_url of [
+      "https://example.com/latte.jpg",
+      "/images/latte.jpg",
+      null,
+    ])
+      expect(productSchema.safeParse({ ...product, image_url }).success).toBe(
+        true,
+      );
+    for (const image_url of [
+      "javascript:alert(1)",
+      "data:image/svg+xml,test",
+      "//example.com/tracker",
+      "/",
+    ])
+      expect(productSchema.safeParse({ ...product, image_url }).success).toBe(
+        false,
+      );
   });
-
-  it("rejects unsupported precision, invalid waste, and overflow", () => {
-    expect(() => estimateRecipeCost([{ quantity: "1.0000001", wasteBps: 0, unitCostCentavos: "1" }])).toThrow();
-    expect(() => estimateRecipeCost([{ quantity: "1", wasteBps: -1, unitCostCentavos: "1" }])).toThrow();
-    expect(() => estimateRecipeCost([{ quantity: "999999999999", wasteBps: 10000, unitCostCentavos: "999999999999" }])).toThrow();
+  it("separates sizes and merges only identical selections", () => {
+    let cart = addLine([], product, small);
+    cart = addLine(cart, product, large);
+    cart = addLine(cart, product, small);
+    expect(cart).toHaveLength(2);
+    expect(
+      cart.map((line) => [line.size_label, line.quantity, line.price_cents]),
+    ).toEqual([
+      ["12 oz", 2, 12000],
+      ["16 oz", 1, 14500],
+    ]);
+    const items = cart.map((line) => ({
+      product_id: line.product_id,
+      size_id: line.size_id,
+      quantity: line.quantity,
+      price_cents: line.price_cents,
+    }));
+    expect(
+      checkoutSchema.safeParse({ id, method: "cash", items }).success,
+    ).toBe(true);
+    expect(
+      checkoutSchema.safeParse({
+        id,
+        method: "cash",
+        items: [items[0], items[0]],
+      }).success,
+    ).toBe(false);
   });
-
-  it("rejects duplicate ingredients and zero quantity at the request boundary", () => {
-    const id = "1a8a3355-4528-4c54-98ab-6923ff9b0ec7";
-    const line = { ingredient_id: id, quantity: "1", waste_bps: 0 };
-    expect(recipeInputSchema.safeParse({ variant_id: id, items: [line, line] }).success).toBe(false);
-    expect(recipeInputSchema.safeParse({ variant_id: id, items: [{ ...line, quantity: "0" }] }).success).toBe(false);
+  it("preserves cart snapshots until a changed price is explicitly reviewed", () => {
+    const cart = addLine([], product, small);
+    const changed = {
+      ...product,
+      sizes: [{ ...product.sizes[0], price_cents: 13000 }, product.sizes[1]],
+    };
+    expect(cart[0].price_cents).toBe(12000);
+    expect(cartIssue(cart[0], [changed])).toContain("changed");
+    expect(() => addLine(cart, changed, small)).toThrow("Review");
+    expect(reviewLine(cart[0], [changed])?.price_cents).toBe(13000);
+    expect(
+      cartIssue(cart[0], [
+        {
+          ...product,
+          sizes: [{ ...product.sizes[0], label: "New size" }, product.sizes[1]],
+        },
+      ]),
+    ).toContain("changed");
+  });
+  it("blocks removed/inactive options without losing existing cart details", () => {
+    const cart = addLine([], product, small);
+    const changed = {
+      ...product,
+      sizes: [{ ...product.sizes[0], active: false }, product.sizes[1]],
+    };
+    expect(defaultSizeId(changed)).toBe(large);
+    expect(isAvailable(changed)).toBe(true);
+    expect(() => addLine([], changed, small)).toThrow();
+    expect(cartIssue(cart[0], [changed])).toContain("no longer available");
+    expect(reviewLine(cart[0], [changed])).toBeUndefined();
+    expect(cartIssue(cart[0], [])).toContain("no longer available");
+    expect(isAvailable({ ...product, active: false })).toBe(false);
+    expect(
+      isAvailable({ ...product, archived_at: new Date().toISOString() }),
+    ).toBe(false);
   });
 });

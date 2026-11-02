@@ -1,0 +1,2 @@
+import { defineConfig, devices } from "@playwright/test";
+export default defineConfig({ testDir: "./tests/ui", testMatch: "*.spec.ts", outputDir: ".local/ui-test-results", timeout: 30000, use: { baseURL: "http://127.0.0.1:3017", ...devices["Desktop Chrome"], channel: process.env.PLAYWRIGHT_CHANNEL }, webServer: { command: "node node_modules/vite/bin/vite.js --config tests/ui/vite.config.ts", url: "http://127.0.0.1:3017", reuseExistingServer: false, timeout: 60000 } });

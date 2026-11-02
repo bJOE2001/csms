@@ -1,32 +1,205 @@
-import {NextResponse,type NextRequest} from "next/server";
-import {z} from "zod";
-import {createClient} from "@/lib/supabase/server";
-import {orderPayloadSchema} from "@/lib/pos/domain";
-import{isSameOrigin}from "@/lib/http";
-
-export async function GET(){
-  const supabase=await createClient();const{data:{user}}=await supabase.auth.getUser();if(!user)return NextResponse.json({error:"Sign in to open POS."},{status:401});
-  const{data:membership}=await supabase.from("shop_members").select("shop_id,role").eq("user_id",user.id).eq("status","active").order("created_at").limit(1).maybeSingle();
-  if(!membership)return NextResponse.json({error:"An active shop membership is required."},{status:403});
-  const{data,error}=await supabase.rpc("get_business_data",{p_shop_id:membership.shop_id,p_module:"pos"});if(error)return NextResponse.json({error:"Apply pending database migrations before opening POS."},{status:503});
-  return NextResponse.json({shop_id:membership.shop_id,user_id:user.id,role:membership.role,data},{headers:{"Cache-Control":"private, no-store"}});
+import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
+import { createClient } from "@/lib/supabase/server";
+import { isSameOrigin } from "@/lib/http";
+import {
+  checkoutSchema,
+  productSchema,
+  expenseSchema,
+  recordCostSchema,
+} from "@/lib/sales/domain";
+import { categorySchema } from "@/lib/menu/domain";
+export async function GET() {
+  const db = await createClient();
+  const {
+    data: { user },
+  } = await db.auth.getUser();
+  if (!user)
+    return NextResponse.json(
+      { error: "Sign in to open POS." },
+      { status: 401 },
+    );
+  const { data: member, error: accessError } = await db
+    .from("shop_members")
+    .select("shop_id,role,shops(id,name,timezone)")
+    .eq("user_id", user.id)
+    .eq("status", "active")
+    .order("created_at")
+    .limit(1)
+    .maybeSingle();
+  if (accessError)
+    return NextResponse.json(
+      { error: "Shop access could not be loaded." },
+      { status: 503 },
+    );
+  if (!member)
+    return NextResponse.json(
+      { error: "Create your shop first." },
+      { status: 403 },
+    );
+  const [{ data, error }, { data: categories, error: categoryError }] =
+    await Promise.all([
+      db
+        .from("pos_products")
+        .select(
+          "id,name,price_cents,cost_cents,active,category_id,description,image_url,sizes",
+        )
+        .eq("shop_id", member.shop_id)
+        .is("archived_at", null)
+        .order("name"),
+      db
+        .from("pos_categories")
+        .select("id,name")
+        .eq("shop_id", member.shop_id)
+        .order("name"),
+    ]);
+  return error || categoryError
+    ? NextResponse.json(
+        {
+          error:
+            "Apply the Menu Management migration before opening your shop.",
+        },
+        { status: 503 },
+      )
+    : NextResponse.json(
+        {
+          shop: member.shops,
+          user_id: user.id,
+          founder: member.role === "founder",
+          products: data,
+          categories,
+        },
+        { headers: { "Cache-Control": "private, no-store" } },
+      );
 }
-export async function POST(request:NextRequest){
-  if(!isSameOrigin(request,process.env.APP_URL))return NextResponse.json({error:"Invalid origin"},{status:403});
-  if(Number(request.headers.get("content-length"))>131072)return NextResponse.json({error:"Payload too large"},{status:413});
-  const supabase=await createClient();const{data:{user}}=await supabase.auth.getUser();if(!user)return NextResponse.json({error:"Sign in again to synchronize. Your queue is retained."},{status:401});
-  try{
-    const reader=request.body?.getReader();if(!reader)throw new Error("Empty request");
-    let size=0;const chunks:Uint8Array[]=[];
-    while(true){const chunk=await reader.read();if(chunk.done)break;size+=chunk.value.length;if(size>131072){await reader.cancel();return NextResponse.json({error:"Payload too large"},{status:413});}chunks.push(chunk.value);}
-    const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}
-    const body=z.object({action:z.enum(["open","order","close","pair"]),shop_id:z.uuid(),operation_id:z.uuid().optional(),device_id:z.uuid().optional(),shift_id:z.uuid().optional(),browser_key:z.string().min(32).max(128).optional(),last_sequence:z.number().int().nonnegative().optional(),payload:z.unknown().optional(),recovery_reason:z.string().trim().min(1).max(500).optional(),data:z.record(z.string(),z.union([z.string(),z.number(),z.boolean()])).optional()}).parse(JSON.parse(new TextDecoder().decode(bytes)));
-    let response;
-    if(body.action==="pair")response=await supabase.rpc("pair_pos_device",{p_shop_id:body.shop_id,p_device_id:z.uuid().parse(body.device_id),p_browser_key:z.string().min(32).max(128).parse(body.browser_key)});
-    else if(body.action==="open")response=await supabase.rpc("open_pos_session",{p_shop_id:body.shop_id,p_device_id:z.uuid().parse(body.device_id),p_shift_id:z.uuid().parse(body.shift_id),...(body.browser_key?{p_browser_key:body.browser_key}:{}),...(body.last_sequence!==undefined?{p_last_sequence:body.last_sequence}:{})});
-    else if(body.action==="order")response=await supabase.rpc("process_order",{p_shop_id:body.shop_id,p_operation_id:z.uuid().parse(body.operation_id),p_payload:orderPayloadSchema.parse(body.payload),...(body.recovery_reason?{p_recovery_reason:body.recovery_reason}:{})});
-    else response=await supabase.rpc("close_cashier_shift",{p_shop_id:body.shop_id,p_operation_id:z.uuid().parse(body.operation_id),p_data:z.record(z.string(),z.union([z.string(),z.number(),z.boolean()])).parse(body.data)});
-    if(response.error){console.error("pos_rpc_failed",{action:body.action,code:response.error.code});return NextResponse.json({error:["P0001","42501"].includes(response.error.code)?response.error.message:"Transaction rejected. Check shop records, sequence conflicts and database migrations.",code:response.error.code},{status:422});}
-    return NextResponse.json({data:response.data},{headers:{"Cache-Control":"private, no-store"}});
-  }catch{return NextResponse.json({error:"Invalid POS input."},{status:400});}
+export async function POST(request: NextRequest) {
+  if (!isSameOrigin(request, process.env.APP_URL))
+    return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
+  if (Number(request.headers.get("content-length")) > 32768)
+    return NextResponse.json({ error: "Request too large" }, { status: 413 });
+  const db = await createClient();
+  const {
+    data: { user },
+  } = await db.auth.getUser();
+  if (!user)
+    return NextResponse.json(
+      { error: "Sign in again. Your pending sale remains saved." },
+      { status: 401 },
+    );
+  try {
+    const reader = request.body?.getReader();
+    if (!reader) throw Error();
+    let size = 0;
+    const chunks: Uint8Array[] = [];
+    while (true) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      size += chunk.value.length;
+      if (size > 32768) {
+        await reader.cancel();
+        return NextResponse.json(
+          { error: "Request too large" },
+          { status: 413 },
+        );
+      }
+      chunks.push(chunk.value);
+    }
+    const bytes = new Uint8Array(size);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset);
+      offset += chunk.length;
+    }
+    const body = z
+      .object({
+        action: z.enum([
+          "checkout",
+          "product",
+          "refund",
+          "expense",
+          "void_expense",
+          "record_cost",
+          "category",
+          "delete_category",
+          "archive_product",
+        ]),
+        shop_id: z.uuid(),
+        data: z.unknown(),
+      })
+      .parse(JSON.parse(new TextDecoder().decode(bytes)));
+    let result;
+    if (body.action === "checkout")
+      result = await db.rpc("pos_checkout", {
+        p_shop_id: body.shop_id,
+        p_data: checkoutSchema.parse(body.data),
+      });
+    else if (body.action === "product")
+      result = await db.rpc("pos_save_product", {
+        p_shop_id: body.shop_id,
+        p_data: productSchema.parse(body.data),
+      });
+    else if (body.action === "category")
+      result = await db.rpc("pos_save_category", {
+        p_shop_id: body.shop_id,
+        p_data: categorySchema.parse(body.data),
+      });
+    else if (
+      body.action === "archive_product" ||
+      body.action === "delete_category"
+    )
+      result = await db.rpc(
+        body.action === "archive_product"
+          ? "pos_archive_product"
+          : "pos_delete_category",
+        {
+          p_shop_id: body.shop_id,
+          p_id: z.object({ id: z.uuid() }).parse(body.data).id,
+        },
+      );
+    else if (body.action === "expense")
+      result = await db.rpc("pos_add_expense", {
+        p_shop_id: body.shop_id,
+        p_data: expenseSchema.parse(body.data),
+      });
+    else if (body.action === "record_cost")
+      result = await db.rpc("pos_record_cost", {
+        p_shop_id: body.shop_id,
+        p_data: recordCostSchema.parse(body.data),
+      });
+    else if (body.action === "void_expense") {
+      const expense = z.object({ id: z.uuid() }).parse(body.data);
+      result = await db.rpc("pos_void_expense", {
+        p_shop_id: body.shop_id,
+        p_id: expense.id,
+      });
+    } else {
+      const refund = z
+        .object({ id: z.uuid(), reason: z.string().trim().min(1).max(500) })
+        .parse(body.data);
+      result = await db.rpc("pos_refund", {
+        p_shop_id: body.shop_id,
+        p_sale_id: refund.id,
+        p_reason: refund.reason,
+      });
+    }
+    if (result.error)
+      return NextResponse.json(
+        {
+          error:
+            result.error.code === "P0001" || result.error.code === "42501"
+              ? result.error.message
+              : "The request could not be saved. Retry with the same details.",
+        },
+        { status: 422 },
+      );
+    return NextResponse.json(
+      { data: result.data },
+      { headers: { "Cache-Control": "private, no-store" } },
+    );
+  } catch {
+    return NextResponse.json(
+      { error: "Check the product, expense or payment details." },
+      { status: 400 },
+    );
+  }
 }

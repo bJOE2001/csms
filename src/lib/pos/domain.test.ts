@@ -1,8 +1,0 @@
-import {describe,it,expect} from "vitest";
-import {cartTotal,orderPayloadSchema,canCheckoutOffline,type PosSession} from "./domain";
-const id="30000000-0000-4000-8000-000000000001";
-describe("POS boundaries",()=>{
-  it("calculates integer-centavo totals and rejects unknown quantities",()=>{const menu=[{variant_id:id,price_cents:15005}] as PosSession["menu"];expect(cartTotal([{variant_id:id,quantity:3}],menu)).toBe(45015);expect(()=>cartTotal([{variant_id:id,quantity:0.5}],menu)).toThrow();expect(()=>cartTotal([{variant_id:id,quantity:1}],[])).toThrow();});
-  it("rejects duplicate lines and fractional discounts",()=>{const payload={session_id:id,sequence:1,order_type:"takeout",table_label:"",items:[{variant_id:id,quantity:1}],discount_cents:0,method:"cash",tendered_cents:10000,reference:"",created_at:"2026-10-29T01:00:00.000Z"};expect(orderPayloadSchema.safeParse(payload).success).toBe(true);expect(orderPayloadSchema.safeParse({...payload,items:[...payload.items,...payload.items]}).success).toBe(false);expect(orderPayloadSchema.safeParse({...payload,discount_cents:0.5}).success).toBe(false);});
-  it("requires an unexpired lease and the designated offline device",()=>{const session={expires_at:"2026-10-29T12:00:00Z",offline_capable:true}as PosSession;const now=Date.parse("2026-10-29T01:00:00Z");expect(canCheckoutOffline(session,now,false,false)).toBe(true);expect(canCheckoutOffline(session,now+86400000,false,false)).toBe(false);expect(canCheckoutOffline({...session,offline_capable:false},now,false,false)).toBe(false);expect(canCheckoutOffline(session,now,true,true)).toBe(false);});
-});
