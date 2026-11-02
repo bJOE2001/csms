@@ -1,0 +1,12 @@
+{
+  "name": "Coffee Shop Management System",
+  "short_name": "Coffee Ops",
+  "description": "Pre-opening and operating workspace for a founder-managed coffee shop.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f4ef",
+  "theme_color": "#f6f4ef",
+  "icons": [
+    { "src": "/icons/coffee.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

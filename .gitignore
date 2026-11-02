@@ -1,0 +1,16 @@
+node_modules/
+.local/
+*.tsbuildinfo
+.next/
+.next-dev/
+out/
+coverage/
+playwright-report/
+test-results/
+.env
+.env.*
+!.env.example
+*.pem
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
