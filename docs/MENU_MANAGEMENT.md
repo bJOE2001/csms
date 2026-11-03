@@ -1,6 +1,6 @@
 # Menu Management
 
-Navigation is **POS → Menu → Sales**. Menu uses the same shop membership and catalog as POS. Owners add, edit and delete; members can view the menu and sell.
+Navigation is **POS → Menu → Sales → Expenses**. Menu uses the same shop membership and catalog as POS. Owners add, edit and delete; members can view the menu and sell.
 
 ## Maintain the menu
 

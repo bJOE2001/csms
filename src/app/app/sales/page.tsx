@@ -11,7 +11,7 @@ export default async function SalesPage({
   const { supabase, shop, role } = await requireMember();
   const params = await searchParams;
   const today = shopDate(shop.timezone);
-  const { from, to, period } = salesRange(params, today);
+  const { from, to } = salesRange(params, today);
   const { data, error } = await supabase.rpc("pos_sales", {
     p_shop_id: shop.id,
     p_from: from,
@@ -36,8 +36,6 @@ export default async function SalesPage({
         timezone={shop.timezone}
         from={from}
         to={to}
-        today={today}
-        period={period}
       />
     </WorkspaceShell>
   );

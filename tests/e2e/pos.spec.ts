@@ -218,7 +218,7 @@ test("POS fits desktop, tablet, phone and landscape", async ({
     }
     await expect(
       page.getByRole("navigation", { name: "Shop" }).getByRole("link"),
-    ).toHaveCount(3);
+    ).toHaveCount(4);
     if (size.width === 375) {
       await page.getByRole("link", { name: /View order/ }).click();
       await expect(page.locator("#current-order")).toBeInViewport();

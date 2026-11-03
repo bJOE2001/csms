@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { isSameOrigin } from "@/lib/http";
@@ -9,6 +10,7 @@ import {
   recordCostSchema,
 } from "@/lib/sales/domain";
 import { categorySchema } from "@/lib/menu/domain";
+import { updateExpenseSchema } from "@/lib/expenses/domain";
 export async function GET() {
   const db = await createClient();
   const {
@@ -117,6 +119,7 @@ export async function POST(request: NextRequest) {
           "product",
           "refund",
           "expense",
+          "update_expense",
           "void_expense",
           "record_cost",
           "category",
@@ -161,6 +164,11 @@ export async function POST(request: NextRequest) {
         p_shop_id: body.shop_id,
         p_data: expenseSchema.parse(body.data),
       });
+    else if (body.action === "update_expense")
+      result = await db.rpc("pos_update_expense", {
+        p_shop_id: body.shop_id,
+        p_data: updateExpenseSchema.parse(body.data),
+      });
     else if (body.action === "record_cost")
       result = await db.rpc("pos_record_cost", {
         p_shop_id: body.shop_id,
@@ -186,12 +194,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error:
-            result.error.code === "P0001" || result.error.code === "42501"
-              ? result.error.message
-              : "The request could not be saved. Retry with the same details.",
+            body.action === "update_expense" && result.error.code === "PGRST202"
+              ? "Apply the Expenses Management migration before editing expenses."
+              : result.error.code === "P0001" || result.error.code === "42501"
+                ? result.error.message
+                : "The request could not be saved. Retry with the same details.",
         },
         { status: 422 },
       );
+    if (["expense", "update_expense", "void_expense"].includes(body.action)) {
+      revalidatePath("/expenses");
+      revalidatePath("/app/sales");
+    }
     return NextResponse.json(
       { data: result.data },
       { headers: { "Cache-Control": "private, no-store" } },

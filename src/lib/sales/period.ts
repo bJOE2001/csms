@@ -2,6 +2,26 @@ export function shopDate(timezone: string, now = new Date()) {
   return new Intl.DateTimeFormat("sv-SE", { timeZone: timezone }).format(now);
 }
 
+export function dateRangeError(from: string, to: string): string | null {
+  if (!from || !to) return "Choose both dates to update the report.";
+  const parse = (value: string) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || value.startsWith("0000")) return NaN;
+    const date = new Date(`${value}T00:00:00Z`);
+    return !isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
+      ? date.getTime()
+      : NaN;
+  };
+  const start = parse(from),
+    end = parse(to);
+  if (!Number.isFinite(start) || !Number.isFinite(end))
+    return "Choose valid dates.";
+  if (end < start) return "To Date must be on or after From Date.";
+  // Match the existing SQL report limit using calendar dates, not local time.
+  if ((end - start) / 86_400_000 > 366)
+    return "Choose a date range of up to one year.";
+  return null;
+}
+
 export function salesPeriods(today: string) {
   const date = new Date(`${today}T00:00:00Z`);
   const shift = (days: number) => {

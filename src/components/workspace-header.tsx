@@ -43,6 +43,14 @@ export function WorkspaceHeader({
           <Icon name="sales" />
           Sales
         </Link>
+        <Link
+          className={`nav-link ${active === "expenses" ? "selected" : ""}`}
+          aria-current={active === "expenses" ? "page" : undefined}
+          href="/expenses"
+        >
+          <Icon name="wallet" />
+          Expenses
+        </Link>
       </nav>
       <div className="sidebar-footer">
         <form action="/auth/sign-out" method="post">

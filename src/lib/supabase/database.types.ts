@@ -81,6 +81,10 @@ export type Database = {
         Args: { p_shop_id: string; p_data: Json };
         Returns: Json;
       };
+      pos_update_expense: {
+        Args: { p_shop_id: string; p_data: Json };
+        Returns: Json;
+      };
       pos_void_expense: {
         Args: { p_shop_id: string; p_id: string };
         Returns: undefined;

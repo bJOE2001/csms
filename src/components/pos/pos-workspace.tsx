@@ -166,14 +166,6 @@ export function PosWorkspace() {
                 placeholder="Search your menu…"
               />
             </label>
-            <Button
-              variant="ghost"
-              onClick={load}
-              aria-label="Refresh product menu"
-            >
-              <Icon name="refresh" size={18} />
-              Refresh
-            </Button>
           </div>
           <div className="pos-menu-content">
             {data.categories.length > 0 && (

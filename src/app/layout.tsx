@@ -4,6 +4,8 @@ import "./globals.css";
 import "./workspace.css";
 import "./workspace-shell.css";
 import "./menu.css";
+import "./sales.css";
+import "./expenses.css";
 import "./receipt.css";
 import { FeedbackProvider } from "@/components/ui/feedback";
 

@@ -1,6 +1,6 @@
 # Coffee POS
 
-A small online POS with three screens: **POS**, **Menu** and **Sales**. Manage products, categories, images, sizes, prices and direct costs in Menu, take cash or GCash payments, then review date-filtered revenue, gross profit, net profit, expenses, receipts and full refunds in Sales.
+A small online POS with four screens: **POS**, **Menu**, **Sales** and **Expenses**. Manage products, categories, images, sizes, prices and direct costs in Menu, take cash or GCash payments, manage operating expenses in Expenses, then review date-filtered revenue, gross profit, net profit, expenses, receipts and full refunds in Sales.
 
 Stack: Next.js 15, React 19, Tailwind 3, shadcn/ui and Supabase Auth/PostgreSQL. There is no inventory, recipe, purchasing, budgeting, funding, staff administration, device pairing, cash shift or offline checkout module.
 
@@ -8,7 +8,7 @@ Stack: Next.js 15, React 19, Tailwind 3, shadcn/ui and Supabase Auth/PostgreSQL.
 
 1. Install supported Node.js 22.12+ and run `npm ci`.
 2. Copy `.env.example` to `.env.local` and set your Supabase public URL/key and APP_URL.
-3. Apply migrations in `supabase/migrations/` in order. On an existing project apply only unapplied migrations, including **202611020001_simple_pos.sql**, **202611020002_pos_profit.sql**, **202611020003_record_missing_cost.sql** and **202611020004_menu_management.sql** before deploying this frontend.
+3. Apply migrations in `supabase/migrations/` in order. On an existing project apply only unapplied migrations, including **202611020001_simple_pos.sql**, **202611020002_pos_profit.sql**, **202611020003_record_missing_cost.sql**, **202611020004_menu_management.sql** and **202611030001_expenses_management.sql** before deploying this frontend.
 4. Create your owner account in Supabase Auth (disable public signup), then run `npm run dev`.
 5. Sign in, create a shop if needed, and add products in Menu.
 
@@ -26,7 +26,7 @@ Old unsent sales in the retired offline till are not imported by the SQL migrati
 - `npm run lint`
 - `npm run typecheck`
 - `npm run build`
-- `npm run test:ui` (isolated shared-component and Sales fixtures)
+- `npm run test:ui` (isolated shared-component, Sales and Expenses fixtures)
 - `npm run test:e2e` (production Next server; POS API responses mocked)
 - `python tests/database/check-simple-pos.py` (Windows PostgreSQL 17 default path, or pass its bin path). Creates a unique disposable cluster on localhost port 55439, applies all migrations, checks checkout/RLS/refunds, and stops it. Never connects to the configured Supabase project.
 
@@ -40,7 +40,7 @@ Sales → **Export CSV** downloads a profit summary, sales history or expense hi
 
 Gross profit = revenue after refunds minus saved product costs. Net profit = gross profit minus recorded operating expenses. Enter a per-item cost (ingredients, packaging and other direct costs) in Menu, including each configured size. Costs are saved on checkout; later edits never rewrite receipts. Refunded prepared goods retain their costs; cancelled sales are excluded. Refunds restate the original sale's period.
 
-Add overhead expenses such as rent, wages, utilities, payment fees and applicable taxes in Sales, dated to the period they belong to. Do not enter ingredient purchases again as overhead when already included in product costs. Voiding an incorrect expense keeps its history and removes its effect. Net profit is based on recorded costs, not a full accounting ledger or automatic tax calculation.
+Add overhead expenses such as rent, wages, utilities, payment fees and applicable taxes in **Expenses** (`/expenses`), dated to the period they belong to. Owners can add, edit and delete expenses; deletion retains a voided record. Edits keep the record ID and creation details, record before/after audit snapshots and reject stale changes. Sales retains the operating expense total and uses the same records on refresh. Do not enter ingredient purchases again as overhead when already included in product costs. Net profit is based on recorded costs, not a full accounting ledger or automatic tax calculation. See [Expenses Management](docs/EXPENSES_MANAGEMENT.md) for rollout, reporting and compatibility details.
 
 Older sales with unknown costs show **Incomplete** profit. The owner can open an affected receipt and choose **Record missing cost**, enter the actual total preparation cost for all items and quantities, and explain its source. This one-time supplement saves the owner, timestamp and note without changing original receipt items, selling prices or payment status. Identical retries are safe; known costs cannot be overwritten. A zero cost must be entered explicitly if nothing was consumed. Setting a product cost affects future sales only; historical costs are never invented.
 

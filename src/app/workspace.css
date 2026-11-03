@@ -12,40 +12,6 @@
 .report-filter .field {
   margin: 0;
 }
-.period-shortcut {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  padding: 8px 14px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  font-size: 13px;
-  font-weight: 600;
-}
-.period-shortcut:hover {
-  border-color: var(--brand);
-}
-.period-shortcut-active {
-  border-color: var(--brand);
-  background: var(--surface-muted);
-  color: var(--brand);
-}
-.report-period {
-  margin-bottom: 20px;
-}
-.report-period > p:first-child {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 12px;
-  align-items: baseline;
-  margin: 0;
-  font-size: 14px;
-}
-.report-period .hint {
-  margin: 4px 0 0;
-}
 .metric-detail {
   margin: 10px 0 0;
   font-size: 14px;

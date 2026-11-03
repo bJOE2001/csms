@@ -1,0 +1,305 @@
+.sales-management {
+  width: 100%;
+  max-width: 1400px;
+  min-width: 0;
+  margin: 0 auto;
+}
+.sales-management > *,
+.sales-overview > * {
+  min-width: 0;
+}
+.sales-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+}
+.sales-heading {
+  flex: 1 1 300px;
+  min-width: 0;
+}
+.sales-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  width: min(100%, 480px);
+  min-width: 0;
+  margin-left: auto;
+}
+:is(.sales-date-range, .expenses-date-range) .report-filter {
+  flex: 1 1 300px;
+  min-width: 0;
+  gap: var(--space-3);
+  margin: 0;
+}
+:is(.sales-date-range, .expenses-date-range) .field {
+  flex: 1 1 140px;
+  gap: var(--space-2);
+}
+.sales-header-actions > .button {
+  flex-shrink: 0;
+}
+.date-range-feedback {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--danger);
+  font-size: 12px;
+}
+:is(.sales-date-range, .expenses-date-range) input {
+  height: var(--control-height);
+  min-height: var(--control-height);
+  padding-block: 8px;
+  font-size: 13px;
+}
+.sales-period {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.sales-period strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.sales-overview .crud-summary {
+  margin: 0;
+}
+.sales-overview .crud-summary .panel {
+  padding: 20px 24px;
+  border-radius: 12px;
+  background: var(--surface);
+}
+.sales-overview .metric-label {
+  font-size: 12px;
+}
+.sales-overview .business-amount {
+  margin: 6px 0 0;
+  font-size: 26px;
+  font-weight: 650;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.sales-overview .metric-detail,
+.sales-overview .hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  font-weight: 400;
+}
+.sales-secondary-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px 0;
+  margin: 16px 0 0;
+  padding: 20px 24px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.sales-secondary-metrics > div {
+  min-width: 0;
+  padding-inline: var(--space-3);
+  border-inline-start: 1px solid var(--line);
+}
+.sales-secondary-metrics > div:first-child {
+  padding-inline-start: 0;
+  border-inline-start: 0;
+}
+.sales-secondary-metrics dt,
+.sales-secondary-metrics small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.sales-secondary-metrics dd {
+  margin: 6px 0 0;
+  font-size: 16px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.sales-secondary-metrics a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.sales-report-notes {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.sales-report-notes summary {
+  width: fit-content;
+  min-height: 24px;
+  cursor: pointer;
+}
+.sales-report-notes p {
+  max-width: 85ch;
+  margin: 8px 0 0;
+}
+.sales-section.panel {
+  margin: 0;
+}
+.sales-section .card-heading,
+.sales-section .data-toolbar {
+  align-items: center;
+  gap: var(--space-4);
+}
+.sales-section .card-heading {
+  margin-bottom: 16px;
+}
+.sales-section h2,
+.sales-section .hint {
+  margin: 0;
+}
+.sales-section .hint {
+  margin-top: 4px;
+  font-size: 13px;
+}
+.sales-section .section-actions {
+  align-self: center;
+}
+.sales-section .data-toolbar-leading {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+.sales-section .table-search {
+  flex: 1 1 240px;
+  width: auto;
+  max-width: 360px;
+  min-width: 0;
+  height: var(--control-height);
+  border-radius: var(--radius-control);
+  border-color: var(--line);
+  background: var(--surface-muted);
+  padding-inline: 16px;
+}
+.sales-section .table-scroll {
+  position: relative;
+  border: 0;
+  border-radius: 8px;
+}
+.sales-section table {
+  font-size: 13px;
+}
+.sales-section th {
+  font-weight: 500;
+}
+.sales-section .numeric {
+  white-space: nowrap;
+}
+.sales-section td.numeric {
+  font-weight: 600;
+}
+.sales-status {
+  display: inline-flex;
+  padding: 4px 9px;
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+.sales-status-completed {
+  background: hsl(var(--secondary));
+  color: var(--brand);
+}
+.sales-section .table-empty {
+  padding: 24px 16px;
+  gap: 8px;
+  font-size: 13px;
+}
+@media (min-width: 1280px) {
+  .sales-secondary-metrics {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+}
+@media (min-width: 761px) and (max-width: 1279px) {
+  .sales-secondary-metrics > div:nth-child(4n + 1) {
+    padding-inline-start: 0;
+    border-inline-start: 0;
+  }
+}
+@media (max-width: 760px) {
+  :is(.sales-date-range, .expenses-date-range) .field {
+    flex: 1 1 140px;
+  }
+  :is(.sales-date-range, .expenses-date-range) input {
+    min-width: 0;
+    font-size: 16px;
+  }
+  .sales-overview .crud-summary .panel,
+  .sales-secondary-metrics,
+  .sales-section.panel {
+    padding: 16px;
+  }
+  .sales-secondary-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .sales-secondary-metrics > div:nth-child(odd) {
+    padding-inline-start: 0;
+    border-inline-start: 0;
+  }
+  .sales-section .card-heading {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .sales-section .data-toolbar-leading,
+  .sales-section .table-search {
+    flex-basis: 100%;
+    max-width: none;
+  }
+  .sales-management .sales-section .data-table table {
+    min-width: 0;
+  }
+  .sales-section thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .sales-section table,
+  .sales-section tbody {
+    display: block;
+  }
+  .sales-section tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    padding: 16px 0;
+  }
+  .sales-section tbody td {
+    display: block;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+  .sales-section tbody td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 6px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 400;
+  }
+  .sales-section .numeric {
+    text-align: left;
+  }
+  .sales-history tbody td:first-child {
+    grid-column: 1 / -1;
+  }
+  .sales-history tbody td:first-child::before {
+    display: none;
+  }
+  .sales-section tbody .button,
+  .sales-report-notes summary {
+    min-height: 44px;
+  }
+  .sales-report-notes summary {
+    align-content: center;
+  }
+}

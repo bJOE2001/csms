@@ -1,13 +1,12 @@
 "use client";
 import { useCallback, useState } from "react";
+import Link from "next/link";
 import { money, summarize, type Sale, type Expense } from "@/lib/sales/domain";
-import { Expenses } from "./expenses";
 import { ExportSales } from "./export-sales";
 import { ReceiptDialog } from "./receipt-dialog";
 import { ReceiptPrint } from "./receipt-print";
-import { SalesDateFilter } from "./sales-date-filter";
-import { salesPeriods, periodDates } from "@/lib/sales/period";
-import { SummaryCards, Card, CardHeader } from "./ui/card";
+import { DateRangeFilter } from "./date-range-filter";
+import { SummaryCards, Card } from "./ui/card";
 import { DataTable } from "./ui/data-table";
 export function SalesView({
   sales,
@@ -18,8 +17,6 @@ export function SalesView({
   timezone,
   from,
   to,
-  today,
-  period,
 }: {
   sales: Sale[];
   expenses?: Expense[];
@@ -29,119 +26,94 @@ export function SalesView({
   timezone: string;
   from: string;
   to: string;
-  today: string;
-  period?: string;
 }) {
   const summary = summarize(sales, expenses);
   const [print, setPrint] = useState<string>();
   const closePrint = useCallback(() => setPrint(undefined), []);
   const printSale = sales.find((sale) => sale.id === print);
-  const selectedPeriod = salesPeriods(today).find(
-    (preset) => preset.id === period,
-  );
-  const margin = (value: number | null) =>
-    value === null
-      ? "Unavailable"
-      : `${new Intl.NumberFormat("en-PH", { maximumFractionDigits: 1 }).format(value)}%`;
   return (
-    <>
-      <div className="page-heading">
-        <div>
-          <p className="eyebrow">Your business at a glance</p>
-          <h1>Sales</h1>
-          <p className="hint">
-            Track sales, product costs and operating expenses for these dates.
+    <div className="sales-management grid gap-6">
+      <header className="sales-header">
+        <div className="sales-heading">
+          <h1 className="m-0">Sales</h1>
+          <p className="hint mb-0 mt-2">
+            Track sales, product costs, and operating expenses.
           </p>
         </div>
-        <ExportSales
-          report={{ shopName, timezone, from, to, sales, expenses }}
+        <div className="sales-header-actions sales-date-range">
+          <DateRangeFilter from={from} to={to} />
+          <ExportSales
+            report={{ shopName, timezone, from, to, sales, expenses }}
+          />
+        </div>
+      </header>
+      <section className="sales-overview" aria-label="Sales overview">
+        <SummaryCards
+          items={[
+            { label: "Sales Revenue", value: money(summary.total) },
+            {
+              label: "Gross Profit",
+              value:
+                summary.grossProfit === null
+                  ? "Incomplete"
+                  : money(summary.grossProfit),
+            },
+            {
+              label: "Net Profit",
+              value:
+                summary.netProfit === null
+                  ? "Incomplete"
+                  : money(summary.netProfit),
+            },
+          ]}
         />
-      </div>
-      <SalesDateFilter
-        key={`${period}:${from}:${to}`}
-        from={from}
-        to={to}
-        today={today}
-        period={period}
-      />
-      <div
-        className="report-period"
-        role="group"
-        aria-label="Applied reporting period"
-      >
-        <p>
-          <span className="metric-label">Reporting period</span>
-          <strong>{selectedPeriod?.label ?? "Custom dates"}</strong>
-          <span>{periodDates(from, to)}</span>
-        </p>
-        <p className="hint">
-          {timezone} ·{" "}
-          {period === "week"
-            ? "Monday through today"
-            : period === "month"
-              ? "Month to date"
-              : "Dates inclusive"}
-        </p>
-      </div>
-      <SummaryCards
-        items={[
-          { label: "Sales revenue", value: money(summary.total) },
-          {
-            label: "Gross profit",
-            value:
-              summary.grossProfit === null
-                ? "Incomplete"
-                : money(summary.grossProfit),
-            hint: "Revenue minus product costs",
-            detail: `Gross margin · ${margin(summary.grossMargin)}`,
-          },
-          {
-            label: "Net profit",
-            value:
-              summary.netProfit === null
-                ? "Incomplete"
-                : money(summary.netProfit),
-            hint: "Gross profit minus recorded expenses",
-            detail: `Net margin · ${margin(summary.netMargin)}`,
-          },
-        ]}
-      />
-      <p className="hint mb-6">
-        {summary.orders} completed sales · Average {money(summary.average)} ·
-        Product costs {money(summary.productCosts)}
-        {summary.missingCosts > 0 && " (known costs only)"} · Expenses{" "}
-        {money(summary.operatingExpenses)} · Cash {money(summary.cash)} · Wallet{" "}
-        {money(summary.wallet)} ·{" "}
-        {sales.filter((s) => s.status !== "completed").length} reversed sales
-      </p>
-      {summary.missingCosts > 0 && (
-        <p role="status" className="form-message error">
-          Profit is incomplete: {summary.missingCosts} sale(s) have no saved
-          product cost.{" "}
-          {founder
-            ? "Open each affected receipt and choose Record missing cost. Set product costs in POS for future sales."
-            : "Ask the owner to record the missing cost on each affected receipt."}
-        </p>
-      )}
-      <p className="hint mb-6">
-        Refunds reduce revenue; prepared product costs remain deducted.
-        Cancelled sales are excluded. Net profit includes only recorded costs
-        and expenses.
-      </p>
-      <Expenses
-        expenses={expenses}
-        shopId={shopId}
-        founder={founder}
-        today={today}
-      />
-      <Card>
-        <CardHeader
-          title="Sales history"
-          description="Open a receipt to see its items, payment and refund status."
-        />
+        <dl className="sales-secondary-metrics">
+          {[
+            { label: "Completed Sales", value: summary.orders },
+            { label: "Average Sale", value: money(summary.average) },
+            {
+              label: "Product Costs",
+              value: money(summary.productCosts),
+              note: summary.missingCosts > 0 ? "Known costs only" : undefined,
+            },
+            { label: "Operating Expenses", value: money(summary.operatingExpenses), href: `/expenses?from=${from}&to=${to}` },
+            { label: "Cash Sales", value: money(summary.cash) },
+            { label: "GCash / Wallet Sales", value: money(summary.wallet) },
+            {
+              label: "Reversed Sales",
+              value: sales.filter((sale) => sale.status !== "completed").length,
+            },
+          ].map(({ label, value, note, href }) => (
+            <div key={label}>
+              <dt>{label}</dt>
+              <dd>{href ? <Link href={href} aria-label={`Manage operating expenses: ${value}`}>{value}</Link> : value}</dd>
+              {note && <small>{note}</small>}
+            </div>
+          ))}
+        </dl>
+        {summary.missingCosts > 0 && (
+          <p role="status" className="form-message error">
+            Profit is incomplete: {summary.missingCosts} sale(s) have no saved
+            product cost.{" "}
+            {founder
+              ? "Open each affected receipt and choose Record missing cost. Set product costs in POS for future sales."
+              : "Ask the owner to record the missing cost on each affected receipt."}
+          </p>
+        )}
+      </section>
+      <Card className="sales-section sales-history">
         <DataTable
+          toolbarLeading={
+            <div className="sales-section-heading">
+              <h2>Sales History</h2>
+              <p className="hint">
+                View completed transactions and payment details.
+              </p>
+            </div>
+          }
           caption="Sales history"
           searchPlaceholder="Search receipt or payment method"
+          emptyMessage="No sales records found for the selected period."
           columns={[
             { key: "actions", label: "Receipt" },
             { key: "date", label: "Date" },
@@ -158,11 +130,20 @@ export function SalesView({
                 timeStyle: "short",
                 timeZone: timezone,
               }).format(new Date(s.created_at)),
-              method: s.method,
+              method:
+                s.method === "cash"
+                  ? "Cash"
+                  : s.method === "gcash"
+                    ? "GCash"
+                    : s.method,
               total: money(s.total_cents),
               status: (
                 <>
-                  <span className="status">{s.status}</span>
+                  <span
+                    className={`sales-status ${s.status === "completed" ? "sales-status-completed" : ""}`}
+                  >
+                    {s.status}
+                  </span>
                   {s.total_cost_cents == null && s.status !== "cancelled" && (
                     <small className="block text-muted-foreground">
                       Cost missing
@@ -192,6 +173,6 @@ export function SalesView({
           onClose={closePrint}
         />
       )}
-    </>
+    </div>
   );
 }

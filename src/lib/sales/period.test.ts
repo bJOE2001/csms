@@ -1,7 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { periodDates, salesPeriods, salesRange, shopDate } from "./period";
+import {
+  dateRangeError, periodDates, salesPeriods, salesRange, shopDate,
+} from "./period";
 
 describe("shop reporting periods", () => {
+  it("only applies complete, valid ranges within the existing SQL limit", () => {
+    expect(dateRangeError("", "2026-11-02")).toContain("Choose both dates");
+    expect(dateRangeError("2026-11-02", "")).toContain("Choose both dates");
+    for (const invalid of ["not-a-date", "2026-02-30", "2026-02-29", "0000-01-01"]) {
+      expect(dateRangeError(invalid, "2026-11-02")).toBe("Choose valid dates.");
+    }
+    expect(dateRangeError("2024-02-29", "2024-02-29")).toBeNull();
+    expect(dateRangeError("2026-11-03", "2026-11-02")).toContain("on or after");
+    expect(dateRangeError("2026-01-01", "2027-01-02")).toBeNull();
+    expect(dateRangeError("2026-01-01", "2027-01-03")).toContain("up to one year");
+  });
   it("uses the shop's calendar date, including year boundaries", () => {
     const now = new Date("2026-01-01T00:30:00Z");
     expect(shopDate("Asia/Manila", now)).toBe("2026-01-01");

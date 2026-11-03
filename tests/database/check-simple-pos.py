@@ -29,6 +29,7 @@ try:
  print(sql((root/"tests/database/profit.sql").read_text(encoding="utf-8")))
  print(sql((root/"tests/database/record-cost.sql").read_text(encoding="utf-8")))
  print(sql((root/"tests/database/menu.sql").read_text(encoding="utf-8")))
+ print(sql((root/"tests/database/expenses-management.sql").read_text(encoding="utf-8")))
  print("All migrations and simple POS database assertions passed.")
 finally:
  if started:run("pg_ctl","-D",str(cluster),"-m","fast","-w","stop")

@@ -1,10 +1,12 @@
 import { SalesView } from "@/components/sales-view";
+import { ExpensesView } from "@/components/expenses-view";
+import { MenuWorkspace } from "@/components/menu/menu-workspace";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { ReceiptDialog } from "@/components/receipt-dialog";
 import { ReceiptPrint } from "@/components/receipt-print";
-import { useCallback, useState } from "react";
-import type { Sale } from "@/lib/sales/domain";
-import { salesRange } from "@/lib/sales/period";
+import { useCallback, useEffect, useState } from "react";
+import type { Sale, Expense } from "@/lib/sales/domain";
+import { salesRange, shopDate } from "@/lib/sales/period";
 import { createRoot } from "react-dom/client";
 import { MutationForm } from "@/components/mutation-form";
 import { FormDialog } from "@/components/ui/form-dialog";
@@ -16,6 +18,9 @@ import "@/app/tokens.css";
 import "@/app/globals.css";
 import "@/app/workspace.css";
 import "@/app/workspace-shell.css";
+import "@/app/menu.css";
+import "@/app/sales.css";
+import "@/app/expenses.css";
 import "@/app/receipt.css";
 
 declare global {
@@ -176,36 +181,54 @@ function ReceiptFixture() {
     </FeedbackProvider>
   );
 }
-const fixtureRange = salesRange(
-  Object.fromEntries(new URLSearchParams(location.search)),
-  "2026-11-02",
-);
-createRoot(document.getElementById("root")!).render(
-  location.search.includes("receipt") ? (
-    <ReceiptFixture />
-  ) : location.search.includes("sales") ||
-    location.pathname === "/app/sales" ? (
+function readFixtureExpenses(): Expense[] {
+  if (new URLSearchParams(location.search).has("empty")) return [];
+  const stored = sessionStorage.getItem("fixture-expenses");
+  return stored ? JSON.parse(stored) : [{
+    id: "00000000-0000-4000-8000-000000000003",
+    spent_on: "2026-11-02", description: "Electricity", amount_cents: 2000,
+    voided: new URLSearchParams(location.search).has("voided"),
+  }];
+}
+function ReportFixture() {
+  const [records, setRecords] = useState(readFixtureExpenses);
+  const [search, setSearch] = useState(location.search);
+  const fixtureRange = salesRange(
+    Object.fromEntries(new URLSearchParams(search)), "2026-11-02",
+  );
+  useEffect(() => {
+    const navigate = () => setSearch(location.search);
+    window.addEventListener("fixture:navigate", navigate);
+    window.addEventListener("popstate", navigate);
+    return () => {
+      window.removeEventListener("fixture:navigate", navigate);
+      window.removeEventListener("popstate", navigate);
+    };
+  }, []);
+  useEffect(() => {
+    const refresh = () => setRecords(readFixtureExpenses());
+    window.addEventListener("fixture:refresh", refresh);
+    return () => window.removeEventListener("fixture:refresh", refresh);
+  }, []);
+  const expenses = records.filter(expense => expense.spent_on >= fixtureRange.from && expense.spent_on <= fixtureRange.to);
+  const isExpenses = location.pathname === "/expenses" || new URLSearchParams(location.search).has("expenses");
+  return (
     <FeedbackProvider>
-      <WorkspaceShell active="sales" shopName="Common Ground Coffee">
-        <SalesView
+      <WorkspaceShell active={isExpenses ? "expenses" : "sales"} shopName="Common Ground Coffee">
+        {isExpenses ? <ExpensesView
+          expenses={expenses}
+          shopId="00000000-0000-4000-8000-000000000001"
+          founder={!location.search.includes("staff")}
+          today="2026-11-02" from={fixtureRange.from} to={fixtureRange.to}
+        /> : <SalesView
           shopId="00000000-0000-4000-8000-000000000001"
           shopName="Common Ground Coffee"
           founder={!location.search.includes("staff")}
           timezone="Asia/Manila"
           from={fixtureRange.from}
           to={fixtureRange.to}
-          period={fixtureRange.period}
-          today="2026-11-02"
-          expenses={[
-            {
-              id: "00000000-0000-4000-8000-000000000003",
-              spent_on: "2026-11-02",
-              description: "Electricity",
-              amount_cents: 2000,
-              voided: false,
-            },
-          ]}
-          sales={[
+          expenses={expenses}
+          sales={location.search.includes("empty") ? [] : [
             {
               id: "00000000-0000-4000-8000-000000000002",
               created_at: "2026-11-02T04:00:00Z",
@@ -213,7 +236,7 @@ createRoot(document.getElementById("root")!).render(
               total_cost_cents: location.search.includes("missing")
                 ? null
                 : 5000,
-              method: "cash",
+              method: location.search.includes("wallet") ? "gcash" : "cash",
               status: location.search.includes("refunded")
                 ? "refunded"
                 : "completed",
@@ -229,10 +252,33 @@ createRoot(document.getElementById("root")!).render(
                 },
               ],
             },
-          ]}
-        />
+          ].flatMap((sale) =>
+            Array.from(
+              { length: location.search.includes("many") ? 40 : 1 },
+              (_, index) => ({
+                ...sale,
+                id: index === 0
+                  ? sale.id
+                  : `00000000-0000-4000-8000-${String(index + 100).padStart(12, "0")}`,
+              }),
+            ),
+          ).filter((sale) => {
+            const date = shopDate("Asia/Manila", new Date(sale.created_at));
+            return date >= fixtureRange.from && date <= fixtureRange.to;
+          })}
+        />}
       </WorkspaceShell>
     </FeedbackProvider>
+  );
+}
+createRoot(document.getElementById("root")!).render(
+  location.search.includes("menu") ? (
+    <FeedbackProvider><MenuWorkspace /></FeedbackProvider>
+  ) : location.search.includes("receipt") ? (
+    <ReceiptFixture />
+  ) : location.search.includes("sales") || location.search.includes("expenses") ||
+    location.pathname === "/app/sales" || location.pathname === "/expenses" ? (
+    <ReportFixture />
   ) : (
     <Fixture />
   ),

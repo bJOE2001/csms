@@ -17,6 +17,7 @@ import {
   BookOpen,
   Trash2,
   RefreshCw,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 
@@ -39,6 +40,7 @@ const icons: Record<string, LucideIcon> = {
   menu: BookOpen,
   delete: Trash2,
   refresh: RefreshCw,
+  wallet: Wallet,
 };
 export function Icon({ name, size = 20 }: { name: string; size?: number }) {
   const Component = icons[name] ?? Grid2X2;

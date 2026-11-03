@@ -6,13 +6,13 @@ export function WorkspaceShell({
   shopName,
   children,
 }: {
-  active: "pos" | "menu" | "sales";
+  active: "pos" | "menu" | "sales" | "expenses";
   shopName: string;
   children: ReactNode;
 }) {
   return (
     <main
-      className={`shell workspace-shell ${active === "pos" ? "pos-shell" : ""}`}
+      className={`shell workspace-shell ${active}-shell`}
     >
       <a className="skip-link" href="#workspace-main">
         Skip to content

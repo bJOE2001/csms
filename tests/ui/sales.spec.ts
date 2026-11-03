@@ -10,13 +10,7 @@ test("sales shows revenue, receipt, date filters and a refund confirmation", asy
   await expect(page.locator(".crud-summary")).toContainText("145.00");
   await expect(page.locator(".crud-summary")).toContainText("95.00");
   await expect(page.locator(".crud-summary")).toContainText("75.00");
-  await expect(page.locator(".crud-summary")).toContainText(
-    "Gross margin · 65.5%",
-  );
-  await expect(page.locator(".crud-summary")).toContainText(
-    "Net margin · 51.7%",
-  );
-  await expect(page.getByLabel("From", { exact: true })).toHaveValue(
+  await expect(page.getByLabel("From Date", { exact: true })).toHaveValue(
     "2026-11-02",
   );
   expect(
@@ -26,6 +20,8 @@ test("sales shows revenue, receipt, date filters and a refund confirmation", asy
   ).toBe(true);
   for (const size of [
     { width: 1440, height: 900 },
+    { width: 1366, height: 768 },
+    { width: 1024, height: 768 },
     { width: 768, height: 1024 },
     { width: 812, height: 375 },
     { width: 375, height: 812 },
@@ -41,6 +37,10 @@ test("sales shows revenue, receipt, date filters and a refund confirmation", asy
       fullPage: true,
     });
   }
+  const history = page.getByRole("region", { name: "Sales history", exact: true });
+  expect(await history.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+  await expect(history.locator('[data-label="Payment"]')).toContainText("Cash");
+  await expect(history.locator('[data-label="Status"]')).toContainText("completed");
   await page.getByRole("button", { name: "View receipt" }).click();
   await expect(page.getByRole("dialog")).toContainText("Latte");
   await page.getByRole("button", { name: "Refund sale", exact: true }).click();
@@ -56,7 +56,7 @@ test("desktop Sales fills the viewport and scrolls independently of the sidebar"
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 720 });
-  await page.goto("/?sales");
+  await page.goto("/?sales&many");
   const content = page.locator("#workspace-main");
   const sidebar = await page.locator(".workspace-sidebar").boundingBox();
   await content.hover();
@@ -68,54 +68,89 @@ test("desktop Sales fills the viewport and scrolls independently of the sidebar"
     sidebar,
   );
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
-  await expect(
-    page.getByRole("button", { name: "View receipt" }),
-  ).toBeInViewport();
+  expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(720);
+  expect(await content.evaluate((el) =>
+    [...el.querySelectorAll("*")].filter((child) =>
+      child.scrollHeight > child.clientHeight + 1 &&
+      ["auto", "scroll"].includes(getComputedStyle(child).overflowY),
+    ).length,
+  )).toBe(0);
+  await expect(page.locator(".sales-history")).toBeInViewport();
 });
 
-test("date shortcuts navigate to explicit shop periods and custom inputs stay unapplied until submitted", async ({
+test("history search, empty states, wallet totals and voided expenses remain accurate", async ({ page }) => {
+  await page.goto("/?sales&wallet&voided");
+  await expect(page.locator(".sales-secondary-metrics")).toContainText("₱145.00");
+  await expect(page.locator(".crud-summary")).toContainText("₱95.00");
+  const history = page.getByRole("region", { name: "Sales history", exact: true });
+  await expect(history.getByRole("cell", { name: "GCash", exact: true })).toBeVisible();
+  await expect(page.locator(".sales-expenses")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Void expense Electricity" })).toHaveCount(0);
+  await page.getByRole("searchbox").fill("not-a-receipt");
+  await expect(history).toContainText("No matching records. Try a different search.");
+  await page.getByRole("button", { name: "Clear search" }).click();
+  await expect(history.getByRole("button", { name: "View receipt" })).toBeVisible();
+  await page.goto("/?sales&empty");
+  await expect(page.getByText("No sales records found for the selected period.")).toBeVisible();
+  await expect(page.getByRole("link", { name: /Manage operating expenses:/ })).toContainText("₱0.00");
+  await page.goto("/?sales&staff");
+  await expect(page.getByRole("button", { name: "Add expense", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Void expense Electricity" })).toHaveCount(0);
+});
+
+test("dates apply automatically, preserve focus and reject incomplete or invalid ranges", async ({
   page,
 }) => {
   await page.goto("/?sales");
-  const shortcuts = page.getByRole("navigation", {
-    name: "Sales date shortcuts",
-  });
-  for (const [label, period, from, to] of [
-    ["Yesterday", "yesterday", "2026-11-01", "2026-11-01"],
-    ["This week", "week", "2026-11-02", "2026-11-02"],
-    ["This month", "month", "2026-11-01", "2026-11-02"],
-    ["Today", "today", "2026-11-02", "2026-11-02"],
-  ]) {
-    await shortcuts.getByRole("link", { name: label, exact: true }).click();
-    await expect(page).toHaveURL(new RegExp(`period=${period}`));
-    await expect(shortcuts.locator('[aria-current="true"]')).toHaveCount(1);
-    await expect(
-      shortcuts.getByRole("link", { name: label, exact: true }),
-    ).toHaveAttribute("aria-current", "true");
-    await expect(page.getByLabel("From", { exact: true })).toHaveValue(from);
-    await expect(page.getByLabel("To", { exact: true })).toHaveValue(to);
-    await expect(page.getByLabel("Applied reporting period")).toContainText(
-      label,
-    );
-  }
-  await page.getByLabel("From", { exact: true }).fill("2026-09-01");
-  await page.getByLabel("To", { exact: true }).fill("2026-09-30");
-  await expect(page.getByLabel("Applied reporting period")).toContainText(
-    "Today",
-  );
-  await page.getByRole("button", { name: "Apply dates", exact: true }).click();
+  await expect(
+    page.getByRole("navigation", { name: "Sales date shortcuts" }),
+  ).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Apply Dates", exact: true })).toHaveCount(0);
+  const from = page.getByLabel("From Date", { exact: true });
+  const to = page.getByLabel("To Date", { exact: true });
+  await from.clear();
+  await expect(page.getByRole("alert")).toContainText("Choose both dates");
+  await expect(page).toHaveURL(/\?sales$/);
+  await from.fill("2026-12-01");
+  await expect(page.getByRole("alert")).toContainText("To Date must be on or after From Date");
+  expect(await to.evaluate((el: HTMLInputElement) => el.validity.rangeUnderflow)).toBe(true);
+  await expect(page).toHaveURL(/\?sales$/);
+  await from.fill("2026-09-01");
+  await to.fill("2026-09-30");
   await expect(page).toHaveURL(/from=2026-09-01&to=2026-09-30/);
-  await expect(page.getByLabel("Applied reporting period")).toContainText(
-    "Custom dates",
-  );
-  await expect(shortcuts.locator('[aria-current="true"]')).toHaveCount(0);
+  await expect(page.locator(".crud-summary .panel").first()).toContainText("₱0.00");
+  await expect(from).toHaveValue("2026-09-01");
+  await expect(to).toHaveValue("2026-09-30");
+  await expect(to).toBeFocused();
+  await expect(page.getByRole("button", { name: "View receipt" })).toHaveCount(0);
+  // Hold an earlier response while the user restores the previously loaded date.
+  await page.evaluate(() => sessionStorage.setItem("fixture:hold-navigation", "true"));
+  await from.fill("2026-09-02");
+  await expect(page).toHaveURL(/from=2026-09-02&to=2026-09-30/);
+  await expect(page.getByRole("link", { name: /Manage operating expenses:/ }))
+    .toHaveAttribute("href", "/expenses?from=2026-09-01&to=2026-09-30");
+  await from.fill("2026-09-01");
+  await page.evaluate(() => {
+    sessionStorage.removeItem("fixture:hold-navigation");
+    window.dispatchEvent(new Event("fixture:navigate"));
+  });
+  await expect(page).toHaveURL(/from=2026-09-01&to=2026-09-30/);
+  await expect(from).toHaveValue("2026-09-01");
+  await expect(page.getByRole("link", { name: /Manage operating expenses:/ }))
+    .toHaveAttribute("href", "/expenses?from=2026-09-01&to=2026-09-30");
+  await from.fill("2020-01-01");
+  await expect(page.getByRole("alert")).toContainText("up to one year");
+  await page.waitForTimeout(500);
+  await expect(page).toHaveURL(/from=2026-09-01&to=2026-09-30/);
+  await page.goto("/?sales&period=month&wallet");
+  await from.fill("2026-10-01");
+  await expect(page).toHaveURL(/from=2026-10-01&to=2026-11-02/);
+  expect(new URL(page.url()).searchParams.has("period")).toBe(false);
+  expect(new URL(page.url()).searchParams.has("wallet")).toBe(true);
+  await expect(page.locator(".sales-secondary-metrics")).toContainText("₱145.00");
   await page.goto("/?sales&missing");
-  await expect(page.locator(".crud-summary")).toContainText(
-    "Gross margin · Unavailable",
-  );
-  await expect(page.locator(".crud-summary")).toContainText(
-    "Net margin · Unavailable",
-  );
+  await expect(page.locator(".crud-summary .panel").nth(1)).toContainText("Incomplete");
+  await expect(page.locator(".crud-summary .panel").nth(2)).toContainText("Incomplete");
 });
 
 test("owner can record the missing cost of a refunded receipt and retry a failed save", async ({
@@ -175,30 +210,16 @@ test("owner can record the missing cost of a refunded receipt and retry a failed
   ).toHaveCount(0);
 });
 
-test("expenses can be recorded and voided; missing costs prevent misleading profit", async ({
+test("Sales links to expense management without embedding CRUD and preserves missing-cost reporting", async ({
   page,
 }) => {
-  const calls: unknown[] = [];
-  await page.route("**/api/pos", async (route) => {
-    calls.push(route.request().postDataJSON());
-    await route.fulfill({ json: { data: {} } });
-  });
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto("/?sales");
-  await page.getByRole("button", { name: "Add expense", exact: true }).click();
-  await page.getByLabel("Expense date").fill("2026-11-02");
-  await page.getByLabel("Description", { exact: true }).fill("Rent");
-  await page.getByLabel("Amount (PHP)").fill("100.25");
-  await page.getByRole("button", { name: "Save expense", exact: true }).click();
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-  expect(calls[0]).toMatchObject({
-    action: "expense",
-    data: { description: "Rent", spent_on: "2026-11-02", amount_cents: 10025 },
-  });
-  await page.getByRole("button", { name: "Void expense Electricity" }).click();
-  await page.getByRole("button", { name: "Confirm void", exact: true }).click();
-  await expect(page.getByRole("alertdialog")).toHaveCount(0);
-  expect(calls[1]).toMatchObject({ action: "void_expense" });
+  await expect(page.getByRole("button", { name: /Add Expense|Edit expense|Delete expense/ })).toHaveCount(0);
+  const manageExpenses = page.getByRole("link", { name: /Manage operating expenses:/ });
+  await expect(manageExpenses).toHaveAttribute("href", "/expenses?from=2026-11-02&to=2026-11-02");
+  await manageExpenses.click();
+  await expect(page.getByRole("heading", { name: "Expenses Management" })).toBeVisible();
   await page.goto("/?sales&missing");
   await expect(page.locator(".crud-summary")).toContainText("Incomplete");
   await expect(page.getByText(/Profit is incomplete:/)).toBeVisible();

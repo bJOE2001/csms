@@ -10,6 +10,7 @@ const config = {
         { key: "X-Frame-Options", value: "DENY" },
       ] },
       { source: "/app/:path*", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
+      { source: "/expenses/:path*", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
       { source: "/api/:path*", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
     ];
   },

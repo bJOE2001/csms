@@ -1,11 +1,15 @@
 import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 
-test("exports summary, sales and expenses for the applied dates even when inputs or search change", async ({
+test("exports automatically applied dates while invalid drafts and search leave the report unchanged", async ({
   page,
 }) => {
   await page.goto("/?sales");
-  await page.getByLabel("From", { exact: true }).fill("2026-10-01");
+  await page.getByLabel("From Date", { exact: true }).fill("2026-10-01");
+  await expect(page).toHaveURL(/from=2026-10-01&to=2026-11-02/);
+  await expect(page.getByLabel("From Date", { exact: true })).toHaveValue("2026-10-01");
+  await page.getByLabel("To Date", { exact: true }).clear();
+  await expect(page.getByRole("alert")).toContainText("Choose both dates");
   await page.getByRole("searchbox").fill("no matches");
   for (const option of [
     "Profit summary",
@@ -14,15 +18,19 @@ test("exports summary, sales and expenses for the applied dates even when inputs
   ]) {
     await page.getByRole("button", { name: "Export CSV", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: "Export sales data" });
-    await expect(dialog).toContainText("2026-11-02 — 2026-11-02");
+    await expect(dialog).toContainText("2026-10-01 — 2026-11-02");
     await dialog.getByRole("radio", { name: new RegExp(option) }).check();
     const downloadEvent = page.waitForEvent("download");
     await dialog
       .getByRole("button", { name: "Download CSV", exact: true })
       .click();
+    // Check transient feedback before waiting for the downloaded file on disk.
+    await expect(page.locator(".success-toast")).toContainText(
+      "Download started",
+    );
     const download = await downloadEvent;
     expect(download.suggestedFilename()).toMatch(
-      /^(summary|sales|expenses)-2026-11-02_2026-11-02.csv$/,
+      /^(summary|sales|expenses)-2026-10-01_2026-11-02.csv$/,
     );
     const csv = await readFile((await download.path())!, "utf8");
     expect(csv).toContain("Common Ground Coffee");
@@ -37,9 +45,6 @@ test("exports summary, sales and expenses for the applied dates even when inputs
     await expect(
       page.getByRole("button", { name: "Export CSV", exact: true }),
     ).toBeFocused();
-    await expect(page.locator(".success-toast")).toContainText(
-      "Download started",
-    );
   }
 });
 

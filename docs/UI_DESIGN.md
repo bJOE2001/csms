@@ -1,6 +1,6 @@
 # Coffee POS visual direction
 
-The supplied coffee-shop POS reference guides the white surfaces, coral accents, charcoal text, compact navigation, horizontal product cards and separate order pane. The application still has three business screens, POS, Menu and Sales. The presentation mockup's decorative outer canvas is deliberately omitted.
+The supplied coffee-shop POS reference guides the white surfaces, coral accents, charcoal text, compact navigation, horizontal product cards and separate order pane. The application has four business screens: POS, Menu, Sales and Expenses. Expenses reuses Menu's compact overview cards, integrated table toolbar and dialog controls. The presentation mockup's decorative outer canvas is deliberately omitted.
 
 ## Shared styling
 
