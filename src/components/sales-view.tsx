@@ -115,16 +115,18 @@ export function SalesView({
           searchPlaceholder="Search receipt or payment method"
           emptyMessage="No sales records found for the selected period."
           columns={[
-            { key: "actions", label: "Receipt" },
-            { key: "date", label: "Date" },
-            { key: "method", label: "Payment" },
+            { key: "receipt", label: "Receipt", kind: "primary" },
+            { key: "date", label: "Date", kind: "compact" },
+            { key: "method", label: "Payment", kind: "compact" },
             { key: "total", label: "Total", numeric: true },
-            { key: "status", label: "Status" },
+            { key: "status", label: "Status", kind: "status" },
+            { key: "actions", label: "Actions", kind: "actions" },
           ]}
           rows={sales.map((s) => ({
             id: s.id,
             search: `${s.id} ${s.method} ${s.status}`,
             cells: {
+              receipt: <strong className="table-receipt-number">#{s.id.slice(0, 8).toUpperCase()}</strong>,
               date: new Intl.DateTimeFormat("en-PH", {
                 dateStyle: "medium",
                 timeStyle: "short",
@@ -159,6 +161,7 @@ export function SalesView({
                   timezone={timezone}
                   founder={founder}
                   onPrint={() => setPrint(s.id)}
+                  tableAction
                 />
               ),
             },

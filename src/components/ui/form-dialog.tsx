@@ -14,6 +14,8 @@ import { Dialog } from "./dialog";
 import { Button } from "./button";
 import { Icon } from "./icon";
 import { useFeedback } from "./feedback";
+import { TableActionButton } from "./table-action-button";
+import type { LucideIcon } from "lucide-react";
 
 type FormDialogState = {
   cancel: () => void;
@@ -39,6 +41,7 @@ export function FormDialog({
   initialOpen = false,
   className = "",
   readOnlyActions,
+  tableAction,
 }: {
   trigger: ReactNode;
   title: string;
@@ -53,6 +56,11 @@ export function FormDialog({
   initialOpen?: boolean;
   className?: string;
   readOnlyActions?: ReactNode;
+  tableAction?: {
+    icon: LucideIcon;
+    tooltip: string;
+    variant?: "standard" | "destructive";
+  };
 }) {
   const [open, setOpen] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -103,21 +111,24 @@ export function FormDialog({
     () => ({ cancel: requestClose, complete, setPending, danger, markDirty }),
     [requestClose, complete, danger, markDirty],
   );
+  const triggerProps = {
+    id,
+    "aria-haspopup": "dialog" as const,
+    "aria-expanded": open,
+    onClick: () => {
+      setPending(false);
+      setOpen(true);
+    },
+  };
   return (
     <>
-      <Button
-        id={id}
-        className={triggerClassName}
-        aria-label={triggerLabel}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        onClick={() => {
-          setPending(false);
-          setOpen(true);
-        }}
-      >
-        {trigger}
-      </Button>
+      {tableAction ? (
+        <TableActionButton {...triggerProps} {...tableAction} label={triggerLabel ?? title} />
+      ) : (
+        <Button {...triggerProps} className={triggerClassName} aria-label={triggerLabel}>
+          {trigger}
+        </Button>
+      )}
       <Dialog
         open={open}
         onClose={requestClose}

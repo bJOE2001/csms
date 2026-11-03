@@ -30,6 +30,43 @@ try:
  print(sql((root/"tests/database/record-cost.sql").read_text(encoding="utf-8")))
  print(sql((root/"tests/database/menu.sql").read_text(encoding="utf-8")))
  print(sql((root/"tests/database/expenses-management.sql").read_text(encoding="utf-8")))
+ seed=(root/"supabase/seeds/demo_october_2026.sql").read_text(encoding="utf-8")
+ seed_checks=(root/"tests/database/demo-seed.sql").read_text(encoding="utf-8")
+ seed_setup="""
+ insert into auth.users(id,email) values('00000000-0000-4000-8000-000000000777','demo-owner@test.invalid');
+ select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000777',false);
+ select set_config('coffee_pos.demo_shop_id',public.create_shop('Demo seed test shop','Asia/Manila')::text,false);
+ create temp view seed_observed_rows as
+   select 'products' kind,id,to_jsonb(p) snapshot from public.pos_products p
+   union all select 'categories',id,to_jsonb(c) from public.pos_categories c
+   union all select 'sales',id,to_jsonb(s) from public.pos_sales s
+   union all select 'expenses',id,to_jsonb(e) from public.pos_expenses e
+   union all select 'shops',id,to_jsonb(s) from public.shops s
+   union all select 'members',id,to_jsonb(m) from public.shop_members m
+   union all select 'users',id,to_jsonb(u) from auth.users u;
+ create temp table before_seed as select * from seed_observed_rows;
+ """
+ first_checks="""
+ do $$ begin
+   assert not exists(select * from before_seed except select * from seed_observed_rows), 'Existing records changed';
+ end $$;
+ update public.pos_products set description='[Demo] Owner-edited description retained.'
+   where id=pg_temp.coffee_demo_id(current_setting('coffee_pos.demo_shop_id')::uuid,'product:Americano');
+ create temp table first_seed as select * from seed_observed_rows;
+ """
+ repeat_checks="""
+ do $$ begin
+   assert not exists(select * from first_seed except select * from seed_observed_rows), 'Rerun changed records';
+   assert not exists(select * from seed_observed_rows except select * from first_seed), 'Rerun added duplicates';
+ end $$;
+ """
+ print(sql(seed_setup+seed+seed_checks+first_checks+seed+seed_checks+repeat_checks))
+ try:
+  sql("select set_config('coffee_pos.demo_shop_id','',false);"+seed)
+ except RuntimeError as error:
+  if 'Select a shop with coffee_pos.demo_shop_id' not in str(error):raise
+ else:raise RuntimeError("Demo seed accepted an ambiguous target shop")
+ print("Demo seed date range, snapshots, permissions, preservation and idempotence passed.")
  print("All migrations and simple POS database assertions passed.")
 finally:
  if started:run("pg_ctl","-D",str(cluster),"-m","fast","-w","stop")

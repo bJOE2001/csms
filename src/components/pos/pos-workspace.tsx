@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
 import { WorkspaceShell } from "../workspace-shell";
 import { Icon } from "../ui/icon";
 import { ProductThumbnail } from "./product-thumbnail";
@@ -24,7 +25,26 @@ import {
   type CartLine,
 } from "@/lib/pos/cart";
 
+const cartMediaQuery = "(max-width: 1279px)";
+function subscribeCartLayout(notify: () => void) {
+  const query = window.matchMedia(cartMediaQuery);
+  query.addEventListener("change", notify);
+  return () => query.removeEventListener("change", notify);
+}
+const compactCartSnapshot = () => window.matchMedia(cartMediaQuery).matches;
+const serverCartSnapshot = () => false;
+
 export function PosWorkspace() {
+  const compactCart = useSyncExternalStore(
+    subscribeCartLayout,
+    compactCartSnapshot,
+    serverCartSnapshot,
+  );
+  const [cartOpen, setCartOpen] = useState(false);
+  const cartHeading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (!compactCart) setCartOpen(false);
+  }, [compactCart]);
   const { data, error: loadError, refresh: load } = useCatalog();
   const [error, setError] = useState(""),
     [query, setQuery] = useState(""),
@@ -56,6 +76,18 @@ export function PosWorkspace() {
   try {
     change = cash ? Math.max(0, cents(cash) - total) : 0;
   } catch {}
+  function changeQuantity(key: string, delta: -1 | 1) {
+    if (busy || pending) return;
+    setCart((current) =>
+      current
+        .map((line) =>
+          line.key === key && !(delta > 0 && cartIssue(line, data?.products ?? []))
+            ? { ...line, quantity: Math.min(100, line.quantity + delta) }
+            : line,
+        )
+        .filter((line) => line.quantity > 0),
+    );
+  }
   async function submit() {
     if (!data || busy) return;
     setError("");
@@ -151,316 +183,354 @@ export function PosWorkspace() {
       (categoryId === "all" || (product.category_id ?? "none") === categoryId),
   );
   const itemCount = lines.reduce((sum, p) => sum + p.quantity, 0);
-  return (
-    <WorkspaceShell active="pos" shopName={data.shop.name}>
-      <div className="pos-layout">
-        <section className="pos-menu" aria-label="Product menu" tabIndex={0}>
-          <div className="pos-toolbar">
-            <label className="pos-search">
-              <Icon name="search" size={20} />
-              <span className="sr-only">Search products</span>
-              <Input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search your menu…"
-              />
-            </label>
-          </div>
-          <div className="pos-menu-content">
-            {data.categories.length > 0 && (
-              <div
-                className="menu-filters"
-                role="group"
-                aria-label="Filter products by category"
-              >
-                <button
-                  type="button"
-                  aria-pressed={categoryId === "all"}
-                  onClick={() => setCategoryId("all")}
-                >
-                  All products
-                </button>
-                {data.categories.map((category) => (
-                  <button
-                    key={category.id}
-                    type="button"
-                    aria-pressed={categoryId === category.id}
-                    onClick={() => setCategoryId(category.id)}
-                  >
-                    {category.name}
-                  </button>
-                ))}
-                {data.products.some((product) => !product.category_id) && (
-                  <button
-                    type="button"
-                    aria-pressed={categoryId === "none"}
-                    onClick={() => setCategoryId("none")}
-                  >
-                    Uncategorized
-                  </button>
-                )}
-              </div>
-            )}
-            <div className="menu-section-heading">
-              <h1>Product menu</h1>
-              <span>
-                {visibleProducts.length}{" "}
-                {visibleProducts.length === 1 ? "item" : "items"} ·{" "}
-                {data.products.filter(isAvailable).length} available
-              </span>
-            </div>
-            {(error || loadError) && (
-              <p role="alert" className="form-message error">
-                {error || loadError}
-              </p>
-            )}
-            {message && (
-              <p role="status" className="form-message success">
-                {message}
-              </p>
-            )}
-            {lines.length > 0 && !pending && (
-              <a className="button mobile-order-link" href="#current-order">
-                <Icon name="bag" size={18} />
-                View order · {money(total)}
-              </a>
-            )}
-            <div className="pos-products">
-              {visibleProducts.map((product) => {
-                const chosen = selectedSizes[product.id];
-                const sizeId = product.sizes?.some((size) => size.id === chosen)
-                  ? chosen
-                  : defaultSizeId(product);
-                return (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    sizeId={sizeId}
-                    onSizeChange={(id) =>
-                      setSelectedSizes((current) => ({
-                        ...current,
-                        [product.id]: id,
-                      }))
-                    }
-                    quantity={
-                      cart.find(
-                        (line) => line.key === lineKey(product.id, sizeId),
-                      )?.quantity ?? 0
-                    }
-                    disabled={busy || !!pending}
-                    onAdd={() => {
-                      try {
-                        const next = addLine(cart, product, sizeId);
-                        setCart(next);
-                        setError("");
-                      } catch (error) {
-                        setError((error as Error).message);
-                      }
-                    }}
-                  />
-                );
-              })}
-            </div>
-            {!data.products.length && (
-              <p className="empty-state">
-                No products yet. An owner can add products in Menu Management.
-              </p>
-            )}
-            {!!data.products.length && !visibleProducts.length && (
-              <div className="empty-state">
-                <p>
-                  {query
-                    ? `No products match “${query}”.`
-                    : "No products in this category."}
-                </p>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setQuery("");
-                    setCategoryId("all");
-                  }}
-                >
-                  {query ? "Clear search" : "Show all products"}
-                </Button>
-              </div>
-            )}
-          </div>
-        </section>
-        <Card className="pos-cart" id="current-order" tabIndex={-1}>
-          <div className="cart-heading">
-            <h2>Cart</h2>
-            <span
-              className="cart-count"
-              aria-label={`${itemCount} items in order`}
+  const feedback = (
+    <>
+      {(error || loadError) && (
+        <p role="alert" className="form-message error">
+          {error || loadError}
+        </p>
+      )}
+      {message && (
+        <p role="status" className="form-message success">
+          {message}
+        </p>
+      )}
+    </>
+  );
+  const cartContent = (
+    <>
+      <div className="cart-heading">
+        {compactCart ? (
+          <Dialog.Title ref={cartHeading} tabIndex={-1}>
+            Cart
+          </Dialog.Title>
+        ) : (
+          <h2>Cart</h2>
+        )}
+        <span
+          className="cart-count"
+          aria-label={`${itemCount} items in cart`}
+        >
+          {itemCount}
+        </span>
+        {compactCart && (
+          <Dialog.Close asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="cart-close"
+              aria-label="Close cart"
             >
-              {itemCount}
-            </span>
-          </div>
-          {pending ? (
-            <div className="cart-body">
-              <p className="hint">
-                Receipt {pending.id.slice(0, 8).toUpperCase()} is saved on this
-                browser. Retry it to confirm the result before starting another
-                sale.
-              </p>
-            </div>
-          ) : (
-            <>
-              <div className="cart-body">
-                {!lines.length && (
-                  <div className="cart-empty">
-                    <Icon name="bag" size={32} />
-                    <strong>Your cart is empty</strong>
-                    <p>Add a product to start a sale.</p>
+              <Icon name="close" />
+            </Button>
+          </Dialog.Close>
+        )}
+      </div>
+      {compactCart && cartOpen && feedback}
+      {pending ? (
+        <div className="cart-body">
+          <p className="hint">
+            Receipt {pending.id.slice(0, 8).toUpperCase()} is saved on this
+            browser. Retry it to confirm the result before starting another
+            sale.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="cart-body">
+            {!lines.length && (
+              <div className="cart-empty">
+                <Icon name="bag" size={32} />
+                <strong>Your cart is empty</strong>
+                <p>Add a product to start a sale.</p>
+              </div>
+            )}
+            {lines.map((p, index) => (
+              <div className="order-line" key={p.key}>
+                <ProductThumbnail name={p.name} imageUrl={p.image_url} />
+                <div className="order-description">
+                  <strong>{p.name}</strong>
+                  <div className="order-meta">
+                    {p.size_label && <small>Size: {p.size_label}</small>}
+                    <small>{money(p.price_cents)} each</small>
                   </div>
-                )}
-                {lines.map((p, index) => (
-                  <div className="order-line" key={p.key}>
-                    <ProductThumbnail name={p.name} imageUrl={p.image_url} />
-                    <div className="order-description">
-                      <strong>{p.name}</strong>
-                      {p.size_label && <small>Size: {p.size_label}</small>}
-                      <small>{money(p.price_cents)} each</small>
-                    </div>
-                    <div className="order-controls">
+                </div>
+                <div className="order-line-footer">
+                  <div className="order-controls">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      aria-label={`Decrease ${p.name}${p.size_label ? ` ${p.size_label}` : ""}`}
+                      onClick={() => changeQuantity(p.key, -1)}
+                    >
+                      −
+                    </Button>
+                    <span>{p.quantity}</span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      aria-label={`Increase ${p.name}${p.size_label ? ` ${p.size_label}` : ""}`}
+                      disabled={p.quantity >= 100 || !!issues[index]}
+                      onClick={() => changeQuantity(p.key, 1)}
+                    >
+                      +
+                    </Button>
+                  </div>
+                  <strong className="order-line-total">
+                    {money(p.quantity * p.price_cents)}
+                  </strong>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="order-remove"
+                    aria-label={`Remove ${p.name}${p.size_label ? ` ${p.size_label}` : ""} from cart`}
+                    onClick={() =>
+                      setCart((current) =>
+                        current.filter((line) => line.key !== p.key),
+                      )
+                    }
+                  >
+                    <Icon name="delete" size={18} />
+                  </Button>
+                </div>
+                {issues[index] && (
+                  <div className="cart-item-issue" role="alert">
+                    <p>{issues[index]}</p>
+                    {reviewLine(p, data.products) && (
                       <Button
                         variant="outline"
-                        size="icon"
-                        aria-label={`Decrease ${p.name}${p.size_label ? ` ${p.size_label}` : ""}`}
-                        onClick={() =>
-                          setCart((current) =>
-                            current
-                              .map((line) =>
-                                line.key === p.key
-                                  ? { ...line, quantity: line.quantity - 1 }
-                                  : line,
-                              )
-                              .filter((line) => line.quantity > 0),
-                          )
-                        }
-                      >
-                        −
-                      </Button>
-                      <span>{p.quantity}</span>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        aria-label={`Increase ${p.name}${p.size_label ? ` ${p.size_label}` : ""}`}
-                        disabled={p.quantity >= 100 || !!issues[index]}
-                        onClick={() =>
-                          setCart((current) =>
-                            current.map((line) =>
-                              line.key === p.key
-                                ? { ...line, quantity: line.quantity + 1 }
-                                : line,
-                            ),
-                          )
-                        }
-                      >
-                        +
-                      </Button>
-                    </div>
-                    <strong className="order-line-total">
-                      {money(p.quantity * p.price_cents)}
-                    </strong>
-                    {issues[index] && (
-                      <div className="cart-item-issue" role="alert">
-                        <p>{issues[index]}</p>
-                        {reviewLine(p, data.products) && (
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              const reviewed = reviewLine(p, data.products);
-                              if (reviewed)
-                                setCart((current) =>
-                                  current.map((line) =>
-                                    line.key === p.key ? reviewed : line,
-                                  ),
-                                );
-                            }}
-                          >
-                            Use{" "}
-                            {reviewLine(p, data.products)?.size_label ??
-                              "current item"}{" "}
-                            · {money(reviewLine(p, data.products)!.price_cents)}
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          aria-label={`Remove ${p.name}${p.size_label ? ` ${p.size_label}` : ""}`}
-                          onClick={() =>
+                        onClick={() => {
+                          const reviewed = reviewLine(p, data.products);
+                          if (reviewed)
                             setCart((current) =>
-                              current.filter((line) => line.key !== p.key),
-                            )
-                          }
-                        >
-                          Remove item
-                        </Button>
-                      </div>
+                              current.map((line) =>
+                                line.key === p.key ? reviewed : line,
+                              ),
+                            );
+                        }}
+                      >
+                        Use{" "}
+                        {reviewLine(p, data.products)?.size_label ??
+                          "current item"}{" "}
+                        · {money(reviewLine(p, data.products)!.price_cents)}
+                      </Button>
                     )}
                   </div>
-                ))}
+                )}
               </div>
-              <div className="cart-checkout">
-                <p className="pos-total">
-                  <span>Total</span>
-                  <strong>{money(total)}</strong>
+            ))}
+          </div>
+          <div className="cart-checkout">
+            <p className="pos-total">
+              <span>Total</span>
+              <strong>{money(total)}</strong>
+            </p>
+            <fieldset disabled={busy}>
+              <legend>Payment method</legend>
+              <div className="payment-methods">
+                <Button
+                  variant={method === "cash" ? "default" : "outline"}
+                  aria-pressed={method === "cash"}
+                  onClick={() => setMethod("cash")}
+                >
+                  Cash
+                </Button>
+                <Button
+                  variant={method === "gcash" ? "default" : "outline"}
+                  aria-pressed={method === "gcash"}
+                  onClick={() => setMethod("gcash")}
+                >
+                  GCash
+                </Button>
+              </div>
+              {method === "cash" ? (
+                <>
+                  <label className="field">
+                    Cash received
+                    <Input
+                      value={cash}
+                      onChange={(e) => setCash(e.target.value)}
+                      inputMode="decimal"
+                      placeholder="Leave blank for exact payment"
+                    />
+                  </label>
+                  <p className="cart-change">Change {money(change)}</p>
+                </>
+              ) : (
+                <p className="hint my-5">
+                  Check that the wallet payment arrived before completing
+                  the sale.
                 </p>
-                <fieldset disabled={busy}>
-                  <legend>Payment method</legend>
-                  <div className="payment-methods">
-                    <Button
-                      variant={method === "cash" ? "default" : "outline"}
-                      aria-pressed={method === "cash"}
-                      onClick={() => setMethod("cash")}
+              )}
+            </fieldset>
+          </div>
+        </>
+      )}
+      <Button
+        className="checkout-button"
+        pending={busy}
+        pendingLabel="Saving sale…"
+        disabled={!pending && (!lines.length || blocked || !!loadError)}
+        onClick={submit}
+      >
+        {pending ? "Retry saved sale" : "Place an order"}
+      </Button>
+    </>
+  );
+  return (
+    <Dialog.Root open={compactCart && cartOpen} onOpenChange={setCartOpen}>
+      <WorkspaceShell active="pos" shopName={data.shop.name}>
+        <div className="pos-layout">
+          <section className="pos-menu" aria-label="Product menu" tabIndex={0}>
+            <div className="pos-toolbar">
+              <label className="pos-search input-group">
+                <Icon name="search" size={20} />
+                <span className="sr-only">Search products</span>
+                <Input
+                  focusOwner="parent"
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search your menu…"
+                />
+              </label>
+              <Dialog.Trigger asChild>
+                <Button className="cart-trigger" aria-label={`Open cart, ${itemCount} items`}>
+                  <Icon name="bag" size={18} />
+                  Cart
+                  <span className="cart-trigger-count" aria-hidden="true">{itemCount}</span>
+                  <span className="cart-trigger-total">{pending ? "Retry saved sale" : money(total)}</span>
+                </Button>
+              </Dialog.Trigger>
+              <span className="sr-only" aria-live="polite" aria-atomic="true">
+                {itemCount} items in cart
+              </span>
+            </div>
+            <div className="pos-menu-content">
+              {data.categories.length > 0 && (
+                <div
+                  className="menu-filters"
+                  role="group"
+                  aria-label="Filter products by category"
+                >
+                  <button
+                    type="button"
+                    aria-pressed={categoryId === "all"}
+                    onClick={() => setCategoryId("all")}
+                  >
+                    All products
+                  </button>
+                  {data.categories.map((category) => (
+                    <button
+                      key={category.id}
+                      type="button"
+                      aria-pressed={categoryId === category.id}
+                      onClick={() => setCategoryId(category.id)}
                     >
-                      Cash
-                    </Button>
-                    <Button
-                      variant={method === "gcash" ? "default" : "outline"}
-                      aria-pressed={method === "gcash"}
-                      onClick={() => setMethod("gcash")}
+                      {category.name}
+                    </button>
+                  ))}
+                  {data.products.some((product) => !product.category_id) && (
+                    <button
+                      type="button"
+                      aria-pressed={categoryId === "none"}
+                      onClick={() => setCategoryId("none")}
                     >
-                      GCash
-                    </Button>
-                  </div>
-                  {method === "cash" ? (
-                    <>
-                      <label className="field">
-                        Cash received
-                        <Input
-                          value={cash}
-                          onChange={(e) => setCash(e.target.value)}
-                          inputMode="decimal"
-                          placeholder="Leave blank for exact payment"
-                        />
-                      </label>
-                      <p className="cart-change">Change {money(change)}</p>
-                    </>
-                  ) : (
-                    <p className="hint my-5">
-                      Check that the wallet payment arrived before completing
-                      the sale.
-                    </p>
+                      Uncategorized
+                    </button>
                   )}
-                </fieldset>
+                </div>
+              )}
+              <div className="menu-section-heading">
+                <h1>Product menu</h1>
+                <span>
+                  {visibleProducts.length}{" "}
+                  {visibleProducts.length === 1 ? "item" : "items"} ·{" "}
+                  {data.products.filter(isAvailable).length} available
+                </span>
               </div>
-            </>
+              {(!compactCart || !cartOpen) && feedback}
+              <div className="pos-products">
+                {visibleProducts.map((product) => {
+                  const chosen = selectedSizes[product.id];
+                  const sizeId = product.sizes?.some((size) => size.id === chosen)
+                    ? chosen
+                    : defaultSizeId(product);
+                  const cartKey = lineKey(product.id, sizeId);
+                  const cartLine = cart.find((line) => line.key === cartKey);
+                  return (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      sizeId={sizeId}
+                      onSizeChange={(id) =>
+                        setSelectedSizes((current) => ({
+                          ...current,
+                          [product.id]: id,
+                        }))
+                      }
+                      quantity={cartLine?.quantity ?? 0}
+                      disabled={busy || !!pending}
+                      onAdd={() => {
+                        try {
+                          const next = addLine(cart, product, sizeId);
+                          setCart(next);
+                          setError("");
+                        } catch (error) {
+                          setError((error as Error).message);
+                        }
+                      }}
+                    />
+                  );
+                })}
+              </div>
+              {!data.products.length && (
+                <p className="empty-state">
+                  No products yet. An owner can add products in Menu Management.
+                </p>
+              )}
+              {!!data.products.length && !visibleProducts.length && (
+                <div className="empty-state">
+                  <p>
+                    {query
+                      ? `No products match “${query}”.`
+                      : "No products in this category."}
+                  </p>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setQuery("");
+                      setCategoryId("all");
+                    }}
+                  >
+                    {query ? "Clear search" : "Show all products"}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </section>
+          {compactCart ? (
+            <Dialog.Portal>
+              <Dialog.Overlay className="pos-cart-overlay" />
+              <Dialog.Content
+                className="panel pos-cart pos-cart-drawer"
+                id="current-order"
+                aria-describedby={undefined}
+                onOpenAutoFocus={(event) => {
+                  event.preventDefault();
+                  cartHeading.current?.focus();
+                }}
+              >
+                {cartContent}
+              </Dialog.Content>
+            </Dialog.Portal>
+          ) : (
+            <Card className="pos-cart" id="current-order" tabIndex={-1}>
+              {cartContent}
+            </Card>
           )}
-          <Button
-            className="checkout-button"
-            pending={busy}
-            pendingLabel="Saving sale…"
-            disabled={!pending && (!lines.length || blocked || !!loadError)}
-            onClick={submit}
-          >
-            {pending ? "Retry saved sale" : "Complete sale"}
-            <Icon name="arrow" size={18} />
-          </Button>
-          <p className="cart-footnote">All amounts in PHP</p>
-        </Card>
-      </div>
-    </WorkspaceShell>
+        </div>
+      </WorkspaceShell>
+    </Dialog.Root>
   );
 }

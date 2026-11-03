@@ -104,7 +104,7 @@ test("cash checkout validates the amount and records quantities", async ({
   await page.getByRole("button", { name: "Increase Spanish latte" }).click();
   await page.getByLabel("Cash received").fill("100");
   await page
-    .getByRole("button", { name: "Complete sale", exact: true })
+    .getByRole("button", { name: "Place an order", exact: true })
     .click();
   await expect(page.locator(".form-message.error")).toContainText(
     "cover the total",
@@ -113,7 +113,7 @@ test("cash checkout validates the amount and records quantities", async ({
   await page.getByLabel("Cash received").fill("400");
   await expect(page.getByText("Change ₱110.00")).toBeVisible();
   await page
-    .getByRole("button", { name: "Complete sale", exact: true })
+    .getByRole("button", { name: "Place an order", exact: true })
     .click();
   await expect(page.getByRole("status")).toContainText("Sale complete");
   expect(calls).toHaveLength(1);
@@ -125,7 +125,7 @@ test("a lost response retains the same sale ID across reload and retry", async (
   await page.goto("/pos");
   await page.getByRole("button", { name: /Spanish latte.*145/ }).click();
   await page
-    .getByRole("button", { name: "Complete sale", exact: true })
+    .getByRole("button", { name: "Place an order", exact: true })
     .click();
   await expect(
     page.getByRole("button", { name: "Retry saved sale" }),
@@ -147,7 +147,7 @@ test("wallet checkout stays in POS and product editing lives in Menu", async ({
     page.getByText(/Check that the wallet payment arrived/),
   ).toBeVisible();
   await page
-    .getByRole("button", { name: "Complete sale", exact: true })
+    .getByRole("button", { name: "Place an order", exact: true })
     .click();
   expect(calls[0]).toMatchObject({ data: { method: "gcash" } });
   await expect(
@@ -218,12 +218,11 @@ test("POS fits desktop, tablet, phone and landscape", async ({
     }
     await expect(
       page.getByRole("navigation", { name: "Shop" }).getByRole("link"),
-    ).toHaveCount(4);
+    ).toHaveCount(5);
     if (size.width === 375) {
-      await page.getByRole("link", { name: /View order/ }).click();
+      await page.getByRole("button", { name: /^Open cart/ }).click();
       await expect(page.locator("#current-order")).toBeInViewport();
-      // Capture the starting layout rather than the shortcut's scrolled sticky state.
-      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.getByRole("button", { name: "Close cart", exact: true }).click();
     }
     await page.screenshot({
       path: info.outputPath(`pos-${size.width}.png`),
@@ -252,7 +251,7 @@ test("desktop menu and order items scroll without moving navigation or checkout"
   );
   expect(await page.locator("#current-order").boundingBox()).toEqual(order);
   await expect(
-    page.getByRole("button", { name: "Complete sale", exact: true }),
+    page.getByRole("button", { name: "Place an order", exact: true }),
   ).toBeInViewport();
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
   for (const name of [
@@ -261,9 +260,11 @@ test("desktop menu and order items scroll without moving navigation or checkout"
     "Cappuccino",
     "Matcha latte",
     "Butter croissant",
+    "Seasonal item 11",
+    "Seasonal item 12",
   ]) {
     await page
-      .getByRole("button", { name: new RegExp(`${name}.*Add to order`) })
+      .getByRole("button", { name: new RegExp(`${name}.*Add to cart`) })
       .click();
   }
   const items = page.locator(".cart-body");
@@ -274,10 +275,33 @@ test("desktop menu and order items scroll without moving navigation or checkout"
     .toBeGreaterThan(0);
   await expect(page.getByLabel("Cash received")).toBeInViewport();
   await expect(
-    page.getByRole("button", { name: "Complete sale", exact: true }),
+    page.getByRole("button", { name: "Place an order", exact: true }),
   ).toBeInViewport();
   await page.screenshot({
     path: info.outputPath("pos-fullscreen.png"),
+    animations: "disabled",
+  });
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await page.getByRole("button", { name: /^Open cart/ }).click();
+  await expect.poll(() =>
+    page.getByRole("dialog", { name: "Cart", exact: true })
+      .evaluate(element => element.getBoundingClientRect().right),
+  ).toBe(768);
+  await expect.poll(() => items.evaluate(element => element.scrollHeight - element.clientHeight), {
+    message: "The cart fixture must overflow before testing item scrolling",
+  }).toBeGreaterThan(0);
+  await items.hover();
+  await page.mouse.wheel(0, 500);
+  await expect
+    .poll(() => items.evaluate((el) => el.scrollTop))
+    .toBeGreaterThan(0);
+  await expect(page.getByLabel("Cash received")).toBeInViewport();
+  await expect(
+    page.getByRole("button", { name: "Place an order", exact: true }),
+  ).toBeInViewport();
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  await page.screenshot({
+    path: info.outputPath("pos-ipad-mini-long-cart.png"),
     animations: "disabled",
   });
   for (const size of [
@@ -285,11 +309,12 @@ test("desktop menu and order items scroll without moving navigation or checkout"
     { width: 812, height: 375 },
   ]) {
     await page.setViewportSize(size);
+    if (size.width < 1280) await page.getByRole("button", { name: /^Open cart/ }).click();
     await page
-      .getByRole("button", { name: "Complete sale", exact: true })
+      .getByRole("button", { name: "Place an order", exact: true })
       .scrollIntoViewIfNeeded();
     await expect(
-      page.getByRole("button", { name: "Complete sale", exact: true }),
+      page.getByRole("button", { name: "Place an order", exact: true }),
     ).toBeInViewport();
     expect(
       await page.evaluate(
@@ -318,7 +343,7 @@ test("menu search, unavailable products and keyboard entry remain usable", async
   await page.keyboard.press("Enter");
   await expect(page.locator("#workspace-main")).toBeFocused();
   await expect(
-    page.getByRole("button", { name: /Chocolate cookie.*Add to order/ }),
+    page.getByRole("button", { name: /Chocolate cookie.*Add to cart/ }),
   ).toBeDisabled();
   await page.getByLabel("Search products").fill("not on the menu");
   await expect(

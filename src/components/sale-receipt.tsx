@@ -151,7 +151,7 @@ export function SaleReceipt({
             : "Thank you for your visit."}
         </p>
         <p>
-          {itemCount} {itemCount === 1 ? "item" : "items"} · All amounts in PHP
+          {itemCount} {itemCount === 1 ? "item" : "items"}
         </p>
         <p className="receipt-full-reference">Reference: {sale.id}</p>
       </footer>

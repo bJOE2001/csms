@@ -35,6 +35,7 @@ export function DataTable({
     label: string;
     sortable?: boolean;
     numeric?: boolean;
+    kind?: "primary" | "text" | "compact" | "status" | "actions";
   }[];
   rows: DataRow[];
   searchPlaceholder?: string;
@@ -81,11 +82,12 @@ export function DataTable({
         {toolbarLeading && (
           <div className="data-toolbar-leading">{toolbarLeading}</div>
         )}
-        <label className="table-search">
+        <label className="table-search input-group">
           <Icon name="search" size={18} />
           <span className="sr-only">{searchPlaceholder}</span>
           <Input
-            className="h-11 border-0 bg-transparent p-0 shadow-none focus-visible:ring-0"
+            className="h-11 border-0 bg-transparent p-0"
+            focusOwner="parent"
             type="search"
             placeholder={searchPlaceholder}
             value={query}
@@ -111,7 +113,7 @@ export function DataTable({
                 <TableHead
                   scope="col"
                   key={column.key}
-                  className={column.numeric ? "numeric" : undefined}
+                  className={`table-cell-${column.kind ?? (column.numeric ? "numeric" : "text")} ${column.numeric ? "numeric" : ""}`}
                   aria-sort={
                     column.sortable
                       ? sort?.key === column.key
@@ -159,9 +161,9 @@ export function DataTable({
                   <TableCell
                     key={column.key}
                     data-label={column.label}
-                    className={column.numeric ? "numeric" : undefined}
+                    className={`table-cell-${column.kind ?? (column.numeric ? "numeric" : "text")} ${column.numeric ? "numeric" : ""}`}
                   >
-                    {row.cells[column.key]}
+                    <div className="table-cell-content">{row.cells[column.key]}</div>
                   </TableCell>
                 ))}
               </TableRow>

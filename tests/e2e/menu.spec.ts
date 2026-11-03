@@ -1,4 +1,5 @@
 import { test, expect, type BrowserContext, type Page } from "@playwright/test";
+import { chooseOption } from "../helpers/select";
 import type { Product, Category } from "../../src/lib/menu/domain";
 const uid = (n: number) =>
   `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
@@ -143,10 +144,7 @@ test("Menu creates a regular product and synchronizes it to POS", async ({
   await page.goto("/menu");
   await page.getByRole("button", { name: "Add product", exact: true }).click();
   await page.getByLabel("Product name", { exact: true }).fill("Oat cookie");
-  await page
-    .getByRole("dialog")
-    .getByLabel("Category", { exact: true })
-    .selectOption(uid(3));
+  await chooseOption(page, page.getByRole("dialog").getByLabel("Category", { exact: true }), "Food");
   await page
     .getByLabel("Description", { exact: true })
     .fill("Baked in our shop.");
@@ -168,7 +166,7 @@ test("Menu creates a regular product and synchronizes it to POS", async ({
   });
   await page.getByRole("link", { name: "POS", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: /Oat cookie.*45.50.*Add to order/ }),
+    page.getByRole("button", { name: /Oat cookie.*45.50.*Add to cart/ }),
   ).toBeEnabled();
   await expect(
     page.getByRole("button", { name: "Add product", exact: true }),
@@ -216,8 +214,8 @@ for (const count of [1, 3])
     ).toEqual([`${count * 8} oz`]);
     await page.getByRole("link", { name: "POS", exact: true }).click();
     await expect(
-      page.getByLabel(`Size for Custom drink ${count}`, { exact: true }),
-    ).toHaveValue(saved.sizes![count - 1].id);
+      page.getByRole("group", { name: `Size for Custom drink ${count}`, exact: true }).getByRole("radio", { name: saved.sizes![count - 1].label, exact: true }),
+    ).toBeChecked();
   });
 
 test("size validation retains drafts and removing a size chooses a valid default", async ({
@@ -268,24 +266,18 @@ test("POS keeps selected sizes separate and sends their exact checkout prices", 
   const state = await catalog(context);
   await page.goto("/pos");
   await expect(
-    page.getByLabel("Size for Café Latte", { exact: true }),
-  ).toHaveValue(uid(11));
-  await expect(
-    page
-      .getByLabel("Size for Café Latte", { exact: true })
-      .locator(`option[value="${uid(13)}"]`),
-  ).toHaveJSProperty("disabled", true);
+    page.getByRole("group", { name: "Size for Café Latte", exact: true }).getByRole("radio", { name: "12 oz", exact: true }),
+  ).toBeChecked();
+  await expect(page.getByRole("radio", { name: "22 oz — Unavailable", exact: true })).toBeDisabled();
   await page
-    .getByRole("button", { name: /Café Latte 12 oz.*120.*Add to order/ })
+    .getByRole("button", { name: /Café Latte 12 oz.*120.*Add to cart/ })
     .click();
   await page
-    .getByRole("button", { name: /Café Latte 12 oz.*120.*Add another/ })
+    .getByRole("button", { name: "Increase Café Latte 12 oz", exact: true })
     .click();
+  await page.getByRole("group", { name: "Size for Café Latte", exact: true }).getByRole("radio", { name: "16 oz", exact: true }).check();
   await page
-    .getByLabel("Size for Café Latte", { exact: true })
-    .selectOption(uid(12));
-  await page
-    .getByRole("button", { name: /Café Latte 16 oz.*145.*Add to order/ })
+    .getByRole("button", { name: /Café Latte 16 oz.*145.*Add to cart/ })
     .click();
   await expect(page.locator(".order-line")).toHaveCount(2);
   await expect(page.locator(".pos-total")).toContainText("385.00");
@@ -299,7 +291,7 @@ test("POS keeps selected sizes separate and sends their exact checkout prices", 
   await page.getByLabel("Cash received", { exact: true }).fill("500");
   await expect(page.getByText("Change ₱90.00", { exact: true })).toBeVisible();
   await page
-    .getByRole("button", { name: "Complete sale", exact: true })
+    .getByRole("button", { name: "Place an order", exact: true })
     .click();
   await expect(page.getByRole("status")).toContainText("Sale complete");
   expect(state.calls[0].data.items).toEqual([
@@ -327,7 +319,7 @@ test("menu changes in another tab require cart review and preserve the old price
   await catalog(context);
   await page.goto("/pos");
   await page
-    .getByRole("button", { name: /Café Latte 12 oz.*120.*Add to order/ })
+    .getByRole("button", { name: /Café Latte 12 oz.*120.*Add to cart/ })
     .click();
   const menu = await context.newPage();
   await menu.goto("/menu");
@@ -340,12 +332,12 @@ test("menu changes in another tab require cart review and preserve the old price
   await expect(page.locator(".cart-item-issue")).toContainText("changed");
   await expect(page.locator(".pos-total")).toContainText("120.00");
   await expect(
-    page.getByRole("button", { name: "Complete sale", exact: true }),
+    page.getByRole("button", { name: "Place an order", exact: true }),
   ).toBeDisabled();
   await page.getByRole("button", { name: /Use 12 oz.*130/ }).click();
   await expect(page.locator(".pos-total")).toContainText("130.00");
   await expect(
-    page.getByRole("button", { name: "Complete sale", exact: true }),
+    page.getByRole("button", { name: "Place an order", exact: true }),
   ).toBeEnabled();
   await menu
     .getByRole("button", { name: "Edit Café Latte", exact: true })
@@ -358,17 +350,17 @@ test("menu changes in another tab require cart review and preserve the old price
     "no longer available",
   );
   await page
-    .getByRole("button", { name: "Remove Café Latte 12 oz", exact: true })
+    .getByRole("button", { name: "Remove Café Latte 12 oz from cart", exact: true })
     .click();
   await expect(page.locator(".order-line")).toHaveCount(0);
 });
 
-test("category CRUD protects assignments and filters/sorting use real records", async ({
+test("category CRUD protects assignments and filters use real records", async ({
   page,
   context,
 }) => {
   await catalog(context);
-  await page.goto("/menu");
+  await page.goto("/libraries");
   await page
     .getByRole("button", { name: "Delete category Coffee", exact: true })
     .click();
@@ -398,20 +390,17 @@ test("category CRUD protects assignments and filters/sorting use real records", 
   await expect(
     page.getByRole("button", { name: "Edit category Specials", exact: true }),
   ).toHaveCount(0);
-  await page.getByLabel("Category", { exact: true }).selectOption(uid(2));
+  await page.getByRole("link", { name: "Menu", exact: true }).click();
+  await expect(page.getByRole("button", { name: /Add category|Edit category|Delete category/ })).toHaveCount(0);
+  await chooseOption(page, page.getByLabel("Category", { exact: true }), "Coffee");
   await expect(page.locator(".menu-products tbody tr")).toHaveCount(2);
-  await page
-    .getByLabel("Sort products", { exact: true })
-    .selectOption("price_desc");
   await expect(page.locator(".menu-products tbody tr").first()).toContainText(
-    "Café Latte",
+    "Americano",
   );
   await page
     .getByRole("button", { name: "Reset filters", exact: true })
     .click();
-  await page
-    .getByLabel("Availability", { exact: true })
-    .selectOption("unavailable");
+  await chooseOption(page, page.getByLabel("Availability", { exact: true }), "Unavailable");
   await expect(page.locator(".menu-products tbody tr")).toHaveCount(1);
   await expect(page.locator(".menu-products tbody tr")).toContainText(
     "Chocolate cookie",
@@ -489,11 +478,12 @@ test("Menu and size forms fit desktop tablet and phone; members have read-only a
       .click();
     await page.getByRole("link", { name: "POS", exact: true }).click();
     await expect(
-      page.getByLabel("Size for Café Latte", { exact: true }),
+      page.getByRole("group", { name: "Size for Café Latte", exact: true }),
     ).toBeVisible();
     await page
-      .getByRole("button", { name: /Café Latte 12 oz.*120.*Add to order/ })
+      .getByRole("button", { name: /Café Latte 12 oz.*120.*Add to cart/ })
       .click();
+    if (width < 1280) await page.getByRole("button", { name: /^Open cart/ }).click();
     await expect(page.locator(".order-line")).toContainText("Size: 12 oz");
     expect(
       await page.evaluate(
@@ -524,4 +514,138 @@ test("staff can view Menu without management actions", async ({
     page.getByRole("button", { name: "Add product", exact: true }),
   ).toHaveCount(0);
   await expect(page.getByRole("button", { name: /^Edit / })).toHaveCount(0);
+});
+
+test("Libraries changes synchronize category records with Menu and POS", async ({ page, context }) => {
+  const state = await catalog(context);
+  const assignments = state.products.map(product => [product.id, product.category_id]);
+  const menu = await context.newPage(), pos = await context.newPage();
+  await menu.goto("/menu");
+  await pos.goto("/pos");
+  await page.goto("/libraries");
+  await expect(page.getByRole("link", { name: "Libraries", exact: true })).toHaveAttribute("aria-current", "page");
+  const coffee = page.getByRole("row").filter({ hasText: "Coffee" });
+  await expect(coffee.getByRole("cell", { name: "2", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Add category", exact: true }).click();
+  await page.getByRole("button", { name: "Save category", exact: true }).click();
+  expect(await page.getByLabel("Category name", { exact: true }).evaluate((input: HTMLInputElement) => input.validity.valueMissing)).toBe(true);
+  expect(state.calls).toHaveLength(0);
+  await page.getByLabel("Category name", { exact: true }).fill("Seasonal");
+  await page.getByRole("button", { name: "Save category", exact: true }).click();
+  await expect(pos.getByRole("button", { name: "Seasonal", exact: true })).toBeVisible();
+  await menu.getByRole("button", { name: "Add product", exact: true }).click();
+  const category = menu.getByRole("dialog").getByRole("combobox", { name: "Category", exact: true });
+  await category.click();
+  await expect(menu.getByRole("option", { name: "Seasonal", exact: true })).toBeVisible();
+  await menu.keyboard.press("Escape");
+  await menu.getByRole("button", { name: "Cancel", exact: true }).click();
+
+  await page.getByRole("button", { name: "Edit category Coffee", exact: true }).click();
+  await page.getByLabel("Category name", { exact: true }).fill("Coffee Bar");
+  await page.getByRole("button", { name: "Save category", exact: true }).click();
+  await expect(pos.getByRole("button", { name: "Coffee Bar", exact: true })).toBeVisible();
+  await expect(menu.getByRole("cell", { name: "Coffee Bar", exact: true })).toHaveCount(2);
+  await chooseOption(menu, menu.getByRole("combobox", { name: "Category", exact: true }), "Coffee Bar");
+  await expect(menu.locator(".menu-products tbody tr")).toHaveCount(2);
+  await pos.getByRole("button", { name: "Coffee Bar", exact: true }).click();
+  await expect(pos.locator(".product-card")).toHaveCount(2);
+  expect(state.products.map(product => [product.id, product.category_id])).toEqual(assignments);
+
+  await page.getByRole("button", { name: "Delete category Seasonal", exact: true }).click();
+  await page.getByRole("button", { name: "Delete category", exact: true }).click();
+  await expect(pos.getByRole("button", { name: "Seasonal", exact: true })).toHaveCount(0);
+  await expect(menu.locator(".menu-overview")).toContainText("Total Categories2");
+  expect(state.categories.map(category => category.name)).toEqual(["Coffee Bar", "Food"]);
+  expect(state.products.map(product => [product.id, product.category_id])).toEqual(assignments);
+});
+
+test("Libraries retains category drafts and shows server deletion protection", async ({ page, context }) => {
+  const state = await catalog(context);
+  state.categories.push({ id: uid(90), name: "Unused" });
+  const failedSaves: unknown[] = [];
+  await context.route("**/api/pos", route => {
+    if (route.request().method() !== "POST") return route.fallback();
+    const body = route.request().postDataJSON();
+    if (body.action === "category" && !failedSaves.length) {
+      failedSaves.push(body.data);
+      return route.fulfill({ status: 503, json: { error: "Category could not be saved. Retry." } });
+    }
+    if (body.action === "delete_category")
+      return route.fulfill({ status: 409, json: { error: "Reassign products in this category before deleting it" } });
+    return route.fallback();
+  });
+  await page.goto("/libraries");
+  await page.getByRole("button", { name: "Add category", exact: true }).click();
+  await page.getByLabel("Category name", { exact: true }).fill("Seasonal");
+  await page.getByRole("button", { name: "Save category", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("Category could not be saved");
+  await expect(page.getByLabel("Category name", { exact: true })).toHaveValue("Seasonal");
+  await page.getByRole("button", { name: "Save category", exact: true }).click();
+  expect(state.calls.at(-1)!.data).toEqual(failedSaves[0]);
+  await page.getByRole("button", { name: "Add category", exact: true }).click();
+  await expect(page.getByLabel("Category name", { exact: true })).toHaveValue("");
+  await page.getByLabel("Category name", { exact: true }).fill("Discard this draft");
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Discard changes", exact: true }).click();
+  await page.getByRole("button", { name: "Add category", exact: true }).click();
+  await expect(page.getByLabel("Category name", { exact: true })).toHaveValue("");
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.getByRole("button", { name: "Delete category Unused", exact: true }).click();
+  await page.getByRole("button", { name: "Delete category", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("Reassign products");
+  await expect(page.getByRole("alertdialog")).toBeVisible();
+  expect(state.categories.some(category => category.id === uid(90))).toBe(true);
+});
+
+test("Libraries shows member read-only access, empty data and loading retry", async ({ page, context }) => {
+  const state = await catalog(context, false);
+  let failed = false;
+  await context.route("**/api/pos", route => {
+    if (!failed) {
+      failed = true;
+      return route.fulfill({ status: 503, json: { error: "Categories are temporarily unavailable." } });
+    }
+    return route.fallback();
+  });
+  await page.goto("/libraries");
+  await expect(page.getByRole("alert").filter({ hasText: "temporarily unavailable" })).toBeVisible();
+  await page.getByRole("button", { name: "Try again" }).click();
+  await expect(page.getByRole("table", { name: "Product categories", exact: true })).toBeVisible();
+  await expect(page.getByText("You can view categories. An owner manages category records.")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Add category|Edit category|Delete category/ })).toHaveCount(0);
+  state.categories.splice(0);
+  state.products.forEach(product => { product.category_id = undefined; });
+  await page.reload();
+  await expect(page.getByText("No categories yet. Add your first category to organize your menu.")).toBeVisible();
+});
+
+test("Libraries layout fits responsive viewports", async ({ page, context }, info) => {
+  const state = await catalog(context);
+  state.categories.push({ id: uid(91), name: "A category with a longer name that should wrap on small screens".slice(0, 60) });
+  await page.goto("/libraries");
+  for (const viewport of [
+    { width: 1440, height: 900 }, { width: 1024, height: 768 },
+    { width: 768, height: 1024 }, { width: 375, height: 812 }, { width: 812, height: 375 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await expect(page.getByRole("heading", { name: "Product Categories", exact: true })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Shop" }).getByRole("link")).toHaveCount(5);
+    await expect(page.getByRole("link", { name: "Libraries", exact: true })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    const header = page.locator(".libraries-workspace > header");
+    await expect(header).toHaveCSS("border-bottom-width", "0px");
+    if (viewport.width >= 1024) {
+      const heading = await page.locator(".libraries-section-heading").boundingBox();
+      const action = await page.getByRole("button", { name: "Add category", exact: true }).boundingBox();
+      expect(Math.abs(heading!.y + heading!.height / 2 - action!.y - action!.height / 2)).toBeLessThan(2);
+    }
+    await page.screenshot({ path: info.outputPath(`libraries-${viewport.width}.png`), fullPage: true });
+  }
+  await page.getByRole("searchbox", { name: "Search category name" }).fill("Coffee");
+  await expect(page.locator(".libraries-categories tbody tr")).toHaveCount(1);
+  await page.getByRole("button", { name: "Add category", exact: true }).click();
+  await expect(page.getByLabel("Category name", { exact: true })).toBeFocused();
+  await page.screenshot({ path: info.outputPath("libraries-category-dialog.png") });
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: "Add category", exact: true })).toBeFocused();
 });

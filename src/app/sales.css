@@ -174,23 +174,6 @@
   background: var(--surface-muted);
   padding-inline: 16px;
 }
-.sales-section .table-scroll {
-  position: relative;
-  border: 0;
-  border-radius: 8px;
-}
-.sales-section table {
-  font-size: 13px;
-}
-.sales-section th {
-  font-weight: 500;
-}
-.sales-section .numeric {
-  white-space: nowrap;
-}
-.sales-section td.numeric {
-  font-weight: 600;
-}
 .sales-status {
   display: inline-flex;
   padding: 4px 9px;
@@ -204,11 +187,6 @@
 .sales-status-completed {
   background: hsl(var(--secondary));
   color: var(--brand);
-}
-.sales-section .table-empty {
-  padding: 24px 16px;
-  gap: 8px;
-  font-size: 13px;
 }
 @media (min-width: 1280px) {
   .sales-secondary-metrics {
@@ -250,52 +228,6 @@
     flex-basis: 100%;
     max-width: none;
   }
-  .sales-management .sales-section .data-table table {
-    min-width: 0;
-  }
-  .sales-section thead {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-  }
-  .sales-section table,
-  .sales-section tbody {
-    display: block;
-  }
-  .sales-section tbody tr {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-    padding: 16px 0;
-  }
-  .sales-section tbody td {
-    display: block;
-    min-width: 0;
-    padding: 0;
-    border: 0;
-    overflow-wrap: anywhere;
-    white-space: normal;
-  }
-  .sales-section tbody td::before {
-    content: attr(data-label);
-    display: block;
-    margin-bottom: 6px;
-    color: var(--muted);
-    font-size: 12px;
-    font-weight: 400;
-  }
-  .sales-section .numeric {
-    text-align: left;
-  }
-  .sales-history tbody td:first-child {
-    grid-column: 1 / -1;
-  }
-  .sales-history tbody td:first-child::before {
-    display: none;
-  }
-  .sales-section tbody .button,
   .sales-report-notes summary {
     min-height: 44px;
   }

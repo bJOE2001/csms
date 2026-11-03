@@ -1,5 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
+import { Eye } from "lucide-react";
 import { money, type Sale } from "@/lib/sales/domain";
 import { FormDialog } from "./ui/form-dialog";
 import { Button } from "./ui/button";
@@ -16,6 +17,7 @@ export function ReceiptDialog({
   timezone,
   founder,
   onPrint,
+  tableAction = false,
 }: {
   sale: Sale;
   shopId: string;
@@ -23,12 +25,14 @@ export function ReceiptDialog({
   timezone: string;
   founder: boolean;
   onPrint: () => void;
+  tableAction?: boolean;
 }) {
   const router = useRouter();
   return (
     <FormDialog
       trigger={`#${s.id.slice(0, 8).toUpperCase()}`}
       triggerLabel={`View receipt ${s.id.slice(0, 8).toUpperCase()}`}
+      tableAction={tableAction ? { icon: Eye, tooltip: "View receipt" } : undefined}
       title="Sale receipt"
       readOnly
       className="receipt-dialog"

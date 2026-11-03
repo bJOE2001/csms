@@ -1,11 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import "./tokens.css";
 import "./globals.css";
+import "./select.css";
 import "./workspace.css";
 import "./workspace-shell.css";
 import "./menu.css";
+import "./libraries.css";
 import "./sales.css";
 import "./expenses.css";
+import "./tables.css";
 import "./receipt.css";
 import { FeedbackProvider } from "@/components/ui/feedback";
 

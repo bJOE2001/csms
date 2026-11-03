@@ -1,6 +1,6 @@
 # Coffee POS
 
-A small online POS with four screens: **POS**, **Menu**, **Sales** and **Expenses**. Manage products, categories, images, sizes, prices and direct costs in Menu, take cash or GCash payments, manage operating expenses in Expenses, then review date-filtered revenue, gross profit, net profit, expenses, receipts and full refunds in Sales.
+A small online POS with five screens: **POS**, **Menu**, **Sales**, **Expenses** and **Libraries**. Manage product categories in Libraries and products, images, sizes, prices and direct costs in Menu, take cash or GCash payments, manage operating expenses in Expenses, then review date-filtered revenue, gross profit, net profit, expenses, receipts and full refunds in Sales.
 
 Stack: Next.js 15, React 19, Tailwind 3, shadcn/ui and Supabase Auth/PostgreSQL. There is no inventory, recipe, purchasing, budgeting, funding, staff administration, device pairing, cash shift or offline checkout module.
 
@@ -10,7 +10,9 @@ Stack: Next.js 15, React 19, Tailwind 3, shadcn/ui and Supabase Auth/PostgreSQL.
 2. Copy `.env.example` to `.env.local` and set your Supabase public URL/key and APP_URL.
 3. Apply migrations in `supabase/migrations/` in order. On an existing project apply only unapplied migrations, including **202611020001_simple_pos.sql**, **202611020002_pos_profit.sql**, **202611020003_record_missing_cost.sql**, **202611020004_menu_management.sql** and **202611030001_expenses_management.sql** before deploying this frontend.
 4. Create your owner account in Supabase Auth (disable public signup), then run `npm run dev`.
-5. Sign in, create a shop if needed, and add products in Menu.
+5. Sign in, create a shop if needed, add categories in Libraries, and add products in Menu.
+
+For repeatable sample activity from October 1 through November 3, 2026, see [Demo data](docs/DEMO_DATA.md). It adds clearly marked records to a chosen demo shop without replacing existing rows.
 
 Never reset a live database to apply this update. Older migrations are retained as the database upgrade history; they are not imported by the running application. The initial simple POS migration copies current products and saved sales into `pos_products` and `pos_sales`. Old financial/history tables are retained to preserve records; no destructive hosted schema cleanup is run automatically. Back up the database before applying upgrades.
 

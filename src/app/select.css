@@ -1,0 +1,78 @@
+.select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  width: 100%;
+  min-height: var(--control-height);
+  padding: 8px 12px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: none;
+  font-size: 13px;
+  font-weight: 400;
+  text-align: left;
+  transition: border-color var(--motion-fast), background-color var(--motion-fast);
+}
+.select-trigger > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.select-trigger:hover:not(:disabled) { border-color: var(--muted); }
+.select-trigger[data-placeholder] { color: var(--muted); }
+.select-trigger:disabled { opacity: 0.5; cursor: not-allowed; }
+.select-trigger-compact {
+  min-height: 40px;
+  padding: 6px 10px;
+  border-radius: var(--radius-control);
+  font-size: 12px;
+}
+.select-chevron { flex-shrink: 0; color: var(--muted); }
+.select-content {
+  z-index: 80;
+  min-width: var(--radix-select-trigger-width);
+  max-width: calc(100vw - 24px);
+  max-height: min(var(--select-max-height), var(--radix-select-content-available-height));
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-select);
+  transform-origin: var(--radix-select-content-transform-origin);
+  animation: select-enter var(--motion-fast) var(--ease-out);
+}
+.select-viewport { padding: 4px; }
+.select-option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 8px 36px 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  user-select: none;
+}
+.select-option[data-state="checked"] { font-weight: 600; }
+.select-option[data-highlighted] {
+  background: hsl(var(--secondary));
+  color: var(--ink);
+  outline: 1px solid var(--focus);
+  outline-offset: -1px;
+}
+.select-option[data-disabled] { color: var(--muted); cursor: not-allowed; }
+.select-indicator { position: absolute; right: 12px; display: flex; color: var(--brand); }
+.select-scroll-button { display: flex; align-items: center; justify-content: center; height: 24px; color: var(--muted); }
+@keyframes select-enter { from { opacity: 0; transform: translateY(-2px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 760px) {
+  .select-trigger { min-height: 44px; font-size: 16px; }
+  .select-option { min-height: 44px; font-size: 16px; }
+}

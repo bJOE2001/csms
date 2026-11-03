@@ -1,6 +1,12 @@
 import { SalesView } from "@/components/sales-view";
 import { ExpensesView } from "@/components/expenses-view";
 import { MenuWorkspace } from "@/components/menu/menu-workspace";
+import { LibrariesWorkspace } from "@/components/libraries/libraries-workspace";
+import { PosWorkspace } from "@/components/pos/pos-workspace";
+import { Input } from "@/components/ui/primitives/input";
+import { Select } from "@/components/ui/select";
+import { TableActionButton } from "@/components/ui/table-action-button";
+import { Pencil } from "lucide-react";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { ReceiptDialog } from "@/components/receipt-dialog";
 import { ReceiptPrint } from "@/components/receipt-print";
@@ -16,11 +22,14 @@ import { DataTable } from "@/components/ui/data-table";
 import type { ActionState } from "@/lib/action-state";
 import "@/app/tokens.css";
 import "@/app/globals.css";
+import "@/app/select.css";
 import "@/app/workspace.css";
 import "@/app/workspace-shell.css";
 import "@/app/menu.css";
+import "@/app/libraries.css";
 import "@/app/sales.css";
 import "@/app/expenses.css";
+import "@/app/tables.css";
 import "@/app/receipt.css";
 
 declare global {
@@ -119,6 +128,42 @@ function Fixture() {
   );
 }
 
+function ControlsFixture() {
+  return (
+    <main className="auth-card">
+      <h1>Shared controls</h1>
+      <label className="field">Number<Input type="number" defaultValue="2" /></label>
+      <label className="field">Read-only<Input readOnly value="Receipt total" /></label>
+      <label className="field">Disabled<Input disabled value="Unavailable" /></label>
+      <TableActionButton icon={Pencil} label="Unavailable edit" tooltip="Editing is unavailable" disabled />
+    </main>
+  );
+}
+
+function SelectFixture() {
+  const [saved, setSaved] = useState("");
+  return (
+    <main className="auth-card">
+      <h1>Select controls</h1>
+      <form onSubmit={event => {
+        event.preventDefault();
+        setSaved(String(new FormData(event.currentTarget).get("category")));
+      }}>
+        <label className="field">Category<Select name="category" defaultValue="" options={[
+          { value: "", label: "Uncategorized" },
+          { value: "coffee", label: "Coffee" },
+          { value: "unavailable", label: "Unavailable", disabled: true },
+          ...Array.from({ length: 30 }, (_, index) => ({ value: `category-${index}`, label: `Category ${index + 1} with a longer descriptive label` })),
+        ]} /></label>
+        <label className="field">Disabled selection<Select disabled defaultValue="coffee" options={[{ value: "coffee", label: "Coffee" }]} /></label>
+        <button type="submit">Submit</button>
+        <button type="reset">Reset</button>
+      </form>
+      <output aria-label="Submitted category">{saved || "(empty)"}</output>
+    </main>
+  );
+}
+
 function ReceiptFixture() {
   const [print, setPrint] = useState(false);
   const closePrint = useCallback(() => setPrint(false), []);
@@ -191,6 +236,7 @@ function readFixtureExpenses(): Expense[] {
   }];
 }
 function ReportFixture() {
+  const customSales = sessionStorage.getItem("fixture-sales");
   const [records, setRecords] = useState(readFixtureExpenses);
   const [search, setSearch] = useState(location.search);
   const fixtureRange = salesRange(
@@ -228,7 +274,7 @@ function ReportFixture() {
           from={fixtureRange.from}
           to={fixtureRange.to}
           expenses={expenses}
-          sales={location.search.includes("empty") ? [] : [
+          sales={(customSales ? JSON.parse(customSales) as Sale[] : location.search.includes("empty") ? [] : [
             {
               id: "00000000-0000-4000-8000-000000000002",
               created_at: "2026-11-02T04:00:00Z",
@@ -262,7 +308,7 @@ function ReportFixture() {
                   : `00000000-0000-4000-8000-${String(index + 100).padStart(12, "0")}`,
               }),
             ),
-          ).filter((sale) => {
+          )).filter((sale) => {
             const date = shopDate("Asia/Manila", new Date(sale.created_at));
             return date >= fixtureRange.from && date <= fixtureRange.to;
           })}
@@ -272,8 +318,16 @@ function ReportFixture() {
   );
 }
 createRoot(document.getElementById("root")!).render(
-  location.search.includes("menu") ? (
+  location.search.includes("selects") ? (
+    <SelectFixture />
+  ) : location.search.includes("controls") ? (
+    <ControlsFixture />
+  ) : (location.search.includes("pos") || location.pathname === "/pos") ? (
+    <FeedbackProvider><PosWorkspace /></FeedbackProvider>
+  ) : (location.search.includes("menu") || location.pathname === "/menu") ? (
     <FeedbackProvider><MenuWorkspace /></FeedbackProvider>
+  ) : (location.search.includes("libraries") || location.pathname === "/libraries") ? (
+    <FeedbackProvider><LibrariesWorkspace /></FeedbackProvider>
   ) : location.search.includes("receipt") ? (
     <ReceiptFixture />
   ) : location.search.includes("sales") || location.search.includes("expenses") ||

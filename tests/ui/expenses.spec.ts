@@ -144,7 +144,7 @@ test("staff can read expenses but cannot see management actions", async ({ page 
   await expect(page.getByRole("cell", { name: "Electricity", exact: true })).toBeVisible();
 });
 
-test("Expenses remains responsive with four navigation links and one scroll owner", async ({ page }, info) => {
+test("Expenses remains responsive with five navigation links and one scroll owner", async ({ page }, info) => {
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.goto("/expenses");

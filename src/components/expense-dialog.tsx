@@ -6,7 +6,7 @@ import type { ActionState } from "@/lib/action-state";
 import { FormDialog } from "./ui/form-dialog";
 import { MutationForm } from "./mutation-form";
 import { Input } from "./ui/primitives/input";
-import { Icon } from "./ui/icon";
+import { Pencil, Trash2 } from "lucide-react";
 
 async function saveExpense(
   action: "expense" | "update_expense" | "void_expense",
@@ -44,7 +44,8 @@ export function ExpenseDialog({ expense, shopId, today }: {
   const operationId = useRef<string | undefined>(undefined);
   return (
     <FormDialog
-      trigger={<>{expense ? "Edit" : "Add Expense"}</>}
+      trigger={expense ? null : "Add Expense"}
+      tableAction={expense ? { icon: Pencil, tooltip: "Edit expense" } : undefined}
       triggerLabel={expense ? `Edit expense ${expense.description}` : undefined}
       triggerClassName={expense ? "secondary compact" : ""}
       title={expense ? "Edit expense" : "Add expense"}
@@ -103,7 +104,8 @@ export function DeleteExpense({ expense, shopId }: { expense: Expense; shopId: s
   const router = useRouter();
   return (
     <FormDialog
-      trigger={<><Icon name="delete" size={16} />Delete</>}
+      trigger={null}
+      tableAction={{ icon: Trash2, tooltip: "Delete expense", variant: "destructive" }}
       triggerLabel={`Delete expense ${expense.description}`}
       title="Delete this expense?"
       description={`${expense.description} · ${money(expense.amount_cents)}. This entry will be voided and excluded from profit calculations. Its history will be retained.`}

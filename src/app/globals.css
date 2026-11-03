@@ -55,9 +55,36 @@ button {
 button:disabled {
   cursor: not-allowed;
 }
-:where(button, a, input, select, textarea, summary):focus-visible {
+:where(
+  button, a, summary,
+  input[type="checkbox"], input[type="radio"], input[type="file"],
+  input[type="range"], input[type="color"]
+):focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 3px;
+}
+/* Text controls own one indicator; icon fields delegate it to .input-group.
+   The inset offset overlaps the existing 1px border without changing geometry. */
+:is(
+  input:not(
+    [type="checkbox"], [type="radio"], [type="file"], [type="range"],
+    [type="color"], [type="hidden"], [type="button"], [type="submit"],
+    [type="reset"], [type="image"], [data-focus-owner="parent"]
+  ),
+  select, textarea, .select-trigger
+):focus,
+.input-group:focus-within {
+  outline: var(--control-focus-width) solid var(--control-focus-color, var(--focus));
+  outline-offset: var(--control-focus-offset);
+}
+:is(input, select, textarea, .select-trigger):enabled:is([aria-invalid="true"], :user-invalid),
+.input-group:has(> input:enabled:is([aria-invalid="true"], :user-invalid)) {
+  --control-focus-color: var(--danger);
+  border-color: var(--danger);
+}
+/* Suppression is limited to embedded inputs with a visible group indicator. */
+.input-group > input[data-focus-owner="parent"]:focus {
+  outline: 0;
 }
 h1 {
   font: 600 clamp(26px, 3vw, 34px)/1.2 var(--font-display);
@@ -188,7 +215,6 @@ h2 {
   font-weight: 600;
 }
 .field input,
-.field select,
 .field textarea {
   width: 100%;
   min-height: 46px;
@@ -293,7 +319,7 @@ h2 {
     margin: 36px auto;
   }
   .field input,
-  .field select {
+  .field .select-trigger {
     font-size: 16px;
   }
 }

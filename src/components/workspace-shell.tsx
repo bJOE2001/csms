@@ -6,7 +6,7 @@ export function WorkspaceShell({
   shopName,
   children,
 }: {
-  active: "pos" | "menu" | "sales" | "expenses";
+  active: "pos" | "menu" | "sales" | "expenses" | "libraries";
   shopName: string;
   children: ReactNode;
 }) {

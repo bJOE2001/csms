@@ -1,5 +1,6 @@
 "use client";
 import { useId, useRef, useState } from "react";
+import { Pencil } from "lucide-react";
 import {
   productSchema,
   type Product,
@@ -12,6 +13,7 @@ import { FormDialog, useFormDialog } from "../ui/form-dialog";
 import { MutationForm } from "../mutation-form";
 import { Button } from "../ui/button";
 import { Input } from "../ui/primitives/input";
+import { Select } from "../ui/select";
 import { Icon } from "../ui/icon";
 import { ProductThumbnail } from "../pos/product-thumbnail";
 
@@ -31,18 +33,15 @@ export function ProductDialog(props: Props) {
     <FormDialog
       trigger={
         props.product ? (
-          <>
-            <Icon name="edit" size={16} />
-            Edit
-          </>
+          null
         ) : (
           <>
-            <Icon name="plus" size={18} />
             Add product
           </>
         )
       }
       triggerLabel={props.product ? `Edit ${props.product.name}` : undefined}
+      tableAction={props.product ? { icon: Pencil, tooltip: "Edit product" } : undefined}
       triggerClassName={props.product ? "secondary compact" : ""}
       title={props.product ? "Edit product" : "Add product"}
       description="Menu changes apply to future sales. Completed receipts keep their original details."
@@ -187,18 +186,15 @@ function ProductEditor({ product, data, refresh }: Props) {
         </label>
         <label className="field">
           Category
-          <select
+          <Select
             name="category_id"
             aria-label="Category"
             defaultValue={product?.category_id ?? ""}
-          >
-            <option value="">Uncategorized</option>
-            {data.categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
+            options={[
+              { value: "", label: "Uncategorized" },
+              ...data.categories.map(category => ({ value: category.id, label: category.name })),
+            ]}
+          />
         </label>
       </div>
       <label className="field">

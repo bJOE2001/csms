@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
 export function WorkspaceHeader({
@@ -18,7 +20,15 @@ export function WorkspaceHeader({
           {shopName}
         </span>
       </Link>
-      <nav className="workspace-nav" aria-label="Shop">
+      <nav
+        className="workspace-nav"
+        aria-label="Shop"
+        onFocusCapture={(event) => {
+          // Reveal the whole focused link when enlarged text overflows the row.
+          if (event.currentTarget.scrollWidth > event.currentTarget.clientWidth)
+            event.target.scrollIntoView({ block: "nearest", inline: "nearest" });
+        }}
+      >
         <Link
           className={`nav-link ${active === "pos" ? "selected" : ""}`}
           aria-current={active === "pos" ? "page" : undefined}
@@ -50,6 +60,14 @@ export function WorkspaceHeader({
         >
           <Icon name="wallet" />
           Expenses
+        </Link>
+        <Link
+          className={`nav-link ${active === "libraries" ? "selected" : ""}`}
+          aria-current={active === "libraries" ? "page" : undefined}
+          href="/libraries"
+        >
+          <Icon name="libraries" />
+          Libraries
         </Link>
       </nav>
       <div className="sidebar-footer">

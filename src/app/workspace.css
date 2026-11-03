@@ -83,15 +83,9 @@
 }
 .table-search input {
   border: 0;
-  box-shadow: none;
   min-height: 44px;
   padding: 0;
   background: transparent;
-  outline: 0;
-}
-.table-search:focus-within {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
 }
 .table-scroll {
   max-width: 100%;
@@ -99,9 +93,6 @@
   border: 1px solid var(--line);
   border-radius: 5px;
   margin-top: 16px;
-}
-.data-table:has(th:nth-child(5)) table {
-  min-width: 680px;
 }
 table {
   width: 100%;
@@ -127,6 +118,7 @@ tbody tr:last-child td {
 .numeric {
   text-align: right;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 .table-sort {
   display: inline-flex;

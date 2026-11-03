@@ -1,69 +1,9 @@
 "use client";
-import { useRef } from "react";
-import type { Category } from "@/lib/menu/domain";
 import { saveMenu } from "@/lib/menu/use-catalog";
-import { FormDialog } from "../ui/form-dialog";
-import { MutationForm } from "../mutation-form";
-import { Input } from "../ui/primitives/input";
-import { Icon } from "../ui/icon";
+import { FormDialog } from "./ui/form-dialog";
+import { MutationForm } from "./mutation-form";
+import { Trash2 } from "lucide-react";
 
-type Props = {
-  category?: Category;
-  shopId: string;
-  refresh: () => Promise<boolean>;
-};
-export function CategoryDialog({ category, shopId, refresh }: Props) {
-  const draft = useRef<string | undefined>(undefined);
-  return (
-    <FormDialog
-      trigger={
-        category ? (
-          "Edit"
-        ) : (
-          <>
-            <Icon name="plus" size={16} />
-            Add category
-          </>
-        )
-      }
-      triggerLabel={category ? `Edit category ${category.name}` : undefined}
-      title={category ? "Edit category" : "Add category"}
-    >
-      <MutationForm
-        submitLabel="Save category"
-        action={async (_previous, form) => {
-          try {
-            await saveMenu("category", shopId, {
-              id: category?.id ?? (draft.current ??= crypto.randomUUID()),
-              name: String(form.get("name")),
-            });
-            draft.current = undefined;
-            await refresh();
-            return { status: "success", message: "Category saved." };
-          } catch (error) {
-            return {
-              status: "error",
-              message:
-                error instanceof Error
-                  ? error.message
-                  : "Category could not be saved.",
-            };
-          }
-        }}
-      >
-        <label className="field">
-          Category name
-          <Input
-            name="name"
-            required
-            maxLength={60}
-            defaultValue={category?.name}
-          />
-        </label>
-      </MutationForm>
-    </FormDialog>
-  );
-}
 export function DeleteMenuRecord({
   id,
   name,
@@ -81,12 +21,8 @@ export function DeleteMenuRecord({
 }) {
   return (
     <FormDialog
-      trigger={
-        <>
-          <Icon name="delete" size={16} />
-          Delete
-        </>
-      }
+      trigger={null}
+      tableAction={{ icon: Trash2, tooltip: `Delete ${kind}`, variant: "destructive" }}
       triggerLabel={`Delete ${kind} ${name}`}
       title={`Delete ${name}?`}
       confirmation

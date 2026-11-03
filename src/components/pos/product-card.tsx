@@ -1,3 +1,6 @@
+"use client";
+
+import { useId, useLayoutEffect, useRef } from "react";
 import type { Product } from "@/lib/menu/domain";
 import { isAvailable } from "@/lib/menu/domain";
 import { money } from "@/lib/sales/domain";
@@ -20,12 +23,26 @@ export function ProductCard({
   onSizeChange: (sizeId: string) => void;
   onAdd: () => void;
 }) {
+  const sizeGroup = useId();
+  const card = useRef<HTMLElement>(null);
+  const replacementFocus = useRef(false);
+  // Retain keyboard focus when the focused action is replaced at quantity 0 or 1.
+  useLayoutEffect(() => {
+    const restoreFocus = replacementFocus.current;
+    replacementFocus.current = false;
+    if (restoreFocus && quantity > 0)
+      card.current?.focus({ preventScroll: true });
+  });
   const selected = product.sizes?.find((size) => size.id === sizeId);
+  const itemName = `${product.name}${selected ? ` ${selected.label}` : ""}`;
   const price = selected?.price_cents ?? product.price_cents;
   const available =
     isAvailable(product) && (!product.sizes?.length || !!selected?.active);
   return (
     <article
+      ref={card}
+      tabIndex={-1}
+      aria-label={product.name}
       className={`product-card ${available ? "" : "product-card-unavailable"}`}
     >
       <div className="pos-product">
@@ -38,51 +55,60 @@ export function ProductCard({
           {product.description && (
             <p className="product-description">{product.description}</p>
           )}
-          {product.sizes?.length ? (
-            <label className="product-size-field">
-              <span className="sr-only">Size for {product.name}</span>
-              <select
-                aria-label={`Size for ${product.name}`}
-                value={sizeId ?? ""}
-                disabled={disabled || !product.active}
-                onChange={(event) => onSizeChange(event.target.value)}
-              >
-                {!selected && <option value="">No available sizes</option>}
-                {product.sizes.map((size) => (
-                  <option key={size.id} value={size.id} disabled={!size.active}>
-                    {size.label}
-                    {!size.active ? " — Unavailable" : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : (
+          <div className="product-meta">
             <span className="product-availability">
               {available ? "Available" : "Unavailable"}
             </span>
-          )}
+            {quantity > 0 && (
+              <span className="product-cart-quantity">{quantity} in cart</span>
+            )}
+          </div>
         </div>
         <div className="product-card-footer">
-          <span className="product-order-count">
-            {quantity ? (
-              <>
+          {!!product.sizes?.length && (
+            <fieldset
+              className={`product-sizes${product.sizes.length > 6 ? " product-sizes-many" : ""}`}
+              disabled={disabled || !product.active}
+            >
+              <legend className="sr-only">Size for {product.name}</legend>
+              {product.sizes.map((size) => (
+                <label className="product-size-option" key={size.id}>
+                  <input
+                    type="radio"
+                    name={sizeGroup}
+                    value={size.id}
+                    checked={size.id === sizeId}
+                    disabled={!size.active}
+                    onChange={() => onSizeChange(size.id)}
+                    aria-label={`${size.label}${!size.active ? " — Unavailable" : ""}`}
+                  />
+                  <span>{size.label}</span>
+                </label>
+              ))}
+            </fieldset>
+          )}
+          <div className="product-actions">
+            {quantity > 0 ? (
+              <span className="product-added">
                 <Icon name="check" size={14} />
-                {quantity} in order
-              </>
+                Added to cart
+              </span>
             ) : (
-              "Per item"
+              <Button
+                variant="outline"
+                className="product-add"
+                aria-label={`${itemName} ${money(price)} · Add to cart`}
+                disabled={!available || disabled}
+                onClick={(event) => {
+                  if (document.activeElement === event.currentTarget)
+                    replacementFocus.current = true;
+                  onAdd();
+                }}
+              >
+                Add to cart
+              </Button>
             )}
-          </span>
-          <Button
-            className={`product-add ${quantity ? "product-added" : ""}`}
-            variant={quantity ? "default" : "outline"}
-            aria-label={`${product.name}${selected ? ` ${selected.label}` : ""} ${money(price)} · ${quantity ? "Add another" : "Add to order"}`}
-            disabled={!available || disabled}
-            onClick={onAdd}
-          >
-            {quantity ? "Add another" : "Add to order"}
-            <Icon name="plus" size={14} />
-          </Button>
+          </div>
         </div>
       </div>
     </article>

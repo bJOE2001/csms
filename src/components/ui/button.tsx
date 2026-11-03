@@ -64,9 +64,17 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ) : (
           <span className="button-labels" data-pending={pending}>
             <span className="button-idle">{children}</span>
-            <span className="button-pending" aria-hidden={!pending}>
+            <span
+              className={cn("button-pending", resolvedSize === "icon" && "relative")}
+              aria-hidden={!pending}
+            >
               <span className="spinner" aria-hidden="true" />
-              {pendingLabel}
+              {/* Icon buttons reserve spinner space, without measuring a hidden text label. */}
+              {resolvedSize === "icon" ? (
+                <span className="sr-only">{pendingLabel}</span>
+              ) : (
+                pendingLabel
+              )}
             </span>
           </span>
         )}

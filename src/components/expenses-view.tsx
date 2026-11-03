@@ -48,11 +48,11 @@ export function ExpensesView({ expenses, shopId, founder, today, from, to }: {
           searchPlaceholder="Search expenses"
           emptyMessage="No expenses recorded for the selected period."
           columns={[
-            { key: "date", label: "Date" },
-            { key: "description", label: "Description" },
+            { key: "date", label: "Date", kind: "compact" },
+            { key: "description", label: "Description", kind: "primary" },
             { key: "amount", label: "Amount", numeric: true },
-            { key: "status", label: "Status" },
-            ...(founder ? [{ key: "actions", label: "Actions" }] : []),
+            { key: "status", label: "Status", kind: "status" },
+            ...(founder ? [{ key: "actions", label: "Actions", kind: "actions" as const }] : []),
           ]}
           rows={expenses.map(expense => ({
             id: expense.id,
@@ -62,7 +62,7 @@ export function ExpensesView({ expenses, shopId, founder, today, from, to }: {
               description: <strong>{expense.description}</strong>,
               amount: <span className={expense.voided ? "line-through text-muted-foreground" : "font-semibold"}>{money(expense.amount_cents)}</span>,
               status: <span className={`menu-status ${expense.voided ? "" : "menu-status-available"}`}>{expense.voided ? "Voided" : "Active"}</span>,
-              actions: !expense.voided && <div className="menu-row-actions">
+              actions: !expense.voided && <div className="table-actions">
                 <ExpenseDialog expense={expense} shopId={shopId} today={today} />
                 <DeleteExpense expense={expense} shopId={shopId} />
               </div>,

@@ -6,9 +6,10 @@ import { money } from "@/lib/sales/domain";
 import { WorkspaceShell } from "../workspace-shell";
 import { Button } from "../ui/button";
 import { DataTable } from "../ui/data-table";
+import { Select } from "../ui/select";
 import { ProductThumbnail } from "../pos/product-thumbnail";
 import { ProductDialog } from "./product-dialog";
-import { CategoryDialog, DeleteMenuRecord } from "./category-dialog";
+import { DeleteMenuRecord } from "../delete-menu-record";
 
 export function MenuWorkspace() {
   const { data, error, refresh } = useCatalog();
@@ -56,7 +57,7 @@ export function MenuWorkspace() {
           <div>
             <h1 className="m-0">Menu Management</h1>
             <p className="hint mb-0 mt-2">
-              Manage your products, categories, sizes, pricing, and
+              Manage your products, sizes, pricing, and
               availability.
             </p>
           </div>
@@ -72,7 +73,7 @@ export function MenuWorkspace() {
         )}
         {!data.founder && (
           <p className="hint">
-            You can view the menu. An owner manages products and categories.
+            You can view the menu. An owner manages products.
           </p>
         )}
         <dl className="menu-overview">
@@ -102,31 +103,29 @@ export function MenuWorkspace() {
               <div className="menu-filter-bar">
                 <label className="field">
                   <span className="sr-only">Category</span>
-                  <select
+                  <Select
                     value={categoryId}
                     aria-label="Category"
-                    onChange={(event) => setCategoryId(event.target.value)}
-                  >
-                    <option value="all">All categories</option>
-                    <option value="none">Uncategorized</option>
-                    {data.categories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
+                    onValueChange={setCategoryId}
+                    options={[
+                      { value: "all", label: "All categories" },
+                      { value: "none", label: "Uncategorized" },
+                      ...data.categories.map(category => ({ value: category.id, label: category.name })),
+                    ]}
+                  />
                 </label>
                 <label className="field">
                   <span className="sr-only">Availability</span>
-                  <select
+                  <Select
                     value={availability}
                     aria-label="Availability"
-                    onChange={(event) => setAvailability(event.target.value)}
-                  >
-                    <option value="all">All availability</option>
-                    <option value="available">Available</option>
-                    <option value="unavailable">Unavailable</option>
-                  </select>
+                    onValueChange={setAvailability}
+                    options={[
+                      { value: "all", label: "All availability" },
+                      { value: "available", label: "Available" },
+                      { value: "unavailable", label: "Unavailable" },
+                    ]}
+                  />
                 </label>
                 {/* <label className="field">
               Sort products
@@ -161,12 +160,12 @@ export function MenuWorkspace() {
                 : "No products yet. Add your first product to start selling."
             }
             columns={[
-              { key: "product", label: "Product" },
+              { key: "product", label: "Product", kind: "primary" },
               { key: "category", label: "Category" },
               { key: "sizes", label: "Size" },
-              { key: "price", label: "Price" },
-              { key: "active", label: "Availability" },
-              { key: "actions", label: "Actions" },
+              { key: "price", label: "Price", numeric: true },
+              { key: "active", label: "Availability", kind: "status" },
+              { key: "actions", label: "Actions", kind: "actions" },
             ]}
             rows={products.map((product) => {
               const range = priceRange(product);
@@ -227,7 +226,7 @@ export function MenuWorkspace() {
                     </span>
                   ),
                   actions: data.founder ? (
-                    <div className="menu-row-actions">
+                    <div className="table-actions">
                       <ProductDialog
                         product={product}
                         data={data}
@@ -248,61 +247,6 @@ export function MenuWorkspace() {
               };
             })}
           />
-        </section>
-        <section
-          className="menu-categories panel"
-          aria-labelledby="categories-heading"
-        >
-          <div className="menu-list-heading">
-            <div>
-              <h2 id="categories-heading">Categories</h2>
-              <p className="hint">
-                Organize products without changing past transactions.
-              </p>
-            </div>
-            {data.founder && (
-              <CategoryDialog shopId={data.shop.id} refresh={refresh} />
-            )}
-          </div>
-          {!data.categories.length && (
-            <p className="hint">
-              No categories yet. Products can be sold without a category.
-            </p>
-          )}
-          <ul>
-            {data.categories.map((category) => {
-              const count = data.products.filter(
-                (product) => product.category_id === category.id,
-              ).length;
-              return (
-                <li key={category.id}>
-                  <div>
-                    <strong>{category.name}</strong>
-                    <span>
-                      {count} {count === 1 ? "product" : "products"}
-                    </span>
-                  </div>
-                  {data.founder && (
-                    <div className="menu-row-actions">
-                      <CategoryDialog
-                        category={category}
-                        shopId={data.shop.id}
-                        refresh={refresh}
-                      />
-                      <DeleteMenuRecord
-                        id={category.id}
-                        name={category.name}
-                        kind="category"
-                        shopId={data.shop.id}
-                        refresh={refresh}
-                        used={count > 0}
-                      />
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
         </section>
       </div>
     </WorkspaceShell>

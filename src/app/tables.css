@@ -1,0 +1,116 @@
+/* Management tables share column roles, spacing and actions. Receipt/print tables
+   retain their own composition in receipt.css. */
+.data-table { min-width: 0; }
+.data-table .table-scroll { position: relative; border: 0; border-radius: 8px; }
+.data-table table { table-layout: auto; font-size: 13px; }
+.data-table :is(th, td) { padding: 12px; }
+.data-table th { font-weight: 500; }
+.data-table td { overflow-wrap: anywhere; }
+.data-table .table-cell-content { min-width: 0; }
+.data-table .numeric { font-variant-numeric: tabular-nums; }
+.data-table td.numeric { font-weight: 600; }
+.data-table .table-empty { padding: 24px 16px; gap: 8px; font-size: 13px; }
+.data-table .table-cell-actions { text-align: right; }
+.table-cell-actions .table-cell-content,
+.table-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.table-actions { flex-wrap: nowrap; }
+.table-receipt-number { font-weight: 600; font-variant-numeric: tabular-nums; }
+.table-action-button.button {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--muted);
+  box-shadow: none;
+}
+.table-action-button .button-idle > svg { width: 18px; height: 18px; }
+.table-action-button.button:not(:disabled):hover {
+  background: hsl(var(--secondary));
+  color: var(--brand);
+  border-color: hsl(var(--primary));
+}
+.table-action-destructive.button:not(:disabled):hover {
+  background: hsl(var(--destructive) / 0.08);
+  color: var(--danger);
+  border-color: hsl(var(--destructive) / 0.35);
+}
+.table-action-button.button:focus-visible,
+.table-action-disabled:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+.table-action-disabled { display: inline-flex; border-radius: var(--radius-sm); }
+.table-action-tooltip {
+  z-index: 100;
+  max-width: min(256px, calc(100vw - 16px));
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-select);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+@media (min-width: 768px) {
+  .data-table .table-cell-primary { width: 100%; }
+  .data-table .table-cell-primary .table-cell-content { min-width: 176px; }
+  .data-table .table-cell-text .table-cell-content { width: max-content; min-width: 96px; max-width: 192px; }
+  .data-table :is(.table-cell-text, .table-cell-compact, .table-cell-numeric, .table-cell-status, .table-cell-actions) {
+    width: 1%;
+  }
+  .data-table :is(.table-cell-compact, .table-cell-numeric, .table-cell-status, .table-cell-actions) {
+    white-space: nowrap;
+  }
+}
+@media (max-width: 1279px), (pointer: coarse) {
+  .table-action-button.button { width: 44px; height: 44px; min-height: 44px; }
+  .data-table .table-sort { min-height: 44px; }
+}
+@media (max-width: 767px) {
+  .data-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .data-table table, .data-table tbody { display: block; }
+  .data-table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 16px 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .data-table tbody tr:last-child { border-bottom: 0; }
+  .data-table tbody td {
+    display: block;
+    min-width: 0;
+    width: auto;
+    padding: 0;
+    border: 0;
+    text-align: left;
+    white-space: normal;
+  }
+  .data-table tbody :is(.table-cell-primary, .table-cell-actions) { grid-column: 1 / -1; }
+  .data-table tbody .table-cell-content { min-width: 0; max-width: none; }
+  .data-table tbody td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 4px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 400;
+  }
+  .data-table tbody :is(.table-cell-primary, .table-cell-actions)::before { display: none; }
+  .data-table tbody .table-cell-primary { grid-row: 1; }
+  .data-table .menu-price { white-space: normal; }
+  .data-table .numeric .table-cell-content { overflow-wrap: anywhere; }
+}

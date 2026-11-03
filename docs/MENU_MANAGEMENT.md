@@ -1,10 +1,10 @@
 # Menu Management
 
-Navigation is **POS → Menu → Sales → Expenses**. Menu uses the same shop membership and catalog as POS. Owners add, edit and delete; members can view the menu and sell.
+Navigation is **POS → Menu → Sales → Expenses → Libraries**. Menu uses the same shop membership and catalog as POS. Owners add, edit and delete; members can view the menu and sell.
 
 ## Maintain the menu
 
-- Add a category in the Categories section, or leave products uncategorized. Categories can be renamed. Reassign all unarchived products before deleting an assigned category.
+- Add a category in **Libraries → Product Categories**, or leave products uncategorized. Categories can be renamed. Reassign all unarchived products before deleting an assigned category.
 - Add product requires a name, PHP selling price and direct cost. Description, category and image URL are optional. Image URLs accept HTTPS or a local `/path`; there is no file-upload/storage service added. Failed images show the neutral fallback.
 - With no sizes, the regular price and cost apply. Add one or more sizes to use custom labels, individual prices/costs, and individual availability. Select exactly one default. Up to 20 sizes are supported. Labels are unique after trimming and case normalization. Price/cost inputs accept nonnegative amounts with up to two decimals, including explicit zero.
 - Removing a size changes only future orders. Removing the default chooses the first remaining size in the draft. Removing every size returns to regular pricing. Save applies the draft; closing a modified form asks before discarding it.
