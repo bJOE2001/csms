@@ -148,6 +148,7 @@ test("Menu creates a regular product and synchronizes it to POS", async ({
   await page
     .getByLabel("Description", { exact: true })
     .fill("Baked in our shop.");
+  await page.getByRole("radio", { name: "Image URL", exact: true }).check();
   await page
     .getByLabel("Product image URL", { exact: false })
     .fill("/icons/coffee.svg");
@@ -629,8 +630,13 @@ test("Libraries layout fits responsive viewports", async ({ page, context }, inf
   ]) {
     await page.setViewportSize(viewport);
     await expect(page.getByRole("heading", { name: "Product Categories", exact: true })).toBeVisible();
-    await expect(page.getByRole("navigation", { name: "Shop" }).getByRole("link")).toHaveCount(5);
-    await expect(page.getByRole("link", { name: "Libraries", exact: true })).toBeVisible();
+    if (viewport.width >= 1280) {
+      await expect(page.getByRole("navigation", { name: "Shop" }).getByRole("link")).toHaveCount(5);
+      await expect(page.getByRole("link", { name: "Libraries", exact: true })).toBeVisible();
+    } else {
+      await expect(page.getByRole("navigation", { name: "Shop" })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Open navigation menu", exact: true })).toBeVisible();
+    }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     const header = page.locator(".libraries-workspace > header");
     await expect(header).toHaveCSS("border-bottom-width", "0px");

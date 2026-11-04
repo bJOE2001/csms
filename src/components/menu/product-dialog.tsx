@@ -15,7 +15,8 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/primitives/input";
 import { Select } from "../ui/select";
 import { Icon } from "../ui/icon";
-import { ProductThumbnail } from "../pos/product-thumbnail";
+import { ProductImageUpload } from "./product-image-upload";
+import { productImageFileError } from "@/lib/menu/image-upload";
 
 type Props = {
   product?: Product;
@@ -42,7 +43,7 @@ export function ProductDialog(props: Props) {
       }
       triggerLabel={props.product ? `Edit ${props.product.name}` : undefined}
       tableAction={props.product ? { icon: Pencil, tooltip: "Edit product" } : undefined}
-      triggerClassName={props.product ? "secondary compact" : ""}
+      triggerClassName={props.product ? "secondary compact" : "accent"}
       title={props.product ? "Edit product" : "Add product"}
       description="Menu changes apply to future sales. Completed receipts keep their original details."
       className="product-dialog"
@@ -66,6 +67,7 @@ function ProductEditor({ product, data, refresh }: Props) {
     product?.sizes?.find((size) => size.is_default)?.id,
   );
   const [image, setImage] = useState(product?.image_url ?? "");
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [sizeMessage, setSizeMessage] = useState("");
   const errorId = (key: string) => `${id}-${key}-error`;
@@ -105,6 +107,10 @@ function ProductEditor({ product, data, refresh }: Props) {
       submitLabel="Save product"
       action={async (_previous, form) => {
         const invalid: Record<string, string> = {};
+        if (imageFile) {
+          const imageError = productImageFileError(imageFile);
+          if (imageError) invalid.image_file = imageError;
+        }
         const amount = (value: string, key: string) => {
           try {
             return cents(value);
@@ -158,7 +164,7 @@ function ProductEditor({ product, data, refresh }: Props) {
             message: "Check the highlighted product and size fields.",
           };
         try {
-          await saveMenu("product", data.shop.id, parsed.data);
+          await saveMenu("product", data.shop.id, parsed.data, imageFile ?? undefined);
           await refresh();
           return { status: "success", message: "Product saved." };
         } catch (error) {
@@ -208,24 +214,12 @@ function ProductEditor({ product, data, refresh }: Props) {
         />
         {errorText("description")}
       </label>
-      <div className="product-image-field">
-        <ProductThumbnail name={product?.name ?? "Product"} imageUrl={image} />
-        <label className="field">
-          Product image URL
-          <Input
-            name="image_url"
-            value={image}
-            onChange={(event) => setImage(event.target.value)}
-            placeholder="https://… or /images/…"
-            maxLength={2048}
-            {...errorProps("image_url")}
-          />
-          {errorText("image_url")}
-          <small className="hint">
-            Use your own hosted image. Leave blank for a neutral placeholder.
-          </small>
-        </label>
-      </div>
+      <ProductImageUpload value={image} file={imageFile} error={errors.image_url}
+        onChange={(url, file) => {
+          setImage(url);
+          setImageFile(file);
+          setErrors(current => ({ ...current, image_url: "", image_file: "" }));
+        }} />
       <section className="size-configuration" aria-label="Product sizes">
         <div className="size-heading">
           <div>

@@ -30,6 +30,11 @@ try:
  print(sql((root/"tests/database/record-cost.sql").read_text(encoding="utf-8")))
  print(sql((root/"tests/database/menu.sql").read_text(encoding="utf-8")))
  print(sql((root/"tests/database/expenses-management.sql").read_text(encoding="utf-8")))
+ storage_setup=(root/"supabase/storage/product-images.sql").read_text(encoding="utf-8")
+ sql((root/"tests/database/storage-fixture.sql").read_text(encoding="utf-8"))
+ sql(storage_setup)
+ sql(storage_setup) # Storage configuration must be safe to apply twice.
+ print(sql((root/"tests/database/product-image-storage.sql").read_text(encoding="utf-8")))
  seed=(root/"supabase/seeds/demo_october_2026.sql").read_text(encoding="utf-8")
  seed_checks=(root/"tests/database/demo-seed.sql").read_text(encoding="utf-8")
  seed_setup="""

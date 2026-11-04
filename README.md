@@ -1,8 +1,10 @@
-# Coffee POS
+# LOGO Coffee POS System
 
 A small online POS with five screens: **POS**, **Menu**, **Sales**, **Expenses** and **Libraries**. Manage product categories in Libraries and products, images, sizes, prices and direct costs in Menu, take cash or GCash payments, manage operating expenses in Expenses, then review date-filtered revenue, gross profit, net profit, expenses, receipts and full refunds in Sales.
 
 Stack: Next.js 15, React 19, Tailwind 3, shadcn/ui and Supabase Auth/PostgreSQL. There is no inventory, recipe, purchasing, budgeting, funding, staff administration, device pairing, cash shift or offline checkout module.
+
+The **LOGO Coffee — Warm Espresso & Caramel** theme shares the approved transparent artwork at `public/images/LogoWithWhiteStoke.png`, centralized colors and accessible controls across all five modules and account screens. See [brand tokens, artwork rules and accessibility treatments](docs/BRANDING.md).
 
 ## Run
 
@@ -11,6 +13,8 @@ Stack: Next.js 15, React 19, Tailwind 3, shadcn/ui and Supabase Auth/PostgreSQL.
 3. Apply migrations in `supabase/migrations/` in order. On an existing project apply only unapplied migrations, including **202611020001_simple_pos.sql**, **202611020002_pos_profit.sql**, **202611020003_record_missing_cost.sql**, **202611020004_menu_management.sql** and **202611030001_expenses_management.sql** before deploying this frontend.
 4. Create your owner account in Supabase Auth (disable public signup), then run `npm run dev`.
 5. Sign in, create a shop if needed, add categories in Libraries, and add products in Menu.
+
+For device image uploads, run `supabase/storage/product-images.sql` in Supabase SQL Editor after the application migrations. This configures persistent Storage without changing product tables. Existing image URLs remain supported. See [product images, deployment limits and retention](docs/PRODUCT_IMAGES.md).
 
 For repeatable sample activity from October 1 through November 3, 2026, see [Demo data](docs/DEMO_DATA.md). It adds clearly marked records to a chosen demo shop without replacing existing rows.
 

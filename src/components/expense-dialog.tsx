@@ -47,7 +47,7 @@ export function ExpenseDialog({ expense, shopId, today }: {
       trigger={expense ? null : "Add Expense"}
       tableAction={expense ? { icon: Pencil, tooltip: "Edit expense" } : undefined}
       triggerLabel={expense ? `Edit expense ${expense.description}` : undefined}
-      triggerClassName={expense ? "secondary compact" : ""}
+      triggerClassName={expense ? "secondary compact" : "accent"}
       title={expense ? "Edit expense" : "Add expense"}
       description="Record overhead such as rent, wages and utilities. Product costs are already deducted in Sales; do not enter them again here."
     >

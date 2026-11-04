@@ -13,12 +13,12 @@ import "./receipt.css";
 import { FeedbackProvider } from "@/components/ui/feedback";
 
 export const metadata: Metadata = {
-  title: "Coffee POS",
-  description: "Simple point of sale and sales tracking for your coffee shop.",
-  icons: { icon: "/icons/coffee.svg" },
+  title: "LOGO Coffee POS System",
+  description: "LOGO Coffee point of sale, menu management, and business reporting.",
+  icons: { icon: "/images/LogoWithWhiteStoke.png" },
 };
 
-export const viewport: Viewport = { themeColor: "#f7f7f7" };
+export const viewport: Viewport = { themeColor: "#3B1B12" };
 
 export default function RootLayout({
   children,

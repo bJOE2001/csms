@@ -1,24 +1,50 @@
-/* Warm peach, charcoal and white; shared by Tailwind/shadcn and app surfaces. */
+/* Warm peach, charcoal and white; shared by Tailwind/shadcn and app surfaces.
+   Superseded by LOGO Coffee — Warm Espresso & Caramel. */
 :root {
   color-scheme: light;
+  /* Brand primitives use HSL channels so shadcn/Tailwind alpha modifiers work.
+     The approved hex values remain documented beside their single definitions. */
+  --espresso: 13.17073 53.24675% 15.09804%; /* #3B1B12 */
+  --roasted-coffee: 19.16667 44.44444% 31.76471%; /* #75442D */
+  --caramel: 27.16216 85.05747% 65.88235%; /* #F2A15E */
+  --latte-cream: 31.57895 100% 88.82353%; /* #FFE4C6 */
+  --warm-canvas: 34.28571 41.17647% 96.66667%; /* #FAF7F3 */
+  --pure-white: 0 0% 100%; /* #FFFFFF */
+  --warm-ivory: 27.5 100% 95.29412%; /* #FFF2E7 */
+  --soft-sand: 26.66667 28.125% 87.45098%; /* #E8DED6 */
+  --dark-cocoa: 16 20.54795% 14.31373%; /* #2C211D */
+  --muted-mocha: 21.81818 9.56522% 45.09804%; /* #7E7068 */
+  --warm-white: 31.30435 100% 95.4902%; /* #FFF4E8 */
+  --cream-taupe: 24 25.92593% 73.52941%; /* #CDB8AA */
+  /* Minimal accessibility variants: text >=4.5:1 and controls >=3:1 on ivory. */
+  --readable-mocha: 21.81818 9.82143% 43.92157%; /* #7B6D65 */
+  --control-sand: 24 17.3913% 54.90196%; /* #A08878 */
+  --sidebar-bg: hsl(var(--espresso));
+  --sidebar-text: hsl(var(--warm-white));
+  --sidebar-muted: hsl(var(--cream-taupe));
+  --sidebar-hover: #553023;
+  --sidebar-border: #5B382A;
+  --sidebar-active: hsl(var(--caramel));
+  --sidebar-active-text: hsl(var(--espresso));
+  --sidebar-focus: hsl(var(--latte-cream));
   /* shadcn semantic colors; legacy names below resolve to this same palette. */
-  --background: 0 0% 97%;
-  --foreground: 0 0% 20%;
-  --primary: 22 100% 71%;
-  --primary-foreground: 20 30% 16%;
-  --secondary: 25 100% 95%;
-  --secondary-foreground: 20 68% 41%;
+  --background: var(--warm-canvas);
+  --foreground: var(--dark-cocoa);
+  --primary: var(--espresso);
+  --primary-foreground: var(--pure-white);
+  --secondary: var(--latte-cream);
+  --secondary-foreground: var(--espresso);
   --destructive: 7.8 51.02% 38.43%;
   --destructive-foreground: 0 0% 100%;
-  --muted-surface: 0 0% 96%;
-  --muted-foreground: 0 0% 40%;
-  --accent: 25 100% 95%;
-  --accent-foreground: 20 68% 41%;
-  --card: 0 0% 100%;
-  --card-foreground: 0 0% 20%;
-  --border: 0 0% 90%;
-  --input: 0 0% 58%;
-  --ring: 20 68% 41%;
+  --muted-surface: var(--warm-ivory);
+  --muted-foreground: var(--readable-mocha);
+  --accent: var(--caramel);
+  --accent-foreground: var(--espresso);
+  --card: var(--pure-white);
+  --card-foreground: var(--dark-cocoa);
+  --border: var(--soft-sand);
+  --input: var(--control-sand);
+  --ring: var(--roasted-coffee);
   --font-ui: "Manrope", "Segoe UI", Arial, sans-serif;
   --font-display: var(--font-ui);
   --paper: hsl(var(--background));
@@ -26,14 +52,21 @@
   --surface-muted: hsl(var(--muted-surface));
   --ink: hsl(var(--foreground));
   --muted: hsl(var(--muted-foreground));
-  --brand: hsl(var(--accent-foreground));
-  --brand-hover: #773510;
+  --brand: hsl(var(--roasted-coffee));
+  --brand-hover: hsl(var(--espresso));
   --line: hsl(var(--border));
   --control-border: hsl(var(--input));
   --focus: hsl(var(--ring));
   --control-focus-width: 2px;
   --control-focus-offset: -1px;
   --danger: hsl(var(--destructive));
+  --error-text: #823520;
+  --error-bg: #faeee9;
+  --error-border: #ebd2c9;
+  --success: #285335;
+  --success-bg: #eaf1e6;
+  --info: #235b7b;
+  --info-bg: #edf5fa;
   --warning: #795116;
   --warning-bg: #fcf4e3;
   --space-1: 4px;

@@ -91,6 +91,7 @@ export function MenuWorkspace() {
         </dl>
         <section className="menu-products panel" aria-label="Manage products">
           <DataTable
+            paginationResetKey={JSON.stringify([categoryId, availability, sort])}
             toolbarLeading={
               <div className="menu-products-heading">
                 <h2>Products</h2>

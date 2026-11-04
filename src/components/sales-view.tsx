@@ -103,6 +103,7 @@ export function SalesView({
       </section>
       <Card className="sales-section sales-history">
         <DataTable
+          paginationResetKey={`${from}:${to}`}
           toolbarLeading={
             <div className="sales-section-heading">
               <h2>Sales History</h2>

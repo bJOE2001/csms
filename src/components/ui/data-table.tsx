@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Icon } from "./icon";
 import { Button } from "./button";
 import { Input } from "./primitives/input";
+import { DataTablePagination, type TablePageSize } from "./data-table-pagination";
 import {
   Table,
   TableHeader,
@@ -28,6 +29,8 @@ export function DataTable({
   emptyMessage = "No records yet.",
   toolbarLeading,
   actions,
+  paginationResetKey = "",
+  isLoading = false,
 }: {
   caption: string;
   columns: {
@@ -42,9 +45,14 @@ export function DataTable({
   emptyMessage?: string;
   toolbarLeading?: ReactNode;
   actions?: ReactNode;
+  paginationResetKey?: string;
+  isLoading?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<{ key: string; descending: boolean }>();
+  const [pageSize, setPageSize] = useState<TablePageSize>(10);
+  const criteria = JSON.stringify([query, sort?.key, sort?.descending, paginationResetKey]);
+  const [pagination, setPagination] = useState({ page: 1, criteria });
   const id = useId();
   const scrollRegion = useRef<HTMLDivElement>(null);
   const [overflowing, setOverflowing] = useState(false);
@@ -76,8 +84,16 @@ export function DataTable({
             });
       return sort.descending ? -order : order;
     });
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const page = pagination.criteria === criteria
+    ? Math.min(pagination.page, pageCount)
+    : 1;
+  // Synchronize during render so filters and deletions never show an empty old page.
+  if (pagination.page !== page || pagination.criteria !== criteria)
+    setPagination({ page, criteria });
+  const visible = filtered.slice((page - 1) * pageSize, page * pageSize);
   return (
-    <div className="data-table">
+    <div className="data-table" aria-busy={isLoading || undefined}>
       <div className="data-toolbar">
         {toolbarLeading && (
           <div className="data-toolbar-leading">{toolbarLeading}</div>
@@ -154,8 +170,8 @@ export function DataTable({
               ))}
             </TableRow>
           </TableHeader>
-          <TableBody>
-            {filtered.map((row) => (
+          <TableBody aria-hidden={isLoading || undefined} inert={isLoading || undefined}>
+            {visible.map((row) => (
               <TableRow key={row.id}>
                 {columns.map((column) => (
                   <TableCell
@@ -170,15 +186,16 @@ export function DataTable({
             ))}
           </TableBody>
         </Table>
+        {isLoading && visible.length > 0 && <div className="table-loading" aria-hidden="true">Loading records…</div>}
         {!filtered.length && (
           <div className="table-empty">
-            <Icon name="search" size={26} />
+            <Icon name={isLoading ? "refresh" : "search"} size={26} />
             <p>
-              {rows.length
+              {isLoading ? "Loading records…" : rows.length
                 ? "No matching records. Try a different search."
                 : emptyMessage}
             </p>
-            {query && (
+            {!isLoading && query && (
               <Button
                 className="secondary compact"
                 onClick={() => setQuery("")}
@@ -190,10 +207,19 @@ export function DataTable({
         )}
       </div>
       <div className="data-table-footer">
-        <p className="table-count" role="status">
-          {filtered.length} of {rows.length}{" "}
-          {rows.length === 1 ? "record" : "records"}
-        </p>
+        <DataTablePagination
+          page={page}
+          pageSize={pageSize}
+          totalItems={filtered.length}
+          onPageChange={next => setPagination({ page: next, criteria })}
+          onPageSizeChange={size => {
+            setPageSize(size);
+            setPagination({ page: 1, criteria });
+          }}
+          isLoading={isLoading}
+          label={`${caption} pagination`}
+          tableId={id}
+        />
         {overflowing && (
           <p className="table-scroll-hint" id={`${id}-scroll-hint`}>
             Scroll across for more columns <Icon name="arrow" size={14} />

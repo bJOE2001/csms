@@ -16,6 +16,8 @@ body:has(.workspace-shell) {
   background: var(--surface);
 }
 .workspace-shell > .workspace-content {
+  /* Keep absolute accessibility labels inside the Sales scroll owner. */
+  position: relative;
   width: 100%;
   max-width: none;
   min-width: 0;
@@ -25,12 +27,8 @@ body:has(.workspace-shell) {
   padding: 32px;
   background: var(--paper);
 }
-/* Keep absolute accessibility labels inside the Sales scroll owner. */
-.sales-shell > .workspace-content,
-.expenses-shell > .workspace-content {
-  position: relative;
-}
 .workspace-sidebar {
+  --focus: var(--sidebar-focus);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -38,15 +36,19 @@ body:has(.workspace-shell) {
   min-height: 0;
   overflow-y: auto;
   padding: 32px 20px 24px;
-  border-right: 1px solid var(--line);
-  background: var(--surface);
+  border-right: 1px solid var(--sidebar-border);
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
 }
 .workspace-brand {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
   min-width: 0;
-  margin-bottom: 64px;
+  width: 128px;
+  align-self: flex-start;
+  margin-left: 14px;
+  margin-bottom: 16px;
   font-size: 20px;
   font-weight: 700;
   line-height: 1.35;
@@ -58,6 +60,66 @@ body:has(.workspace-shell) {
   flex-shrink: 0;
   padding-top: 2px;
 }
+.workspace-mobile-header,
+.workspace-navigation-drawer {
+  --focus: var(--sidebar-focus);
+  color: var(--sidebar-text);
+  background: var(--sidebar-bg);
+}
+.workspace-mobile-header {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--sidebar-border);
+}
+.workspace-mobile-brand { display: block; flex-shrink: 0; width: 104px; }
+.navigation-toggle.button {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--sidebar-border);
+  border-radius: var(--radius-sm);
+  color: var(--sidebar-text);
+  background: transparent;
+}
+.navigation-toggle.button:hover { background: var(--sidebar-hover); }
+.navigation-toggle .button-idle > svg { width: 22px; height: 22px; }
+.workspace-nav-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: hsl(var(--foreground) / 0.5);
+}
+.workspace-navigation-drawer {
+  position: fixed;
+  z-index: 60;
+  inset: 0 auto 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: min(320px, calc(100% - 40px));
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
+  padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-right: 1px solid var(--sidebar-border);
+  box-shadow: var(--shadow-dialog);
+}
+.navigation-drawer-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.workspace-navigation-drawer .sidebar-footer { padding-top: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .workspace-navigation-drawer[data-state="open"] { animation: navigation-enter var(--motion-fast) var(--ease-out); }
+  .workspace-navigation-drawer[data-state="closed"] { animation: navigation-exit var(--motion-fast) var(--ease-out); }
+  .workspace-nav-overlay[data-state="open"] { animation: cart-scrim var(--motion-fast) var(--ease-out); }
+}
+@keyframes navigation-enter { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+@keyframes navigation-exit { from { transform: translateX(0); } to { transform: translateX(-100%); } }
 .workspace-brand small {
   display: block;
   margin-top: 7px;
@@ -70,7 +132,7 @@ body:has(.workspace-shell) {
   display: grid;
   gap: 10px;
 }
-.workspace-sidebar .nav-link {
+:is(.workspace-sidebar, .workspace-navigation-drawer) .nav-link {
   justify-content: flex-start;
   gap: 12px;
   width: 100%;
@@ -79,18 +141,24 @@ body:has(.workspace-shell) {
   border-radius: 10px;
   font-size: 14px;
   font-weight: 500;
-  color: var(--ink);
+  color: var(--sidebar-text);
 }
-.workspace-sidebar .nav-link:hover {
-  background: var(--paper);
+:is(.workspace-sidebar, .workspace-navigation-drawer) .nav-link > svg { color: var(--sidebar-muted); }
+:is(.workspace-sidebar, .workspace-navigation-drawer) .nav-link > svg { flex-shrink: 0; }
+:is(.workspace-sidebar, .workspace-navigation-drawer) .nav-link > span { min-width: 0; overflow-wrap: anywhere; }
+:is(.workspace-sidebar, .workspace-navigation-drawer) .nav-link:hover {
+  background: var(--sidebar-hover);
   text-decoration: none;
 }
-.workspace-sidebar .nav-link.selected {
-  background: hsl(var(--secondary));
-  color: var(--brand);
-  box-shadow: inset 2px 0 0 var(--brand);
+:is(.workspace-sidebar, .workspace-navigation-drawer) .nav-link:hover > svg { color: var(--sidebar-text); }
+:is(.workspace-sidebar, .workspace-navigation-drawer) .nav-link.selected {
+  background: var(--sidebar-active);
+  color: var(--sidebar-active-text);
+  box-shadow: inset 2px 0 0 var(--sidebar-active-text);
   font-weight: 650;
 }
+:is(.workspace-sidebar, .workspace-navigation-drawer) .nav-link.selected > svg { color: inherit; }
+:is(.workspace-sidebar, .workspace-navigation-drawer) .nav-link.selected:focus-visible { outline-color: var(--sidebar-active-text); }
 .sidebar-footer {
   margin-top: auto;
   padding-top: 32px;
@@ -164,7 +232,7 @@ body:has(.workspace-shell) {
   max-width: 560px;
   min-width: 0;
   padding: 0 18px;
-  border: 1px solid transparent;
+  border: 1px solid var(--control-border);
   border-radius: var(--radius-control);
   background: var(--surface-muted);
   color: var(--muted);
@@ -215,9 +283,9 @@ body:has(.workspace-shell) {
   color: var(--muted);
 }
 .menu-filters button[aria-pressed="true"] {
-  background: hsl(var(--primary));
-  border-color: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
+  background: hsl(var(--accent));
+  border-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
 }
 .menu-filters button[aria-pressed="true"] > span {
   color: inherit;
@@ -253,7 +321,7 @@ body:has(.workspace-shell) {
 .product-card {
   position: relative;
   min-width: 0;
-  border: 1px solid hsl(var(--border) / 0.6);
+  border: 1px solid var(--line);
   border-radius: 12px;
   overflow: hidden;
   background: var(--surface);
@@ -405,6 +473,7 @@ body:has(.workspace-shell) {
 .product-size-option:hover:not(:has(:disabled)) { background: var(--surface-muted); }
 .product-size-option:has(:checked) {
   border-color: var(--brand);
+  color: var(--brand);
   background: hsl(var(--secondary));
   font-weight: 650;
 }
@@ -453,16 +522,16 @@ body:has(.workspace-shell) {
   padding: 8px 12px;
   border: 1px solid var(--brand);
   border-radius: var(--radius-control);
-  color: var(--brand);
+  color: var(--ink);
   font-size: 12px;
   font-weight: 600;
   background: var(--surface);
 }
-.pos-product .product-add:hover:enabled { background: hsl(var(--secondary)); }
+.pos-product .product-add:hover:enabled { background: var(--surface-muted); }
 .product-added {
-  border-color: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  background: hsl(var(--primary));
+  border-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+  background: hsl(var(--accent));
 }
 .product-card-unavailable .product-title > strong,
 .product-card-unavailable .product-price {
@@ -685,8 +754,8 @@ body:has(.workspace-shell) {
   font-size: 12px;
 }
 .payment-methods .button[aria-pressed="true"] {
-  background: var(--ink);
-  border-color: var(--ink);
+  background: hsl(var(--primary));
+  border-color: hsl(var(--primary));
   color: var(--surface);
 }
 .cart-checkout .field {
@@ -743,74 +812,20 @@ body:has(.workspace-shell) {
     padding-inline: 12px;
   }
 }
-/* All modules share explicit branding/account and navigation rows below desktop. */
+/* Compact navigation uses a logo/trigger header; links and account actions live in the drawer. */
 @media (max-width: 1279px) {
   .workspace-shell {
     grid-template-columns: 1fr;
     grid-template-rows: auto minmax(0, 1fr);
   }
-  .workspace-sidebar {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-rows: auto auto;
-    grid-template-areas: "brand account" "navigation navigation";
-    height: auto;
-    min-height: 0;
-    align-items: center;
-    overflow: visible;
-    padding: 16px 24px;
-    gap: 8px;
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-  }
-  .workspace-brand {
-    grid-area: brand;
-    align-items: center;
-    min-height: 44px;
-    margin: 0;
-    font-size: 18px;
-  }
-  .workspace-brand small { margin-top: 3px; }
-  .workspace-nav {
-    grid-area: navigation;
-    display: flex;
-    flex-wrap: nowrap;
-    align-items: center;
-    justify-content: flex-start;
-    min-width: 0;
-    max-width: 100%;
-    margin: 0;
-    gap: 8px;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-width: thin;
-    scroll-padding-inline: 4px;
-  }
-  .workspace-sidebar .nav-link {
-    flex: 0 0 auto;
-    min-height: 44px;
-    width: auto;
-    padding: 10px 12px;
-    gap: 8px;
-    font-size: 14px;
-    white-space: nowrap;
-  }
-  .workspace-sidebar .nav-link > svg { flex-shrink: 0; width: 20px; height: 20px; }
-  /* Keep keyboard focus inside the horizontal scroll owner's clipped edges. */
-  .workspace-nav .nav-link:focus-visible { outline-offset: -3px; }
-  .sidebar-footer {
-    grid-area: account;
-    justify-self: end;
-    min-width: 0;
-    padding: 0;
-    margin: 0;
-  }
+  .workspace-sidebar { display: none; }
+  .workspace-mobile-header { display: flex; }
 }
 @media (max-width: 760px) {
   .workspace-shell:not(.pos-shell) {
     height: auto;
     min-height: 100dvh;
-    grid-template-rows: auto auto;
+    grid-template-rows: auto minmax(0, 1fr);
     overflow: visible;
   }
   .workspace-shell:not(.pos-shell) > .workspace-content {
@@ -834,11 +849,7 @@ body:has(.workspace-shell) {
 }
 @media (max-width: 767px) {
   .pos-menu { --pos-toolbar-height: 138px; }
-  .workspace-sidebar { padding: 14px 16px; }
-  .workspace-brand { max-width: 240px; font-size: 17px; }
-  .workspace-brand-icon > svg { width: 22px; height: 22px; }
-  .workspace-nav { flex-wrap: wrap; }
-  .workspace-sidebar .nav-link { padding: 9px 8px; gap: 6px; font-size: 12px; }
+  .workspace-mobile-header { padding-inline: 16px; }
   .pos-toolbar { gap: 12px; min-height: 80px; padding: 16px; flex-wrap: wrap; }
   .pos-search { flex-basis: 100%; padding-inline: 12px; }
   .pos-search input { font-size: 16px; }

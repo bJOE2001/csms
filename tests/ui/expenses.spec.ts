@@ -155,7 +155,10 @@ test("Expenses remains responsive with five navigation links and one scroll owne
     await page.setViewportSize(size);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     if (size.width >= 761) expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(size.height);
-    await expect(page.getByRole("link", { name: "Expenses", exact: true })).toBeVisible();
+    if (size.width >= 1280)
+      await expect(page.getByRole("link", { name: "Expenses", exact: true })).toBeVisible();
+    else
+      await expect(page.getByRole("button", { name: "Open navigation menu", exact: true })).toBeVisible();
     await page.screenshot({ path: info.outputPath(`expenses-${size.width}.png`), fullPage: true });
   }
   expect(errors).toEqual([]);

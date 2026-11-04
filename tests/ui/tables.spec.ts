@@ -176,7 +176,7 @@ test("empty tables, view-only permissions and disabled icon tooltips stay access
     await page.goto(screen.path);
     const region = page.getByRole("region", { name: screen.caption, exact: true });
     await expect(region.locator("tbody tr")).toHaveCount(0);
-    await expect(page.locator(".table-count")).toHaveText("0 of 0 records");
+    await expect(page.locator(".table-count")).toContainText("0–0 of 0");
     await expect(region.locator(".table-action-button")).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }

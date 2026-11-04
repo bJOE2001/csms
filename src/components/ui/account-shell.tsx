@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Icon } from "./icon";
+import { BrandLogo } from "../brand-logo";
 
 /** Presentation only; account pages retain their own actions and validation. */
 export function AccountShell({
@@ -22,12 +22,9 @@ export function AccountShell({
         <Link
           className="brand"
           href="/"
-          aria-label="Coffee shop management home"
+          aria-label="LOGO Coffee home"
         >
-          <span className="brand-mark">
-            <Icon name="coffee" size={20} />
-          </span>
-          <span>Coffee POS</span>
+          <BrandLogo />
         </Link>
         <Link className="top-link" href="/">
           Home

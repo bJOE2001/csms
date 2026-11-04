@@ -6,7 +6,6 @@ import { saveMenu } from "@/lib/menu/use-catalog";
 import { FormDialog } from "../ui/form-dialog";
 import { MutationForm } from "../mutation-form";
 import { Input } from "../ui/primitives/input";
-import { Icon } from "../ui/icon";
 
 type Props = {
   category?: Category;
@@ -27,7 +26,7 @@ export function CategoryDialog({ category, shopId, refresh }: Props) {
       }
       triggerLabel={category ? `Edit category ${category.name}` : undefined}
       tableAction={category ? { icon: Pencil, tooltip: "Edit category" } : undefined}
-      triggerClassName={category ? "secondary compact" : ""}
+      triggerClassName={category ? "secondary compact" : "accent"}
       title={category ? "Edit category" : "Add category"}
     >
       <CategoryEditor category={category} shopId={shopId} refresh={refresh} />

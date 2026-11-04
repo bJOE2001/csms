@@ -1,10 +1,11 @@
 import Link from "next/link";
+import { BrandLogo } from "@/components/brand-logo";
 export default function Home() {
   return (
     <main className="shell">
       <header className="topbar">
         <Link className="brand" href="/">
-          Coffee POS
+          <BrandLogo />
         </Link>
         <Link className="nav-link" href="/sign-in">
           Sign in

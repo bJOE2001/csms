@@ -11,6 +11,8 @@ import {
 } from "@/lib/sales/domain";
 import { categorySchema } from "@/lib/menu/domain";
 import { updateExpenseSchema } from "@/lib/expenses/domain";
+import { MAX_PRODUCT_IMAGE_BYTES } from "@/lib/menu/image-upload";
+import { ProductImageError, saveProductWithImage } from "@/lib/menu/product-image-server";
 export async function GET() {
   const db = await createClient();
   const {
@@ -77,7 +79,9 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   if (!isSameOrigin(request, process.env.APP_URL))
     return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
-  if (Number(request.headers.get("content-length")) > 32768)
+  const multipart = request.headers.get("content-type")?.startsWith("multipart/form-data");
+  const bodyLimit = multipart ? MAX_PRODUCT_IMAGE_BYTES + 32768 : 32768;
+  if (Number(request.headers.get("content-length")) > bodyLimit)
     return NextResponse.json({ error: "Request too large" }, { status: 413 });
   const db = await createClient();
   const {
@@ -97,7 +101,7 @@ export async function POST(request: NextRequest) {
       const chunk = await reader.read();
       if (chunk.done) break;
       size += chunk.value.length;
-      if (size > 32768) {
+      if (size > bodyLimit) {
         await reader.cancel();
         return NextResponse.json(
           { error: "Request too large" },
@@ -112,6 +116,17 @@ export async function POST(request: NextRequest) {
       bytes.set(chunk, offset);
       offset += chunk.length;
     }
+    let payload: unknown;
+    let image: File | undefined;
+    if (multipart) {
+      const form = await new Response(bytes, { headers: { "Content-Type": request.headers.get("content-type")! } }).formData();
+      const json = form.get("payload");
+      const file = form.get("image");
+      if (typeof json !== "string" || new TextEncoder().encode(json).length > 32768 || !(file instanceof File))
+        throw new ProductImageError("Choose a product image and check the product details.");
+      payload = JSON.parse(json);
+      image = file;
+    } else payload = JSON.parse(new TextDecoder().decode(bytes));
     const body = z
       .object({
         action: z.enum([
@@ -129,18 +144,20 @@ export async function POST(request: NextRequest) {
         shop_id: z.uuid(),
         data: z.unknown(),
       })
-      .parse(JSON.parse(new TextDecoder().decode(bytes)));
+      .parse(payload);
+    if (multipart && body.action !== "product")
+      throw new ProductImageError("Image uploads are supported only for product saves.");
     let result;
     if (body.action === "checkout")
       result = await db.rpc("pos_checkout", {
         p_shop_id: body.shop_id,
         p_data: checkoutSchema.parse(body.data),
       });
-    else if (body.action === "product")
-      result = await db.rpc("pos_save_product", {
-        p_shop_id: body.shop_id,
-        p_data: productSchema.parse(body.data),
-      });
+    else if (body.action === "product") {
+      const product = productSchema.parse(body.data);
+      result = image ? await saveProductWithImage(db, user.id, body.shop_id, product, image)
+        : await db.rpc("pos_save_product", { p_shop_id: body.shop_id, p_data: product });
+    }
     else if (body.action === "category")
       result = await db.rpc("pos_save_category", {
         p_shop_id: body.shop_id,
@@ -210,7 +227,9 @@ export async function POST(request: NextRequest) {
       { data: result.data },
       { headers: { "Cache-Control": "private, no-store" } },
     );
-  } catch {
+  } catch (error) {
+    if (error instanceof ProductImageError)
+      return NextResponse.json({ error: error.message }, { status: error.status });
     return NextResponse.json(
       { error: "Check the product, expense or payment details." },
       { status: 400 },

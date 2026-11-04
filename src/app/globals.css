@@ -13,7 +13,10 @@
     @apply inline-flex min-h-11 max-w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-primary bg-primary px-4 py-2.5 text-center text-sm font-semibold text-primary-foreground shadow-none transition-colors;
   }
   .button.secondary {
-    @apply border-input bg-card text-foreground shadow-none;
+    @apply border-border bg-card text-foreground shadow-none;
+  }
+  .button.accent {
+    @apply border-accent bg-accent text-accent-foreground;
   }
   .button.compact {
     @apply min-h-10 px-3 py-2 text-xs;
@@ -55,6 +58,8 @@ button {
 button:disabled {
   cursor: not-allowed;
 }
+input:is([type="checkbox"], [type="radio"]) { accent-color: var(--brand); }
+::selection { background: hsl(var(--latte-cream)); color: hsl(var(--espresso)); }
 :where(
   button, a, summary,
   input[type="checkbox"], input[type="radio"], input[type="file"],
@@ -107,8 +112,10 @@ h2 {
   gap: 16px;
   min-height: 76px;
   padding: 16px max(20px, calc((100vw - 1400px) / 2));
-  border-bottom: 1px solid var(--line);
-  background: var(--surface);
+  --focus: var(--sidebar-focus);
+  border-bottom: 1px solid var(--sidebar-border);
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
 }
 .brand {
   display: flex;
@@ -119,6 +126,30 @@ h2 {
   min-width: 0;
   overflow-wrap: anywhere;
 }
+.brand-artwork {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.brand-logo {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+.brand .brand-artwork { width: 128px; }
+.topbar .top-link { color: var(--sidebar-text); }
+.topbar .top-link:hover { background: var(--sidebar-hover); text-decoration: none; }
+.topbar .nav-link { background: var(--sidebar-active); color: var(--sidebar-active-text); }
+.topbar .nav-link:hover { background: hsl(var(--latte-cream)); text-decoration: none; }
 .brand-mark {
   display: grid;
   place-items: center;
@@ -261,13 +292,13 @@ h2 {
   overflow-wrap: anywhere;
 }
 .form-message.error {
-  background: #faeee9;
-  color: #823520;
-  border-color: #ebd2c9;
+  background: var(--error-bg);
+  color: var(--error-text);
+  border-color: var(--error-border);
 }
 .form-message.success {
-  background: #eaf1e6;
-  color: #285335;
+  background: var(--success-bg);
+  color: var(--success);
 }
 .button-labels {
   display: grid;

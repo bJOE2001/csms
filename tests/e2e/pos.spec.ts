@@ -216,9 +216,10 @@ test("POS fits desktop, tablet, phone and landscape", async ({
         ),
       ).toBe(true);
     }
-    await expect(
-      page.getByRole("navigation", { name: "Shop" }).getByRole("link"),
-    ).toHaveCount(5);
+    if (size.width >= 1280)
+      await expect(page.getByRole("navigation", { name: "Shop" }).getByRole("link")).toHaveCount(5);
+    else
+      await expect(page.getByRole("button", { name: "Open navigation menu", exact: true })).toBeVisible();
     if (size.width === 375) {
       await page.getByRole("button", { name: /^Open cart/ }).click();
       await expect(page.locator("#current-order")).toBeInViewport();

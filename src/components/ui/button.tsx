@@ -36,7 +36,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ? "destructive"
         : legacy.includes("secondary")
           ? "outline"
-          : "default");
+          : legacy.includes("accent")
+            ? "accent"
+            : "default");
     const resolvedSize =
       size ?? (legacy.includes("compact") ? "sm" : "default");
     return (
@@ -50,6 +52,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         className={cn(
           "button",
           resolvedVariant === "outline" && "secondary",
+          resolvedVariant === "accent" && "accent",
           resolvedVariant === "destructive" && "danger",
           (resolvedVariant === "ghost" || resolvedVariant === "link") &&
             "border-transparent bg-transparent shadow-none",

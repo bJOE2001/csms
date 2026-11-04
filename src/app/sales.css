@@ -170,7 +170,7 @@
   min-width: 0;
   height: var(--control-height);
   border-radius: var(--radius-control);
-  border-color: var(--line);
+  border-color: var(--control-border);
   background: var(--surface-muted);
   padding-inline: 16px;
 }
@@ -185,8 +185,8 @@
   white-space: nowrap;
 }
 .sales-status-completed {
-  background: hsl(var(--secondary));
-  color: var(--brand);
+  background: var(--success-bg);
+  color: var(--success);
 }
 @media (min-width: 1280px) {
   .sales-secondary-metrics {

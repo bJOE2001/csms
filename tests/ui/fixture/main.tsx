@@ -58,6 +58,8 @@ async function save(
     : { status: "success", message: "Your record was saved." };
 }
 function Fixture() {
+  const paginationFixture = new URLSearchParams(location.search).has("pagination");
+  const [loading, setLoading] = useState(false);
   return (
     <FeedbackProvider>
       <main className="workspace-content">
@@ -82,14 +84,21 @@ function Fixture() {
         </div>
         <Card>
           <CardHeader title="Products" />
+          {paginationFixture && <button onClick={() => setLoading(value => !value)}>Toggle loading</button>}
           <DataTable
             caption="Products"
+            isLoading={loading}
             columns={[
               { key: "name", label: "Product", sortable: true },
               { key: "price", label: "Price", sortable: true, numeric: true },
               { key: "actions", label: "Actions" },
             ]}
-            rows={[
+            rows={paginationFixture ? Array.from({ length: 53 }, (_, index) => ({
+              id: String(index + 1),
+              search: `Record ${String(index + 1).padStart(2, "0")} ${index < 23 ? "coffee" : "tea"}`,
+              sort: { name: `Record ${String(index + 1).padStart(2, "0")}`, price: 53 - index },
+              cells: { name: `Record ${String(index + 1).padStart(2, "0")}`, price: String(53 - index) },
+            })) : [
               {
                 id: "latte",
                 search: "Latte coffee",

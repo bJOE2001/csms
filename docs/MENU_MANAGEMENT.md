@@ -5,7 +5,7 @@ Navigation is **POS → Menu → Sales → Expenses → Libraries**. Menu uses t
 ## Maintain the menu
 
 - Add a category in **Libraries → Product Categories**, or leave products uncategorized. Categories can be renamed. Reassign all unarchived products before deleting an assigned category.
-- Add product requires a name, PHP selling price and direct cost. Description, category and image URL are optional. Image URLs accept HTTPS or a local `/path`; there is no file-upload/storage service added. Failed images show the neutral fallback.
+- Add product requires a name, PHP selling price and direct cost. Description, category and product image are optional. Upload Image supports JPG, PNG and WebP files up to 5 MB with a local preview; Image URL preserves HTTPS/local-path compatibility. Failed images show the neutral fallback. Apply the [product-image Storage setup](PRODUCT_IMAGES.md) before using device uploads.
 - With no sizes, the regular price and cost apply. Add one or more sizes to use custom labels, individual prices/costs, and individual availability. Select exactly one default. Up to 20 sizes are supported. Labels are unique after trimming and case normalization. Price/cost inputs accept nonnegative amounts with up to two decimals, including explicit zero.
 - Removing a size changes only future orders. Removing the default chooses the first remaining size in the draft. Removing every size returns to regular pricing. Save applies the draft; closing a modified form asks before discarding it.
 - Delete product requires confirmation and archives its record. It disappears from the active catalog without deleting receipts. Historical migrated product names are left intact; no categories or sizes are guessed from those names.

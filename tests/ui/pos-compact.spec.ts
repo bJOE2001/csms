@@ -125,7 +125,7 @@ test("adaptive POS uses the full tablet menu and one accessible cart at actual C
     await page.setViewportSize(viewport);
     const compact = viewport.width < 1280;
     const menu = await page.locator(".pos-menu").boundingBox();
-    const nav = await page.locator(".workspace-sidebar").boundingBox();
+    const nav = await page.locator(compact ? ".workspace-mobile-header" : ".workspace-sidebar").boundingBox();
     const trigger = page.getByRole("button", { name: /^Open cart/ });
     const grid = await page.locator(".pos-products").evaluate(el => getComputedStyle(el).gridTemplateColumns.split(" ").length);
     expect(grid).toBe(viewport.width >= 768 ? 2 : 1);

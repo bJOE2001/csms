@@ -3,7 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { createShop } from "./actions";
 import { SubmitButton } from "@/components/ui/button";
-import { Icon } from "@/components/ui/icon";
+import { BrandLogo } from "@/components/brand-logo";
 
 export default async function SetupPage({
   searchParams,
@@ -30,10 +30,7 @@ export default async function SetupPage({
     <main className="shell">
       <header className="topbar">
         <Link className="brand" href="/">
-          <span className="brand-mark" aria-hidden="true">
-            <Icon name="coffee" size={20} />
-          </span>
-          <span>Coffee POS</span>
+          <BrandLogo />
         </Link>
         <form action="/auth/sign-out" method="post">
           <button className="top-link" type="submit">
@@ -48,7 +45,7 @@ export default async function SetupPage({
           Name your shop, then add products and take your first sale.
         </p>
         {message && (
-          <p className="hint" role="alert" style={{ color: "#9b3527" }}>
+          <p className="form-message error" role="alert">
             {message}
           </p>
         )}

@@ -43,6 +43,7 @@ export function ExpensesView({ expenses, shopId, founder, today, from, to }: {
       </dl>
       <Card className="menu-products expenses-list">
         <DataTable
+          paginationResetKey={`${from}:${to}`}
           caption="Expense records"
           toolbarLeading={<div className="menu-products-heading"><h2>Expenses</h2><p className="hint">View and manage recorded operating expenses.</p></div>}
           searchPlaceholder="Search expenses"

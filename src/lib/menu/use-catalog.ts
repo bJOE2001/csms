@@ -10,11 +10,14 @@ export function publishMenuUpdate() {
     /* Focus refresh remains available. */
   }
 }
-export async function saveMenu(action: string, shopId: string, data: unknown) {
+export async function saveMenu(action: string, shopId: string, data: unknown, image?: File) {
+  const payload = JSON.stringify({ action, shop_id: shopId, data });
+  const form = image ? new FormData() : undefined;
+  if (form) { form.set("payload", payload); form.set("image", image!); }
   const response = await fetch("/api/pos", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action, shop_id: shopId, data }),
+    headers: form ? undefined : { "Content-Type": "application/json" },
+    body: form ?? payload,
   });
   const result = await response.json();
   if (!response.ok)
