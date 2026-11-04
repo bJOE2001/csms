@@ -108,8 +108,8 @@ for (const width of [1440, 375]) {
     for (const path of ["/app/sales", "/expenses"]) {
       await page.goto(path);
       const date = page.getByLabel("From Date", { exact: true });
-      await singleFocus(page, date);
-      expect(await date.evaluate((input: HTMLInputElement) => typeof input.showPicker)).toBe("function");
+      await singleFocus(page, date, date.locator(".."));
+      await expect(page.getByRole("button", { name: "Open From Date calendar", exact: true })).toBeVisible();
       const search = page.getByRole("searchbox");
       await singleFocus(page, search, page.locator(".table-search"));
       await search.fill("no match");
@@ -117,11 +117,12 @@ for (const width of [1440, 375]) {
       const end = page.getByLabel("To Date", { exact: true });
       await end.fill("2026-11-01");
       await expect(page.getByRole("alert")).toContainText("To Date must be on or after From Date");
-      await singleFocus(page, end, end, true);
+      await singleFocus(page, end, end.locator(".."), true);
       await page.screenshot({ path: info.outputPath(`focus-${path.includes("sales") ? "sales" : "expenses"}-${width}.png`), fullPage: true });
     }
     await page.getByRole("button", { name: "Add Expense", exact: true }).click();
-    await singleFocus(page, page.getByLabel("Expense date", { exact: true }));
+    const expenseDate = page.getByLabel("Expense date", { exact: true });
+    await singleFocus(page, expenseDate, expenseDate.locator(".."));
     await singleFocus(page, page.getByLabel("Description", { exact: true }));
     await singleFocus(page, page.getByLabel("Amount (PHP)", { exact: true }));
     await page.screenshot({ path: info.outputPath(`focus-expense-form-${width}.png`), fullPage: true });

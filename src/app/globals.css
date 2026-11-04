@@ -271,8 +271,7 @@ h2 {
 .management-form {
   margin: 0;
 }
-.form-actions,
-.dialog-actions {
+.form-actions {
   display: flex;
   justify-content: flex-end;
   gap: 12px;

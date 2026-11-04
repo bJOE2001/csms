@@ -67,7 +67,7 @@ test("inline sizes keep defaults, keyboard navigation and separate cart prices",
   await expect(page.locator(".pos-total")).toContainText("₱410.00");
   await page.getByRole("button", { name: "GCash", exact: true }).click();
   await page.getByRole("button", { name: "Place an order", exact: true }).click();
-  await expect(page.locator(".form-message.success")).toContainText("Sale complete");
+  await expect(page.locator("[data-sonner-toast][data-type=success]")).toContainText("Sale complete");
   expect(calls[0].data).toMatchObject({ method: "gcash", items: [
     { product_id: uid(10), size_id: uid(11), quantity: 2, price_cents: 13000 },
     { product_id: uid(10), size_id: uid(12), quantity: 1, price_cents: 15000 },
@@ -241,7 +241,7 @@ test("tablet drawer traps focus, retains selections and cash across closing and 
   await page.getByRole("button", { name: "Cash", exact: true }).click();
   await expect(page.getByLabel("Cash received", { exact: true })).toHaveValue("600");
   await checkout.click();
-  await expect(drawer.getByRole("status")).toContainText("Sale complete");
+  await expect(page.locator("[data-sonner-toast][data-type=success]")).toContainText("Sale completed successfully");
   expect(calls[0].data).toMatchObject({ method: "cash", tendered_cents: 60000, items: [
     { product_id: uid(10), size_id: uid(12), quantity: 1, price_cents: 15000 },
     { product_id: uid(40), quantity: 1, price_cents: 8000 },
@@ -260,7 +260,7 @@ test("touch users can select sizes and complete GCash checkout inside the drawer
   await page.getByRole("button", { name: "Decrease Cafe Latte 16 oz", exact: true }).tap();
   await page.getByRole("button", { name: "GCash", exact: true }).tap();
   await page.getByRole("button", { name: "Place an order", exact: true }).tap();
-  await expect(page.getByRole("dialog").getByRole("status")).toContainText("Sale complete");
+  await expect(page.locator("[data-sonner-toast][data-type=success]")).toContainText("Sale completed successfully");
   expect(calls[0].data).toMatchObject({ method: "gcash", items: [{ size_id: uid(12), quantity: 1, price_cents: 15000 }] });
   await context.close();
 });
@@ -280,12 +280,12 @@ test("drawer checkout retains the saved sale across dismissal, reload and retry"
   await add(page, "Brownie").click();
   await page.getByRole("button", { name: /^Open cart/ }).click();
   await page.getByRole("button", { name: "Place an order", exact: true }).click();
-  await expect(page.getByRole("dialog").getByRole("alert")).toBeVisible();
+  await expect(page.locator("[data-sonner-toast][data-type=error]")).toBeVisible();
   await page.keyboard.press("Escape");
   await page.reload();
   await page.getByRole("button", { name: /^Open cart/ }).click();
   await page.getByRole("button", { name: "Retry saved sale", exact: true }).click();
-  await expect(page.getByRole("dialog").getByRole("status")).toContainText("Sale complete");
+  await expect(page.locator("[data-sonner-toast][data-type=success]")).toContainText("Sale completed successfully");
   expect(calls).toHaveLength(2);
   expect(calls[1]).toEqual(calls[0]);
 });

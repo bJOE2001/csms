@@ -1,8 +1,10 @@
 "use client";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
+import { WorkspaceSkeleton } from "../ui/workspace-skeleton";
 import { WorkspaceShell } from "../workspace-shell";
 import { Icon } from "../ui/icon";
+import { notify, isNotificationTarget } from "@/lib/notify";
 import { ProductThumbnail } from "./product-thumbnail";
 import { ProductCard } from "./product-card";
 import { Button } from "../ui/button";
@@ -54,8 +56,7 @@ export function PosWorkspace() {
     [method, setMethod] = useState<"cash" | "gcash">("cash"),
     [cash, setCash] = useState(""),
     [busy, setBusy] = useState(false),
-    [pending, setPending] = useState<Checkout>(),
-    [message, setMessage] = useState("");
+    [pending, setPending] = useState<Checkout>();
   const key = data ? `simple-pos:${data.shop.id}:${data.user_id}` : "";
   useEffect(() => {
     if (!key) return;
@@ -91,8 +92,9 @@ export function PosWorkspace() {
   async function submit() {
     if (!data || busy) return;
     setError("");
-    setMessage("");
+    notify.dismiss("pos-checkout");
     setBusy(true);
+    let processing = false;
     try {
       let sale = pending;
       if (!sale) {
@@ -119,6 +121,7 @@ export function PosWorkspace() {
         localStorage.setItem(key, JSON.stringify(sale));
         setPending(sale);
       }
+      processing = true;
       const response = await fetch("/api/pos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -141,41 +144,29 @@ export function PosWorkspace() {
       setPending(undefined);
       setCart([]);
       setCash("");
-      setMessage(
-        `Sale complete · ${money(result.data.total_cents)} · Receipt ${sale.id.slice(0, 8).toUpperCase()}`,
-      );
+      notify.success("Sale completed successfully", {
+        id: "pos-checkout",
+        description: `${money(result.data.total_cents)} · Receipt #${sale.id.slice(0, 8).toUpperCase()}`,
+      });
     } catch (e) {
-      setError(
-        e instanceof Error
-          ? e.message
-          : "Connection interrupted. Retry the saved sale before starting another.",
-      );
+      const message = e instanceof Error
+        ? e.message
+        : "Connection interrupted. Retry the saved sale before starting another.";
+      if (processing) notify.error("Checkout failed", { id: "pos-checkout", description: message });
+      else setError(message);
     } finally {
       setBusy(false);
     }
   }
-  if (!data)
-    return (
-      <main className="workspace-content">
-        <h1>Open POS</h1>
-        {error || loadError ? (
-          <>
-            <p role="alert" className="form-message error">
-              {error || loadError}
-            </p>
-            <Button onClick={load}>Try again</Button>
-            <a className="nav-link" href="/app/setup">
-              Shop setup
-            </a>
-            <a className="nav-link" href="/sign-in">
-              Sign in
-            </a>
-          </>
-        ) : (
-          <p role="status">Loading your products…</p>
-        )}
-      </main>
-    );
+  if (!data) return <WorkspaceShell active="pos" shopName="LOGO Coffee">
+    {error || loadError ? <section className="workspace-load-error">
+      <h1>POS unavailable</h1>
+      <p role="alert" className="form-message error">{error || loadError}</p>
+      <Button onClick={load}>Try again</Button>
+      <a className="nav-link" href="/app/setup">Shop setup</a>
+      <a className="nav-link" href="/sign-in">Sign in</a>
+    </section> : <WorkspaceSkeleton module="pos" track={false} />}
+  </WorkspaceShell>;
 
   const visibleProducts = data.products.filter(
     (product) =>
@@ -188,11 +179,6 @@ export function PosWorkspace() {
       {(error || loadError) && (
         <p role="alert" className="form-message error">
           {error || loadError}
-        </p>
-      )}
-      {message && (
-        <p role="status" className="form-message success">
-          {message}
         </p>
       )}
     </>
@@ -477,7 +463,7 @@ export function PosWorkspace() {
                           setCart(next);
                           setError("");
                         } catch (error) {
-                          setError((error as Error).message);
+                          notify.warning("Unable to add product", { description: (error as Error).message });
                         }
                       }}
                     />
@@ -516,6 +502,9 @@ export function PosWorkspace() {
                 className="panel pos-cart pos-cart-drawer"
                 id="current-order"
                 aria-describedby={undefined}
+                onPointerDownOutside={event => {
+                  if (isNotificationTarget(event.target)) event.preventDefault();
+                }}
                 onOpenAutoFocus={(event) => {
                   event.preventDefault();
                   cartHeading.current?.focus();

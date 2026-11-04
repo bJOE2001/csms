@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 const modules = [
+  { path: "/dashboard", label: "Dashboard", heading: "Dashboard" },
   { path: "/pos", label: "POS", heading: "Product menu" },
   { path: "/menu", label: "Menu", heading: "Menu Management" },
   { path: "/app/sales", label: "Sales", heading: "Sales" },
@@ -55,9 +56,10 @@ test("desktop keeps its sidebar with a smaller logo aligned to page headers", as
       expect(Math.abs(logo.x - navigationIcon.x)).toBeLessThan(2);
       if (screen.label !== "POS") {
         const title = (await page.getByRole("heading", { name: screen.heading, exact: true }).boundingBox())!;
-        expect(Math.abs(logo.y - title.y)).toBeLessThan(2);
+        // Dashboard uses its compact 24px content inset; other modules retain 32px.
+        expect(Math.abs(logo.y - title.y - (screen.label === "Dashboard" ? 8 : 0))).toBeLessThan(2);
       }
-      await expect(page.getByRole("navigation", { name: "Shop" }).getByRole("link")).toHaveCount(5);
+      await expect(page.getByRole("navigation", { name: "Shop" }).getByRole("link")).toHaveCount(6);
       await expect(page.getByRole("link", { name: screen.label, exact: true })).toHaveAttribute("aria-current", "page");
       const signOut = (await sidebar.getByRole("button", { name: "Sign out", exact: true }).boundingBox())!;
       expect(signOut.y + signOut.height).toBe(viewport.height - 24);
@@ -74,7 +76,7 @@ for (const viewport of [
     test.setTimeout(120_000);
     await page.setViewportSize(viewport);
     await catalog(page);
-    await page.goto("/pos", { waitUntil: "domcontentloaded" });
+    await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
     for (let index = 0; index < modules.length; index++) {
       const screen = modules[index];
       await expect(page.getByRole("heading", { name: screen.heading, exact: true })).toBeVisible({ timeout: 15_000 });
@@ -85,7 +87,7 @@ for (const viewport of [
       await expect(menu).toBeVisible();
       await expect(menu.getByRole("button", { name: "Close navigation menu" })).toBeFocused();
       const nav = menu.getByRole("navigation", { name: "Shop", exact: true });
-      await expect(nav.getByRole("link")).toHaveCount(5);
+      await expect(nav.getByRole("link")).toHaveCount(6);
       for (const item of modules) {
         const link = nav.getByRole("link", { name: item.label, exact: true });
         await expect(link).toHaveAttribute("href", item.path);

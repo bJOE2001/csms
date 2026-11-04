@@ -15,6 +15,7 @@ type Props = {
 export function CategoryDialog({ category, shopId, refresh }: Props) {
   return (
     <FormDialog
+      size="sm"
       trigger={
         category ? (
           null
@@ -40,6 +41,8 @@ function CategoryEditor({ category, shopId, refresh }: Props) {
   return (
     <MutationForm
       submitLabel="Save category"
+      successTitle={category ? "Category updated" : "Category created"}
+      errorTitle="Failed to save category"
       action={async (_previous, form) => {
         try {
           await saveMenu("category", shopId, {

@@ -2,27 +2,37 @@
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { dateRangeError } from "@/lib/sales/period";
-import { Input } from "./ui/primitives/input";
+import { useLoadingSignal } from "./ui/global-loading-bar";
+import { DatePicker } from "./ui/date-picker";
+
+type LoadFailure = { from: string; to: string; message: string };
 
 export function DateRangeFilter({
   from,
   to,
   action = "/app/sales",
   label = "Filter sales by date",
+  loadFailure,
 }: {
   from: string;
   to: string;
-  action?: "/app/sales" | "/expenses";
+  action?: "/app/sales" | "/expenses" | "/dashboard";
   label?: string;
+  loadFailure?: LoadFailure;
 }) {
   const router = useRouter();
   const errorId = useId();
-  const [range, setRange] = useState({ start: from, end: to });
+  const [range, setRange] = useState({ start: from, end: to, source: "calendar" as "calendar" | "input" });
+  const [navigationError, setNavigationError] = useState<string | null>(null);
   const lastApplied = useRef({ from, to });
   const lastRequested = useRef<{ start: string; end: string } | null>(null);
+  const retryFailed = useRef(false);
   const [isPending, startTransition] = useTransition();
+  useLoadingSignal(isPending);
   const { start, end } = range;
   const error = dateRangeError(start, end);
+  // A route change can replace applied dates before the local fields synchronize.
+  const syncingApplied = !lastRequested.current && start === lastApplied.current.from && end === lastApplied.current.to && (from !== lastApplied.current.from || to !== lastApplied.current.to);
 
   useEffect(() => {
     const previous = lastApplied.current;
@@ -34,25 +44,57 @@ export function DateRangeFilter({
     // Keep newer input edits when an earlier navigation finishes loading.
     setRange((current) =>
       !requested && current.start === previous.from && current.end === previous.to
-        ? { start: from, end: to }
+        ? { start: from, end: to, source: "calendar" }
         : current,
     );
   }, [from, to]);
 
   useEffect(() => {
-    if (error || (start === from && end === to)) return;
-    const timer = window.setTimeout(() => {
+    if (error || syncingApplied) return;
+    const requested = lastRequested.current;
+    if (requested?.start === start && requested.end === end) return;
+    if (start === from && end === to && !requested && !retryFailed.current) return;
+    const request = () => {
+      if (!navigator.onLine) {
+        lastRequested.current = null;
+        setNavigationError("You’re offline. Reconnect and choose a date again to update the report.");
+        return;
+      }
       const params = new URLSearchParams(window.location.search);
       params.delete("period");
       params.set("from", start);
       params.set("to", end);
       lastRequested.current = { start, end };
+      retryFailed.current = false;
       startTransition(() => {
-        router.replace(`${action}?${params}`, { scroll: false });
+        try {
+          // App Router supersedes older navigations, keeping one report request path.
+          return router.replace(`${action}?${params}`, { scroll: false });
+        } catch {
+          lastRequested.current = null;
+          setNavigationError("The report could not be updated. Your previous results are still shown.");
+        }
       });
-    }, 350);
+    };
+    if (range.source === "calendar") {
+      request();
+      return;
+    }
+    const timer = window.setTimeout(request, 350);
     return () => window.clearTimeout(timer);
-  }, [start, end, from, to, error, action, router]);
+  }, [range, start, end, from, to, error, action, router, syncingApplied]);
+
+  const changeDate = (field: "start" | "end", next: string, source: "calendar" | "input") => {
+    setNavigationError(null);
+    const requested = lastRequested.current;
+    if (navigationError || (loadFailure && (!requested || (requested.start === loadFailure.from && requested.end === loadFailure.to)))) {
+      lastRequested.current = null;
+      retryFailed.current = true;
+    }
+    setRange(current => ({ ...current, [field]: next, source }));
+  };
+  const failed = loadFailure?.from === start && loadFailure.to === end ? loadFailure.message : null;
+  const feedback = error ?? navigationError ?? failed;
 
   return (
     <form
@@ -61,47 +103,45 @@ export function DateRangeFilter({
       action={action}
       aria-label={label}
       aria-busy={isPending || undefined}
-      onSubmit={(event) => event.preventDefault()}
+      onSubmit={event => event.preventDefault()}
     >
-      {error && (
+      {feedback && (
         <p className="date-range-feedback" id={errorId} role="alert">
-          {error}
+          {feedback}
         </p>
       )}
-      <label className="field">
-        From Date
-        <Input
-          type="date"
+      <div className="field">
+        <label htmlFor={`${errorId}-from`}>From Date</label>
+        <DatePicker
+          id={`${errorId}-from`}
+          label="From Date"
           name="from"
           value={start}
-          onChange={(event) => {
-            const value = event.currentTarget.value;
-            setRange((current) => ({ ...current, start: value }));
-          }}
+          onValueChange={(value, source) => changeDate("start", value, source)}
+          range={{ from: start, to: end }}
           aria-invalid={error ? true : undefined}
-          aria-describedby={error ? errorId : undefined}
+          aria-describedby={feedback ? errorId : undefined}
           required
         />
-      </label>
-      <label className="field">
-        To Date
-        <Input
-          type="date"
+      </div>
+      <div className="field">
+        <label htmlFor={`${errorId}-to`}>
+          To Date
+
+        </label>
+        <DatePicker
+          id={`${errorId}-to`}
+          label="To Date"
           name="to"
           value={end}
-          onChange={(event) => {
-            const value = event.currentTarget.value;
-            setRange((current) => ({ ...current, end: value }));
-          }}
+          onValueChange={(value, source) => changeDate("end", value, source)}
+          range={{ from: start, to: end }}
           min={start || undefined}
           aria-invalid={error ? true : undefined}
-          aria-describedby={error ? errorId : undefined}
+          aria-describedby={feedback ? errorId : undefined}
           required
         />
-      </label>
-      <span className="sr-only" role="status">
-        {isPending ? "Updating report…" : ""}
-      </span>
+      </div>
     </form>
   );
 }

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { isAvailable, priceRange } from "@/lib/menu/domain";
 import { useCatalog } from "@/lib/menu/use-catalog";
 import { money } from "@/lib/sales/domain";
+import { WorkspaceSkeleton } from "../ui/workspace-skeleton";
 import { WorkspaceShell } from "../workspace-shell";
 import { Button } from "../ui/button";
 import { DataTable } from "../ui/data-table";
@@ -12,29 +13,19 @@ import { ProductDialog } from "./product-dialog";
 import { DeleteMenuRecord } from "../delete-menu-record";
 
 export function MenuWorkspace() {
-  const { data, error, refresh } = useCatalog();
+  const { data, error, refresh, isLoading } = useCatalog();
   const [categoryId, setCategoryId] = useState("all");
   const [availability, setAvailability] = useState("all");
   const [sort] = useState("name");
-  if (!data)
-    return (
-      <main className="workspace-content">
-        <h1>Menu Management</h1>
-        {error ? (
-          <>
-            <p role="alert" className="form-message error">
-              {error}
-            </p>
-            <Button onClick={refresh}>Try again</Button>
-            <a className="nav-link" href="/sign-in">
-              Sign in
-            </a>
-          </>
-        ) : (
-          <p role="status">Loading your menu…</p>
-        )}
-      </main>
-    );
+  if (!data) return <WorkspaceShell active="menu" shopName="LOGO Coffee">
+    {error ? <section>
+      <h1>Menu Management</h1>
+      <p role="alert" className="form-message error">{error}</p>
+      <Button onClick={refresh}>Try again</Button>
+      <a className="nav-link" href="/sign-in">Sign in</a>
+    </section> : <WorkspaceSkeleton module="menu" track={false} />}
+  </WorkspaceShell>;
+
   const available = data.products.filter(isAvailable).length;
   const products = data.products
     .filter(
@@ -52,7 +43,7 @@ export function MenuWorkspace() {
     );
   return (
     <WorkspaceShell active="menu" shopName={data.shop.name}>
-      <div className="menu-management grid gap-6">
+      <div className="menu-management grid gap-6" aria-busy={isLoading || undefined}>
         <header className="flex flex-col items-start justify-between gap-4 min-[761px]:flex-row min-[761px]:items-center">
           <div>
             <h1 className="m-0">Menu Management</h1>

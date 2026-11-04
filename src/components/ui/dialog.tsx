@@ -8,7 +8,25 @@ import {
   DialogTitle,
   DialogDescription,
 } from "./primitives/dialog";
+import { isNotificationTarget } from "@/lib/notify";
 import { cn } from "@/lib/utils";
+import { DialogFooter } from "./dialog-layout";
+
+export type DialogSize = "sm" | "md" | "lg";
+export type DialogProps = {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  description?: string;
+  children: ReactNode;
+  footer?: ReactNode;
+  className?: string;
+  size?: DialogSize;
+  role?: "dialog" | "alertdialog";
+  initialFocus?: "field" | "cancel";
+  dismissible?: boolean;
+  dismissOnOutside?: boolean;
+};
 
 /** Preserve the application API while Radix owns the modal, focus trap and portal. */
 export function Dialog({
@@ -17,19 +35,14 @@ export function Dialog({
   title,
   description,
   children,
+  footer,
   className = "",
+  size = "md",
   role = "dialog",
+  initialFocus = "field",
   dismissible = true,
-}: {
-  open: boolean;
-  onClose: () => void;
-  title: string;
-  description?: string;
-  children: ReactNode;
-  className?: string;
-  role?: "dialog" | "alertdialog";
-  dismissible?: boolean;
-}) {
+  dismissOnOutside = true,
+}: DialogProps) {
   const trigger = useRef<HTMLElement | null>(null);
   return (
     <ShadcnDialog
@@ -40,10 +53,12 @@ export function Dialog({
     >
       <DialogContent
         role={role}
+        data-size={size}
+        aria-busy={!dismissible || undefined}
         showCloseButton={false}
         {...(!description ? { "aria-describedby": undefined } : {})}
         className={cn(
-          "app-dialog max-w-none rounded-[var(--radius-dialog)]",
+          "app-dialog flex max-w-none overflow-hidden rounded-[var(--radius-dialog)]",
           className,
         )}
         onOpenAutoFocus={(event) => {
@@ -53,10 +68,10 @@ export function Dialog({
               : null;
           const content = event.currentTarget as HTMLElement;
           const initial =
-            content.querySelector<HTMLElement>("[data-dialog-autofocus]") ??
+            content.querySelector<HTMLElement>(initialFocus === "cancel" ? "[data-dialog-cancel]" : "[data-dialog-autofocus]") ??
             Array.from(
               content.querySelectorAll<HTMLElement>(
-                'form input:not([type="hidden"]),form select,form textarea,.form-actions .button.secondary',
+                'form input:not([type="hidden"]),form [role="combobox"],form select,form textarea,[data-dialog-cancel]',
               ),
             ).find(
               (control) =>
@@ -79,7 +94,7 @@ export function Dialog({
         }}
         onPointerDownOutside={(event) => {
           event.preventDefault();
-          if (dismissible) onClose();
+          if (dismissible && dismissOnOutside && !isNotificationTarget(event.target)) onClose();
         }}
       >
         <div className="dialog-heading">
@@ -100,6 +115,7 @@ export function Dialog({
           </button>
         </div>
         {children}
+        {footer && <DialogFooter>{footer}</DialogFooter>}
       </DialogContent>
     </ShadcnDialog>
   );

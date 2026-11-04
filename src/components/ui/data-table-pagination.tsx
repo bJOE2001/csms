@@ -4,6 +4,7 @@ import { useId } from "react";
 import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight } from "lucide-react";
 import { Select } from "./select";
 import { TableActionButton } from "./table-action-button";
+import { Skeleton } from "./workspace-skeleton";
 
 export type TablePageSize = 10 | 25 | 50;
 
@@ -40,7 +41,7 @@ export function DataTablePagination({
         />
       </div>
       <p className="table-count" role="status" aria-atomic="true">
-        {isLoading ? "Loading records…" : <>
+        {isLoading && !totalItems ? <Skeleton className="skeleton-count" /> : <>
           {start}–{end} of {totalItems}
           <span className="sr-only"> matching records. Page {currentPage} of {pageCount}.</span>
         </>}

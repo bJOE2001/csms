@@ -27,13 +27,13 @@ async function expenseApi(page: Page, initial: Expense[] = [electricity], failFi
   });
   return calls;
 }
-async function openModule(page: Page, name: "Sales" | "Expenses") {
+async function openModule(page: Page, name: "Dashboard" | "Expenses") {
   await page.getByRole("navigation", { name: "Shop" }).getByRole("link", { name, exact: true }).click();
   await page.waitForLoadState("domcontentloaded");
-  await expect(page.getByRole("heading", { name: name === "Expenses" ? "Expenses Management" : "Sales", exact: true })).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole("heading", { name: name === "Expenses" ? "Expenses Management" : "Dashboard", exact: true })).toBeVisible({ timeout: 15000 });
 }
 
-test("expense create, edit and retained deletion refresh Expenses and Sales profitability", async ({ page }) => {
+test("expense create, edit and retained deletion refresh Expenses and Dashboard profitability", async ({ page }) => {
   test.setTimeout(180000);
   const calls = await expenseApi(page);
   await page.goto("/expenses");
@@ -46,20 +46,20 @@ test("expense create, edit and retained deletion refresh Expenses and Sales prof
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByLabel("Expenses overview")).toContainText("₱120.25");
   await expect(page.getByLabel("Expenses overview")).toContainText("₱60.13");
-  await openModule(page, "Sales");
-  await expect(page.locator(".crud-summary .panel").nth(2)).toContainText("-₱25.25");
+  await openModule(page, "Dashboard");
+  await expect(page.locator(".dashboard-kpi").nth(2)).toContainText("-₱25.25");
   await expect(page.getByRole("button", { name: "Add Expense", exact: true })).toHaveCount(0);
   await openModule(page, "Expenses");
   await page.getByRole("button", { name: "Edit expense Rent", exact: true }).click();
   await expect(page.getByLabel("Description", { exact: true })).toHaveValue("Rent");
   await expect(page.getByLabel("Amount (PHP)")).toHaveValue("100.25");
-  await expect(page.getByLabel("Expense date")).toHaveValue("2026-11-02");
+  await expect(page.getByLabel("Expense date", { exact: true })).toHaveValue("Nov 2, 2026");
   await page.getByLabel("Amount (PHP)").fill("200.00");
   await page.getByRole("button", { name: "Save changes", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByLabel("Expenses overview")).toContainText("₱220.00");
-  await openModule(page, "Sales");
-  await expect(page.locator(".crud-summary .panel").nth(2)).toContainText("-₱125.00");
+  await openModule(page, "Dashboard");
+  await expect(page.locator(".dashboard-kpi").nth(2)).toContainText("-₱125.00");
   await openModule(page, "Expenses");
   await page.getByRole("button", { name: "Delete expense Rent", exact: true }).click();
   const confirmation = page.getByRole("alertdialog");
@@ -72,8 +72,8 @@ test("expense create, edit and retained deletion refresh Expenses and Sales prof
   await expect(page.getByRole("row").filter({ hasText: "Rent" })).toContainText("Voided");
   await expect(page.getByLabel("Expenses overview")).toContainText("₱20.00");
   await expect(page.getByRole("button", { name: "Edit expense Rent", exact: true })).toHaveCount(0);
-  await openModule(page, "Sales");
-  await expect(page.locator(".crud-summary .panel").nth(2)).toContainText("₱75.00");
+  await openModule(page, "Dashboard");
+  await expect(page.locator(".dashboard-kpi").nth(2)).toContainText("₱75.00");
   expect(calls.map(call => call.action)).toEqual(["expense", "update_expense", "void_expense"]);
   expect(calls[1].data).toMatchObject({ expected: { spent_on: "2026-11-02", description: "Rent", amount_cents: 10025 } });
 });
@@ -85,7 +85,7 @@ test("failed edits retain the draft and retry the same operation without duplica
   await page.getByLabel("Description", { exact: true }).fill("Power bill");
   await page.getByLabel("Amount (PHP)").fill("50.75");
   await page.getByRole("button", { name: "Save changes", exact: true }).click();
-  await expect(page.getByRole("alert")).toContainText("Connection interrupted");
+  await expect(page.locator("[data-sonner-toast][data-type=error]")).toContainText("Connection interrupted");
   await expect(page.getByLabel("Description", { exact: true })).toHaveValue("Power bill");
   await expect(page.getByLabel("Amount (PHP)")).toHaveValue("50.75");
   await page.getByRole("button", { name: "Save changes", exact: true }).click();
@@ -144,7 +144,7 @@ test("staff can read expenses but cannot see management actions", async ({ page 
   await expect(page.getByRole("cell", { name: "Electricity", exact: true })).toBeVisible();
 });
 
-test("Expenses remains responsive with five navigation links and one scroll owner", async ({ page }, info) => {
+test("Expenses remains responsive with shared navigation and one scroll owner", async ({ page }, info) => {
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.goto("/expenses");

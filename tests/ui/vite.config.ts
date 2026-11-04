@@ -7,6 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": `${project}/src`,
+      "next/image": fileURLToPath(new URL("./fixture/image.tsx", import.meta.url)),
       "next/navigation": fileURLToPath(
         new URL("./fixture/navigation.ts", import.meta.url),
       ),

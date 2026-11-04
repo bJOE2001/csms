@@ -21,7 +21,7 @@ test("successful CRUD saves close the dialog, announce success and restore focus
   await dialog.getByLabel("Price").fill("155");
   await dialog.getByRole("button", { name: "Save product" }).click();
   await expect(dialog).not.toBeVisible();
-  await expect(page.locator(".success-toast")).toContainText(
+  await expect(page.locator("[data-sonner-toast][data-type=success]")).toContainText(
     "Your record was saved.",
   );
   await expect(trigger).toBeFocused();
@@ -53,7 +53,7 @@ test("closing a dirty form asks before discarding and keeps the draft when cance
   expect(await page.evaluate(() => window.uiTestCalls)).toEqual([]);
 });
 
-test("failed saves preserve entered values and focus the error summary", async ({
+test("failed saves preserve entered values and announce failure without moving focus", async ({
   page,
 }) => {
   await page.getByRole("button", { name: "Add product", exact: true }).click();
@@ -61,10 +61,11 @@ test("failed saves preserve entered values and focus the error summary", async (
   await dialog.getByLabel("Product name").fill("Fail");
   await dialog.getByLabel("Price").fill("155");
   await dialog.getByRole("button", { name: "Save product" }).click();
-  await expect(dialog.getByRole("alert")).toBeFocused();
+  await expect(page.locator("[data-sonner-toast][data-type=error]")).toContainText("This name could not be saved");
+  await expect.poll(() => dialog.evaluate(el => el.contains(document.activeElement))).toBe(true);
   await expect(dialog.getByLabel("Product name")).toHaveValue("Fail");
   await expect(dialog.getByLabel("Price")).toHaveValue("155");
-  await expect(page.locator(".success-toast")).toHaveCount(0);
+  await expect(page.locator("[data-sonner-toast][data-type=success]")).toHaveCount(0);
   await dialog.getByLabel("Product name").fill("Mocha");
   await dialog.getByRole("button", { name: "Save product" }).click();
   await expect(dialog).not.toBeVisible();

@@ -1,5 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
+import { useLoadingTransition } from "./ui/global-loading-bar";
 import { cents } from "@/lib/sales/domain";
 import { FormDialog } from "./ui/form-dialog";
 import { MutationForm } from "./mutation-form";
@@ -13,6 +14,7 @@ export function RecordSaleCost({
   shopId: string;
 }) {
   const router = useRouter();
+  const startRefresh = useLoadingTransition();
   return (
     <FormDialog
       trigger="Record missing cost"
@@ -20,6 +22,7 @@ export function RecordSaleCost({
       description="Enter the actual preparation cost for every item and quantity on this receipt. This updates profit for the original sale date, including refunded sales. The saved amount cannot be overwritten."
     >
       <MutationForm
+        errorTitle="Failed to record preparation cost"
         submitLabel="Save preparation cost"
         action={async (_previous, form) => {
           try {
@@ -38,7 +41,7 @@ export function RecordSaleCost({
             });
             const result = await response.json();
             if (!response.ok) throw Error(result.error);
-            router.refresh();
+            startRefresh(() => router.refresh());
             return {
               status: "success",
               message: "Preparation cost recorded. Profit has been updated.",

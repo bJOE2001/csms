@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useBeginLoading } from "@/components/ui/global-loading-bar";
 import type { ShopData } from "./domain";
 
 const updateKey = "coffee-menu-updated";
@@ -29,8 +30,17 @@ export function useCatalog() {
   const [data, setData] = useState<ShopData>();
   const [error, setError] = useState("");
   const request = useRef(0);
+  const begin = useBeginLoading();
+  const finishCurrent = useRef<() => void>(() => {});
+  const [isLoading, setLoading] = useState(false);
   const refresh = useCallback(async () => {
     const id = ++request.current;
+    const finish = begin();
+    // Superseded work no longer owns the bar; the existing request ID guard
+    // still ignores its response without introducing another API request.
+    finishCurrent.current();
+    finishCurrent.current = finish;
+    setLoading(true);
     try {
       const response = await fetch("/api/pos", { cache: "no-store" });
       const result = await response.json();
@@ -48,7 +58,14 @@ export function useCatalog() {
             : "The menu could not load. Try again.",
         );
       return false;
+    } finally {
+      finish();
+      if (id === request.current) setLoading(false);
     }
+  }, [begin]);
+  const cancelCurrent = useCallback(() => {
+    request.current++;
+    finishCurrent.current();
   }, []);
   useEffect(() => {
     void refresh();
@@ -62,10 +79,11 @@ export function useCatalog() {
     document.addEventListener("visibilitychange", onFocus);
     window.addEventListener("storage", onStorage);
     return () => {
+      cancelCurrent();
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onFocus);
       window.removeEventListener("storage", onStorage);
     };
-  }, [refresh]);
-  return { data, error, refresh };
+  }, [refresh, cancelCurrent]);
+  return { data, error, refresh, isLoading };
 }

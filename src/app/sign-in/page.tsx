@@ -1,3 +1,4 @@
+import { OperationNotice } from "@/components/ui/operation-notice";
 import { Input } from "@/components/ui/primitives/input";
 import { signIn } from "@/app/sign-in/actions";
 import Link from "next/link";
@@ -27,7 +28,8 @@ export default async function SignInPage({
         </Link>
       }
     >
-      {message && (
+      {message && error === "credentials" && <OperationNotice title="Sign-in failed" description={message} />}
+      {message && error === "invalid" && (
         <p className="form-message error" role="alert">
           {message}
         </p>

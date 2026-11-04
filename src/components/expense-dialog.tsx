@@ -1,12 +1,14 @@
 "use client";
-import { useRef } from "react";
+import { useId, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useLoadingTransition } from "./ui/global-loading-bar";
 import { cents, money, type Expense } from "@/lib/sales/domain";
 import type { ActionState } from "@/lib/action-state";
 import { FormDialog } from "./ui/form-dialog";
 import { MutationForm } from "./mutation-form";
 import { Input } from "./ui/primitives/input";
 import { Pencil, Trash2 } from "lucide-react";
+import { DatePicker } from "./ui/date-picker";
 
 async function saveExpense(
   action: "expense" | "update_expense" | "void_expense",
@@ -40,6 +42,8 @@ export function ExpenseDialog({ expense, shopId, today }: {
   today: string;
 }) {
   const router = useRouter();
+  const startRefresh = useLoadingTransition();
+  const dateId = useId();
   const draftId = useRef<string | undefined>(undefined);
   const operationId = useRef<string | undefined>(undefined);
   return (
@@ -52,6 +56,8 @@ export function ExpenseDialog({ expense, shopId, today }: {
       description="Record overhead such as rent, wages and utilities. Product costs are already deducted in Sales; do not enter them again here."
     >
       <MutationForm
+        successTitle={expense ? "Expense updated" : "Expense created"}
+        errorTitle="Failed to save expense"
         submitLabel={expense ? "Save changes" : "Save expense"}
         action={async (_previous, form) => {
           try {
@@ -74,18 +80,18 @@ export function ExpenseDialog({ expense, shopId, today }: {
             if (result.status === "success") {
               draftId.current = undefined;
               operationId.current = undefined;
-              router.refresh();
+              startRefresh(() => router.refresh());
             }
             return result;
           } catch (error) {
-            return { status: "error", message: error instanceof Error ? error.message : "Check the expense details." };
+            return { status: "error", validation: true, message: error instanceof Error ? error.message : "Check the expense details." };
           }
         }}
       >
-        <label className="field">
-          Expense date
-          <Input name="spent_on" type="date" defaultValue={expense?.spent_on ?? today} required />
-        </label>
+        <div className="field">
+          <label htmlFor={dateId}>Expense date</label>
+          <DatePicker id={dateId} label="Expense date" name="spent_on" defaultValue={expense?.spent_on ?? today} required />
+        </div>
         <label className="field">
           Description
           <Input name="description" defaultValue={expense?.description} maxLength={200} required placeholder="For example, electricity" />
@@ -102,6 +108,7 @@ export function ExpenseDialog({ expense, shopId, today }: {
 
 export function DeleteExpense({ expense, shopId }: { expense: Expense; shopId: string }) {
   const router = useRouter();
+  const startRefresh = useLoadingTransition();
   return (
     <FormDialog
       trigger={null}
@@ -112,9 +119,9 @@ export function DeleteExpense({ expense, shopId }: { expense: Expense; shopId: s
       confirmation
       danger
     >
-      <MutationForm submitLabel="Confirm delete" action={async () => {
+      <MutationForm successTitle="Expense deleted" errorTitle="Failed to delete expense" submitLabel="Confirm delete" action={async () => {
         const result = await saveExpense("void_expense", shopId, { id: expense.id });
-        if (result.status === "success") router.refresh();
+        if (result.status === "success") startRefresh(() => router.refresh());
         return result;
       }}>{null}</MutationForm>
     </FormDialog>

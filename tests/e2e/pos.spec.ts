@@ -115,7 +115,7 @@ test("cash checkout validates the amount and records quantities", async ({
   await page
     .getByRole("button", { name: "Place an order", exact: true })
     .click();
-  await expect(page.getByRole("status")).toContainText("Sale complete");
+  await expect(page.locator("[data-sonner-toast][data-type=success]")).toContainText("Sale completed successfully");
   expect(calls).toHaveLength(1);
 });
 test("a lost response retains the same sale ID across reload and retry", async ({
@@ -132,7 +132,7 @@ test("a lost response retains the same sale ID across reload and retry", async (
   ).toBeEnabled();
   await page.reload();
   await page.getByRole("button", { name: "Retry saved sale" }).click();
-  await expect(page.getByRole("status")).toContainText("Sale complete");
+  await expect(page.locator("[data-sonner-toast][data-type=success]")).toContainText("Sale completed successfully");
   expect(calls).toHaveLength(2);
   expect(calls[0]).toEqual(calls[1]);
 });
@@ -217,7 +217,7 @@ test("POS fits desktop, tablet, phone and landscape", async ({
       ).toBe(true);
     }
     if (size.width >= 1280)
-      await expect(page.getByRole("navigation", { name: "Shop" }).getByRole("link")).toHaveCount(5);
+      await expect(page.getByRole("navigation", { name: "Shop" }).getByRole("link")).toHaveCount(6);
     else
       await expect(page.getByRole("button", { name: "Open navigation menu", exact: true })).toBeVisible();
     if (size.width === 375) {

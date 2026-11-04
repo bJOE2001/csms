@@ -2,19 +2,26 @@ import type { Metadata, Viewport } from "next";
 import "./tokens.css";
 import "./globals.css";
 import "./select.css";
+import "./calendar.css";
 import "./workspace.css";
+import "./dialogs.css";
+import "./notifications.css";
+import "./loading.css";
 import "./workspace-shell.css";
 import "./menu.css";
 import "./libraries.css";
 import "./sales.css";
+import "./dashboard.css";
 import "./expenses.css";
 import "./tables.css";
 import "./receipt.css";
-import { FeedbackProvider } from "@/components/ui/feedback";
+import { LoadingProvider } from "@/components/ui/global-loading-bar";
+import { WorkspaceFrame } from "@/components/workspace-frame";
+import { NotificationProvider } from "@/components/ui/notification-provider";
 
 export const metadata: Metadata = {
-  title: "LOGO Coffee POS System",
-  description: "LOGO Coffee point of sale, menu management, and business reporting.",
+  title: "Logo",
+  description: "Logo Coffee point of sale, menu management, and business reporting.",
   icons: { icon: "/images/LogoWithWhiteStoke.png" },
 };
 
@@ -35,7 +42,9 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <FeedbackProvider>{children}</FeedbackProvider>
+        <NotificationProvider>
+          <LoadingProvider><WorkspaceFrame>{children}</WorkspaceFrame></LoadingProvider>
+        </NotificationProvider>
       </body>
     </html>
   );

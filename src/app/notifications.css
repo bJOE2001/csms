@@ -1,0 +1,60 @@
+/* Sonner owns positioning, stacking, dismissal, timers, and live announcements. */
+[data-sonner-toaster].app-toaster {
+  width: min(420px, calc(100vw - max(16px, env(safe-area-inset-left)) - max(16px, env(safe-area-inset-right))));
+  font-family: inherit;
+  pointer-events: none;
+}
+[data-sonner-toaster].app-toaster [data-sonner-toast].app-toast {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 48px 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 6px 24px rgb(59 27 18 / 10%);
+  pointer-events: auto;
+}
+.app-toast [data-icon] { flex: none; margin-top: 1px; }
+.app-toast[data-type="success"] [data-icon] { color: var(--success); }
+.app-toast[data-type="error"] [data-icon] { color: hsl(var(--destructive)); }
+.app-toast[data-type="warning"] [data-icon] { color: var(--warning); }
+.app-toast[data-type="info"] [data-icon] { color: var(--info); }
+.app-toast [data-content] { min-width: 0; flex: 1; }
+.app-toast [data-title] { font-size: 14px; font-weight: 650; line-height: 1.5; }
+.app-toast [data-description] { margin-top: 3px; font-size: 13px; line-height: 1.5; color: var(--muted); }
+.app-toast [data-close-button] {
+  position: absolute;
+  inset: 4px 4px auto auto;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.app-toast [data-close-button]:hover { background: var(--surface-muted); color: var(--ink); }
+.app-toast [data-button] {
+  flex: none;
+  align-self: center;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--brand);
+  font-size: 13px;
+}
+[data-sonner-toaster].app-toaster:focus-visible,
+[data-sonner-toast].app-toast:focus-visible,
+.app-toast button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+[data-sonner-toast].app-toast:focus-visible { box-shadow: 0 6px 24px rgb(59 27 18 / 10%); }
+@media (pointer: coarse) { .app-toast [data-close-button] { width: 44px; height: 44px; } }
+@media (prefers-reduced-motion: reduce) {
+  [data-sonner-toaster].app-toaster, [data-sonner-toast].app-toast { transition: none; animation: none; }
+}

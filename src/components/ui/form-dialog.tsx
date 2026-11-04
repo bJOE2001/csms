@@ -10,16 +10,18 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { Dialog } from "./dialog";
+import { AppFormDialog } from "./app-form-dialog";
+import { AppConfirmDialog } from "./app-confirm-dialog";
+import { DialogBody } from "./dialog-layout";
+import type { DialogSize } from "./dialog";
 import { Button } from "./button";
 import { Icon } from "./icon";
-import { useFeedback } from "./feedback";
 import { TableActionButton } from "./table-action-button";
 import type { LucideIcon } from "lucide-react";
 
 type FormDialogState = {
   cancel: () => void;
-  complete: (message: string) => void;
+  complete: () => void;
   setPending: (pending: boolean) => void;
   danger: boolean;
   markDirty: () => void;
@@ -40,6 +42,7 @@ export function FormDialog({
   id,
   initialOpen = false,
   className = "",
+  size = "md",
   readOnlyActions,
   tableAction,
 }: {
@@ -55,6 +58,7 @@ export function FormDialog({
   id?: string;
   initialOpen?: boolean;
   className?: string;
+  size?: DialogSize;
   readOnlyActions?: ReactNode;
   tableAction?: {
     icon: LucideIcon;
@@ -66,8 +70,6 @@ export function FormDialog({
   const [dirty, setDirty] = useState(false);
   const [discard, setDiscard] = useState(false);
   const [pending, setPending] = useState(false);
-  const keepEditing = useRef<HTMLButtonElement>(null),
-    previousFocus = useRef<HTMLElement | null>(null);
   const openedInitially = useRef(false);
   useEffect(() => {
     if (
@@ -78,7 +80,6 @@ export function FormDialog({
       setOpen(true);
     }
   }, [initialOpen, id]);
-  const notify = useFeedback();
   const close = useCallback(() => {
     setOpen(false);
     setDirty(false);
@@ -88,24 +89,10 @@ export function FormDialog({
     if (pending) return;
     if (discard) setDiscard(false);
     else if (dirty && !readOnly) {
-      previousFocus.current = document.activeElement as HTMLElement;
       setDiscard(true);
     } else close();
   }, [pending, discard, dirty, readOnly, close]);
-  useEffect(() => {
-    if (discard) keepEditing.current?.focus();
-    else if (previousFocus.current) {
-      if (previousFocus.current.isConnected) previousFocus.current.focus();
-      previousFocus.current = null;
-    }
-  }, [discard]);
-  const complete = useCallback(
-    (message: string) => {
-      close();
-      notify(message);
-    },
-    [close, notify],
-  );
+  const complete = close;
   const markDirty = useCallback(() => setDirty(true), []);
   const context = useMemo(
     () => ({ cancel: requestClose, complete, setPending, danger, markDirty }),
@@ -120,6 +107,7 @@ export function FormDialog({
       setOpen(true);
     },
   };
+  const Presentation = confirmation ? AppConfirmDialog : AppFormDialog;
   return (
     <>
       {tableAction ? (
@@ -129,66 +117,47 @@ export function FormDialog({
           {trigger}
         </Button>
       )}
-      <Dialog
+      <Presentation
         open={open}
         onClose={requestClose}
-        title={discard ? "Discard your changes?" : title}
-        description={
-          discard
-            ? "Your unsaved changes will be lost. Keep editing to continue working on this record."
-            : description
-        }
-        role={discard || confirmation ? "alertdialog" : "dialog"}
+        title={title}
+        description={description}
+        size={confirmation ? "sm" : size}
         dismissible={!pending}
         className={`crud-dialog ${className}`}
+        footer={readOnly ? <>
+          {readOnlyActions}
+          <Button className="secondary" data-dialog-cancel onClick={close}>Close</Button>
+        </> : undefined}
       >
-        <div className="dialog-body">
-          {discard && (
-            <div>
-              <p className="dialog-note">
-                <Icon name="alert" size={20} />
-                <span>This record has changes that have not been saved.</span>
-              </p>
-              <div className="dialog-actions">
-                <Button
-                  ref={keepEditing}
-                  variant="outline"
-                  onClick={() => setDiscard(false)}
-                >
-                  Keep editing
-                </Button>
-                <Button className="danger" onClick={close}>
-                  Discard changes
-                </Button>
-              </div>
-            </div>
-          )}
-          <div
-            hidden={discard}
-            // Field handlers run before dirty-state updates, preserving the first controlled edit.
-            onInput={() => {
-              if (!readOnly) setDirty(true);
-            }}
-            onChange={() => {
-              if (!readOnly) setDirty(true);
-            }}
-          >
-            {open && (
-              <FormDialogContext.Provider value={context}>
-                {children}
-              </FormDialogContext.Provider>
-            )}
-          </div>
+        <div
+          className="dialog-content"
+          // Field handlers run before dirty-state updates, preserving the first controlled edit.
+          onInput={() => { if (!readOnly) setDirty(true); }}
+          onChange={() => { if (!readOnly) setDirty(true); }}
+        >
+          {open && <FormDialogContext.Provider value={context}>
+            {readOnly ? <DialogBody>{children}</DialogBody> : children}
+          </FormDialogContext.Provider>}
         </div>
-        {readOnly && (
-          <div className="dialog-actions dialog-readonly-actions">
-            {readOnlyActions}
-            <Button className="secondary" onClick={close}>
-              Close
-            </Button>
-          </div>
-        )}
-      </Dialog>
+      </Presentation>
+      <AppConfirmDialog
+        open={open && discard}
+        onClose={() => setDiscard(false)}
+        title="Discard your changes?"
+        description="Your unsaved changes will be lost. Keep editing to continue working on this record."
+        footer={<>
+          <Button variant="outline" data-dialog-cancel onClick={() => setDiscard(false)}>Keep editing</Button>
+          <Button className="danger" onClick={close}>Discard changes</Button>
+        </>}
+      >
+        <DialogBody>
+          <p className="dialog-note">
+            <Icon name="alert" size={20} />
+            <span>This record has changes that have not been saved.</span>
+          </p>
+        </DialogBody>
+      </AppConfirmDialog>
     </>
   );
 }

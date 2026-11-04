@@ -1,6 +1,7 @@
 "use client";
 
 import { useCatalog } from "@/lib/menu/use-catalog";
+import { WorkspaceSkeleton } from "../ui/workspace-skeleton";
 import { WorkspaceShell } from "../workspace-shell";
 import { Button } from "../ui/button";
 import { DataTable } from "../ui/data-table";
@@ -8,24 +9,19 @@ import { DeleteMenuRecord } from "../delete-menu-record";
 import { CategoryDialog } from "./category-dialog";
 
 export function LibrariesWorkspace() {
-  const { data, error, refresh } = useCatalog();
-  if (!data)
-    return (
-      <main className="workspace-content">
-        <h1>Libraries</h1>
-        {error ? (
-          <>
-            <p role="alert" className="form-message error">{error}</p>
-            <Button onClick={refresh}>Try again</Button>
-            <a className="nav-link" href="/sign-in">Sign in</a>
-          </>
-        ) : <p role="status">Loading your categories…</p>}
-      </main>
-    );
+  const { data, error, refresh, isLoading } = useCatalog();
+  if (!data) return <WorkspaceShell active="libraries" shopName="LOGO Coffee">
+    {error ? <section>
+      <h1>Libraries</h1>
+      <p role="alert" className="form-message error">{error}</p>
+      <Button onClick={refresh}>Try again</Button>
+      <a className="nav-link" href="/sign-in">Sign in</a>
+    </section> : <WorkspaceSkeleton module="libraries" track={false} />}
+  </WorkspaceShell>;
 
   return (
     <WorkspaceShell active="libraries" shopName={data.shop.name}>
-      <div className="libraries-workspace grid gap-6">
+      <div className="libraries-workspace grid gap-6" aria-busy={isLoading || undefined}>
         <header>
           <h1 className="m-0">Libraries</h1>
           <p className="hint mb-0 mt-2">Manage reusable reference data across your system.</p>

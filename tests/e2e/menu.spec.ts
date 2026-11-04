@@ -294,7 +294,7 @@ test("POS keeps selected sizes separate and sends their exact checkout prices", 
   await page
     .getByRole("button", { name: "Place an order", exact: true })
     .click();
-  await expect(page.getByRole("status")).toContainText("Sale complete");
+  await expect(page.locator("[data-sonner-toast][data-type=success]")).toContainText("Sale completed successfully");
   expect(state.calls[0].data.items).toEqual([
     {
       product_id: uid(10),
@@ -477,6 +477,7 @@ test("Menu and size forms fit desktop tablet and phone; members have read-only a
     await page
       .getByRole("button", { name: "Close dialog", exact: true })
       .click();
+    if (width < 1280) await page.getByRole("button", { name: "Open navigation menu", exact: true }).click();
     await page.getByRole("link", { name: "POS", exact: true }).click();
     await expect(
       page.getByRole("group", { name: "Size for Café Latte", exact: true }),
@@ -579,7 +580,7 @@ test("Libraries retains category drafts and shows server deletion protection", a
   await page.getByRole("button", { name: "Add category", exact: true }).click();
   await page.getByLabel("Category name", { exact: true }).fill("Seasonal");
   await page.getByRole("button", { name: "Save category", exact: true }).click();
-  await expect(page.getByRole("alert")).toContainText("Category could not be saved");
+  await expect(page.locator("[data-sonner-toast][data-type=error]")).toContainText("Category could not be saved");
   await expect(page.getByLabel("Category name", { exact: true })).toHaveValue("Seasonal");
   await page.getByRole("button", { name: "Save category", exact: true }).click();
   expect(state.calls.at(-1)!.data).toEqual(failedSaves[0]);
@@ -593,7 +594,7 @@ test("Libraries retains category drafts and shows server deletion protection", a
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
   await page.getByRole("button", { name: "Delete category Unused", exact: true }).click();
   await page.getByRole("button", { name: "Delete category", exact: true }).click();
-  await expect(page.getByRole("alert")).toContainText("Reassign products");
+  await expect(page.locator("[data-sonner-toast][data-type=error]")).toContainText("Reassign products");
   await expect(page.getByRole("alertdialog")).toBeVisible();
   expect(state.categories.some(category => category.id === uid(90))).toBe(true);
 });
@@ -631,7 +632,7 @@ test("Libraries layout fits responsive viewports", async ({ page, context }, inf
     await page.setViewportSize(viewport);
     await expect(page.getByRole("heading", { name: "Product Categories", exact: true })).toBeVisible();
     if (viewport.width >= 1280) {
-      await expect(page.getByRole("navigation", { name: "Shop" }).getByRole("link")).toHaveCount(5);
+      await expect(page.getByRole("navigation", { name: "Shop" }).getByRole("link")).toHaveCount(6);
       await expect(page.getByRole("link", { name: "Libraries", exact: true })).toBeVisible();
     } else {
       await expect(page.getByRole("navigation", { name: "Shop" })).toHaveCount(0);

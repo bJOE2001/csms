@@ -5,5 +5,7 @@ export default forwardRef<
   HTMLAnchorElement,
   AnchorHTMLAttributes<HTMLAnchorElement>
 >(function FixtureLink(props, ref) {
-  return <a {...props} ref={ref} />;
+  const anchor = { ...props } as AnchorHTMLAttributes<HTMLAnchorElement> & { onNavigate?: unknown };
+  delete anchor.onNavigate;
+  return <a {...anchor} ref={ref} />;
 });

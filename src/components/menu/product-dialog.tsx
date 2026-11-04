@@ -47,6 +47,7 @@ export function ProductDialog(props: Props) {
       title={props.product ? "Edit product" : "Add product"}
       description="Menu changes apply to future sales. Completed receipts keep their original details."
       className="product-dialog"
+      size="lg"
     >
       <ProductEditor {...props} />
     </FormDialog>
@@ -105,6 +106,8 @@ function ProductEditor({ product, data, refresh }: Props) {
   return (
     <MutationForm
       submitLabel="Save product"
+      successTitle={product ? "Product updated" : "Product saved successfully"}
+      errorTitle="Failed to save product"
       action={async (_previous, form) => {
         const invalid: Record<string, string> = {};
         if (imageFile) {
@@ -162,11 +165,12 @@ function ProductEditor({ product, data, refresh }: Props) {
           return {
             status: "error",
             message: "Check the highlighted product and size fields.",
+            validation: true,
           };
         try {
           await saveMenu("product", data.shop.id, parsed.data, imageFile ?? undefined);
           await refresh();
-          return { status: "success", message: "Product saved." };
+          return { status: "success", message: imageFile ? "Product saved and image uploaded." : "Product saved." };
         } catch (error) {
           return {
             status: "error",

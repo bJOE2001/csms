@@ -42,6 +42,7 @@ export function DeleteMenuRecord({
         </p>
       ) : (
         <MutationForm
+          errorTitle={`Failed to delete ${kind}`}
           submitLabel={
             kind === "product" ? "Delete product" : "Delete category"
           }

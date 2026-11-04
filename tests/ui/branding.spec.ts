@@ -3,6 +3,7 @@ import { chooseOption } from "../helpers/select";
 
 const uid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const screens = [
+  { path: "/dashboard", name: "Dashboard", heading: "Dashboard" },
   { path: "/pos", name: "POS", heading: "Product menu" },
   { path: "/menu", name: "Menu", heading: "Menu Management" },
   { path: "/app/sales", name: "Sales", heading: "Sales" },
@@ -82,7 +83,7 @@ for (const viewport of [
         await expect(drawerLogo.locator("img")).toHaveAttribute("src", "/images/LogoWithWhiteStoke.png");
       }
       const nav = page.getByRole("navigation", { name: "Shop", exact: true });
-      await expect(nav.getByRole("link")).toHaveCount(5);
+      await expect(nav.getByRole("link")).toHaveCount(6);
       const active = nav.getByRole("link", { name: screen.name, exact: true });
       await expect(active).toHaveAttribute("aria-current", "page");
       await expect(active).toHaveCSS("background-color", "rgb(242, 161, 94)");

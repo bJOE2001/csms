@@ -5,15 +5,22 @@ import { ExpenseDialog, DeleteExpense } from "./expense-dialog";
 import { DateRangeFilter } from "./date-range-filter";
 import { Card } from "./ui/card";
 import { DataTable } from "./ui/data-table";
+import { periodDates } from "@/lib/sales/period";
+import { useReportSnapshot } from "@/lib/use-report-snapshot";
 
-export function ExpensesView({ expenses, shopId, founder, today, from, to }: {
+export function ExpensesView({ expenses: loadedExpenses, shopId, founder, today, from, to, loadError }: {
   expenses: Expense[];
   shopId: string;
   founder: boolean;
   today: string;
   from: string;
   to: string;
+  loadError?: string;
 }) {
+  const report = useReportSnapshot(shopId, loadError ? null : { expenses: loadedExpenses, from, to });
+  const expenses = report?.expenses ?? [];
+  const appliedFrom = report?.from ?? from;
+  const appliedTo = report?.to ?? to;
   const summary = summarizeExpenses(expenses);
   return (
     <div className="menu-management expenses-management grid gap-6">
@@ -24,15 +31,18 @@ export function ExpensesView({ expenses, shopId, founder, today, from, to }: {
         </div>
         <div className="sales-header-actions expenses-date-range">
           <DateRangeFilter
-            from={from}
-            to={to}
+            from={appliedFrom}
+            to={appliedTo}
+            loadFailure={loadError ? { from, to, message: loadError } : undefined}
             action="/expenses"
             label="Filter expenses by date"
           />
           {founder && <ExpenseDialog shopId={shopId} today={today} />}
         </div>
+      {report && <p className="sales-period">Reporting period: <strong>{periodDates(appliedFrom, appliedTo)}</strong></p>}
       </header>
       {!founder && <p className="hint m-0">You can view expenses. An owner manages expense records.</p>}
+      {report && <>
       <dl className="menu-overview expenses-overview" aria-label="Expenses overview">
         {[
           ["Total Expenses", money(summary.total)],
@@ -43,7 +53,7 @@ export function ExpensesView({ expenses, shopId, founder, today, from, to }: {
       </dl>
       <Card className="menu-products expenses-list">
         <DataTable
-          paginationResetKey={`${from}:${to}`}
+          paginationResetKey={`${appliedFrom}:${appliedTo}`}
           caption="Expense records"
           toolbarLeading={<div className="menu-products-heading"><h2>Expenses</h2><p className="hint">View and manage recorded operating expenses.</p></div>}
           searchPlaceholder="Search expenses"
@@ -71,6 +81,7 @@ export function ExpensesView({ expenses, shopId, founder, today, from, to }: {
           }))}
         />
       </Card>
+      </>}
     </div>
   );
 }

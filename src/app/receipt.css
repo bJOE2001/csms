@@ -1,26 +1,6 @@
 /* One receipt composition for the on-screen preview and customer printout. */
-.app-dialog.crud-dialog.receipt-dialog {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  width: min(560px, calc(100vw - 24px));
-  background: var(--paper);
-}
-.receipt-dialog .dialog-heading {
-  flex-shrink: 0;
-  margin-bottom: 0;
-  padding: 18px 24px;
-  background: var(--surface);
-}
-.receipt-dialog .dialog-heading h2 {
-  font-size: 16px;
-}
-.receipt-dialog .dialog-body {
-  padding: 20px 24px;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
+.app-dialog.receipt-dialog { background: var(--paper); }
+.receipt-dialog > .dialog-heading { background: var(--surface); }
 .receipt-paper {
   padding: 24px;
   border: 1px solid var(--line);
@@ -226,30 +206,10 @@
 .receipt-management .button.danger:hover {
   background: hsl(var(--destructive) / 0.06);
 }
-.receipt-dialog .dialog-readonly-actions {
-  flex-shrink: 0;
-  background: var(--surface);
-  border-top: 1px solid var(--line);
-  padding: 16px 24px;
-  margin: 0;
-}
-.receipt-dialog .dialog-actions > .button {
-  flex: 1;
-  min-height: 44px;
-}
 .print-receipt {
   display: none;
 }
 @media (max-width: 480px) {
-  .receipt-dialog .dialog-heading {
-    padding: 16px;
-  }
-  .receipt-dialog .dialog-body {
-    padding: 16px 12px;
-  }
-  .receipt-dialog .dialog-readonly-actions {
-    padding: 12px 16px;
-  }
   .receipt-paper {
     padding: 20px 16px;
   }

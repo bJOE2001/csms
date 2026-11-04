@@ -1,5 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
+import { useLoadingTransition } from "./ui/global-loading-bar";
 import { Eye } from "lucide-react";
 import { money, type Sale } from "@/lib/sales/domain";
 import { FormDialog } from "./ui/form-dialog";
@@ -28,6 +29,7 @@ export function ReceiptDialog({
   tableAction?: boolean;
 }) {
   const router = useRouter();
+  const startRefresh = useLoadingTransition();
   return (
     <FormDialog
       trigger={`#${s.id.slice(0, 8).toUpperCase()}`}
@@ -98,6 +100,7 @@ export function ReceiptDialog({
               danger
             >
               <MutationForm
+                errorTitle="Refund failed"
                 submitLabel="Confirm refund"
                 action={async (_previous, form) => {
                   try {
@@ -115,7 +118,7 @@ export function ReceiptDialog({
                     });
                     const result = await response.json();
                     if (!response.ok) throw Error(result.error);
-                    router.refresh();
+                    startRefresh(() => router.refresh());
                     return {
                       status: "success",
                       message: "Sale refunded.",

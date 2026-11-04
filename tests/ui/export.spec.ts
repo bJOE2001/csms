@@ -25,7 +25,7 @@ test("exports automatically applied dates while invalid drafts and search leave 
       .getByRole("button", { name: "Download CSV", exact: true })
       .click();
     // Check transient feedback before waiting for the downloaded file on disk.
-    await expect(page.locator(".success-toast")).toContainText(
+    await expect(page.locator("[data-sonner-toast][data-type=success]")).toContainText(
       "Download started",
     );
     const download = await downloadEvent;
@@ -90,10 +90,10 @@ test("mobile export shows missing costs and retains choices when preparation fai
   await dialog
     .getByRole("button", { name: "Download CSV", exact: true })
     .click();
-  await expect(dialog.getByRole("alert")).toContainText(
+  await expect(page.locator("[data-sonner-toast][data-type=error]")).toContainText(
     "could not be prepared",
   );
-  await expect(dialog.getByRole("alert")).toBeFocused();
+  await expect(dialog.getByRole("button", { name: "Download CSV", exact: true })).toBeFocused();
   await expect(
     dialog.getByRole("radio", { name: /Sales history/ }),
   ).toBeChecked();

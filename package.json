@@ -22,7 +22,9 @@
     "test:ui": "playwright test --config playwright.ui.config.ts"
   },
   "dependencies": {
+    "@daypicker/react": "^10.0.2",
     "@radix-ui/react-dialog": "^1.3.1",
+    "@radix-ui/react-popover": "^1.3.1",
     "@radix-ui/react-select": "^2.4.1",
     "@radix-ui/react-slot": "^1.5.0",
     "@radix-ui/react-tooltip": "^1.4.1",
@@ -35,6 +37,7 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "sharp": "0.35.5",
+    "sonner": "^2.0.8",
     "tailwind-merge": "^2.6.1",
     "zod": "^4.1.0"
   },

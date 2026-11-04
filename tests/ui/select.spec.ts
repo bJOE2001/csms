@@ -109,7 +109,7 @@ test("category selects inside dialogs preserve drafts on failed saves and empty 
   const trigger = page.getByRole("dialog").getByRole("combobox", { name: "Category", exact: true });
   await chooseOption(page, trigger, "Coffee");
   await page.getByRole("button", { name: "Save product", exact: true }).click();
-  await expect(page.getByRole("alert")).toContainText("Save interrupted");
+  await expect(page.locator("[data-sonner-toast][data-type=error]")).toContainText("Save interrupted");
   await expect(trigger).toContainText("Coffee");
   await expect(page.getByLabel("Product name", { exact: true })).toHaveValue("Oat drink");
   await chooseOption(page, trigger, "Uncategorized");

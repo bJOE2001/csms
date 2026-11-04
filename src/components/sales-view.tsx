@@ -1,22 +1,21 @@
 "use client";
-import { useCallback, useState } from "react";
-import Link from "next/link";
+import { LoadingLink as Link } from "./ui/loading-link";
 import { money, summarize, type Sale, type Expense } from "@/lib/sales/domain";
 import { ExportSales } from "./export-sales";
-import { ReceiptDialog } from "./receipt-dialog";
-import { ReceiptPrint } from "./receipt-print";
 import { DateRangeFilter } from "./date-range-filter";
-import { SummaryCards, Card } from "./ui/card";
-import { DataTable } from "./ui/data-table";
+import { SalesRecords } from "./sales-records";
+import { periodDates } from "@/lib/sales/period";
+import { useReportSnapshot } from "@/lib/use-report-snapshot";
 export function SalesView({
-  sales,
-  expenses = [],
+  sales: loadedSales,
+  expenses: loadedExpenses = [],
   shopId,
   shopName,
   founder,
   timezone,
   from,
   to,
+  loadError,
 }: {
   sales: Sale[];
   expenses?: Expense[];
@@ -26,157 +25,55 @@ export function SalesView({
   timezone: string;
   from: string;
   to: string;
+  loadError?: string;
 }) {
+  const report = useReportSnapshot(shopId, loadError ? null : { sales: loadedSales, expenses: loadedExpenses, from, to });
+  const sales = report?.sales ?? [];
+  const expenses = report?.expenses ?? [];
+  const appliedFrom = report?.from ?? from;
+  const appliedTo = report?.to ?? to;
   const summary = summarize(sales, expenses);
-  const [print, setPrint] = useState<string>();
-  const closePrint = useCallback(() => setPrint(undefined), []);
-  const printSale = sales.find((sale) => sale.id === print);
   return (
     <div className="sales-management grid gap-6">
       <header className="sales-header">
         <div className="sales-heading">
           <h1 className="m-0">Sales</h1>
           <p className="hint mb-0 mt-2">
-            Track sales, product costs, and operating expenses.
+            View transactions, receipts, and payment records.
           </p>
         </div>
         <div className="sales-header-actions sales-date-range">
-          <DateRangeFilter from={from} to={to} />
-          <ExportSales
-            report={{ shopName, timezone, from, to, sales, expenses }}
-          />
+          <DateRangeFilter from={appliedFrom} to={appliedTo} loadFailure={loadError ? { from, to, message: loadError } : undefined} />
+          {report && <ExportSales
+            report={{ shopName, timezone, from: appliedFrom, to: appliedTo, sales, expenses }}
+          />}
         </div>
+        {report && <p className="sales-period">Reporting period: <strong>{periodDates(appliedFrom, appliedTo)}</strong></p>}
       </header>
+      {report && <>
       <section className="sales-overview" aria-label="Sales overview">
-        <SummaryCards
-          items={[
-            { label: "Sales Revenue", value: money(summary.total) },
-            {
-              label: "Gross Profit",
-              value:
-                summary.grossProfit === null
-                  ? "Incomplete"
-                  : money(summary.grossProfit),
-            },
-            {
-              label: "Net Profit",
-              value:
-                summary.netProfit === null
-                  ? "Incomplete"
-                  : money(summary.netProfit),
-            },
-          ]}
-        />
-        <dl className="sales-secondary-metrics">
+        <dl className="sales-secondary-metrics sales-transaction-metrics">
           {[
-            { label: "Completed Sales", value: summary.orders },
-            { label: "Average Sale", value: money(summary.average) },
-            {
-              label: "Product Costs",
-              value: money(summary.productCosts),
-              note: summary.missingCosts > 0 ? "Known costs only" : undefined,
-            },
-            { label: "Operating Expenses", value: money(summary.operatingExpenses), href: `/expenses?from=${from}&to=${to}` },
-            { label: "Cash Sales", value: money(summary.cash) },
-            { label: "GCash / Wallet Sales", value: money(summary.wallet) },
-            {
-              label: "Reversed Sales",
-              value: sales.filter((sale) => sale.status !== "completed").length,
-            },
-          ].map(({ label, value, note, href }) => (
-            <div key={label}>
-              <dt>{label}</dt>
-              <dd>{href ? <Link href={href} aria-label={`Manage operating expenses: ${value}`}>{value}</Link> : value}</dd>
-              {note && <small>{note}</small>}
-            </div>
-          ))}
+            { label: "Net Sales", value: money(summary.total) },
+            { label: "Completed Transactions", value: summary.orders },
+            { label: "Cash", value: money(summary.cash) },
+            { label: "GCash / Wallet", value: money(summary.wallet) },
+            { label: "Reversed Transactions", value: sales.filter(sale => sale.status !== "completed").length },
+          ].map(({ label, value }) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
         </dl>
+        <p className="sales-report-notes"><Link href={`/dashboard?from=${appliedFrom}&to=${appliedTo}`}>View business performance on Dashboard</Link></p>
         {summary.missingCosts > 0 && (
           <p role="status" className="form-message error">
             Profit is incomplete: {summary.missingCosts} sale(s) have no saved
             product cost.{" "}
             {founder
-              ? "Open each affected receipt and choose Record missing cost. Set product costs in POS for future sales."
+              ? "Open each affected receipt and choose Record missing cost. Set product costs in Menu for future sales."
               : "Ask the owner to record the missing cost on each affected receipt."}
           </p>
         )}
       </section>
-      <Card className="sales-section sales-history">
-        <DataTable
-          paginationResetKey={`${from}:${to}`}
-          toolbarLeading={
-            <div className="sales-section-heading">
-              <h2>Sales History</h2>
-              <p className="hint">
-                View completed transactions and payment details.
-              </p>
-            </div>
-          }
-          caption="Sales history"
-          searchPlaceholder="Search receipt or payment method"
-          emptyMessage="No sales records found for the selected period."
-          columns={[
-            { key: "receipt", label: "Receipt", kind: "primary" },
-            { key: "date", label: "Date", kind: "compact" },
-            { key: "method", label: "Payment", kind: "compact" },
-            { key: "total", label: "Total", numeric: true },
-            { key: "status", label: "Status", kind: "status" },
-            { key: "actions", label: "Actions", kind: "actions" },
-          ]}
-          rows={sales.map((s) => ({
-            id: s.id,
-            search: `${s.id} ${s.method} ${s.status}`,
-            cells: {
-              receipt: <strong className="table-receipt-number">#{s.id.slice(0, 8).toUpperCase()}</strong>,
-              date: new Intl.DateTimeFormat("en-PH", {
-                dateStyle: "medium",
-                timeStyle: "short",
-                timeZone: timezone,
-              }).format(new Date(s.created_at)),
-              method:
-                s.method === "cash"
-                  ? "Cash"
-                  : s.method === "gcash"
-                    ? "GCash"
-                    : s.method,
-              total: money(s.total_cents),
-              status: (
-                <>
-                  <span
-                    className={`sales-status ${s.status === "completed" ? "sales-status-completed" : ""}`}
-                  >
-                    {s.status}
-                  </span>
-                  {s.total_cost_cents == null && s.status !== "cancelled" && (
-                    <small className="block text-muted-foreground">
-                      Cost missing
-                    </small>
-                  )}
-                </>
-              ),
-              actions: (
-                <ReceiptDialog
-                  sale={s}
-                  shopId={shopId}
-                  shopName={shopName}
-                  timezone={timezone}
-                  founder={founder}
-                  onPrint={() => setPrint(s.id)}
-                  tableAction
-                />
-              ),
-            },
-          }))}
-        />
-      </Card>
-      {printSale && (
-        <ReceiptPrint
-          sale={printSale}
-          shopName={shopName}
-          timezone={timezone}
-          onClose={closePrint}
-        />
-      )}
+      <SalesRecords sales={sales} shopId={shopId} shopName={shopName} timezone={timezone} founder={founder} from={appliedFrom} to={appliedTo} />
+      </>}
     </div>
   );
 }

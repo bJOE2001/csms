@@ -111,7 +111,7 @@ test("failed uploads preserve the old image and selected draft for retry", async
   await picker(page).setInputFiles(data.file);
   data.state.fail = true;
   await save(page);
-  await expect(dialog(page).getByRole("alert")).toContainText("Image upload unavailable");
+  await expect(page.locator("[data-sonner-toast][data-type=error]")).toContainText("Image upload unavailable");
   expect(data.products[0].image_url).toBe(legacy);
   await expect(dialog(page).getByRole("img")).toHaveAttribute("src", /^blob:/);
   await expect(dialog(page).getByLabel("Product name", { exact: true })).toHaveValue("Latte");
@@ -178,6 +178,8 @@ test("drag and drop works and pending saves disable duplicate changes", async ({
 
 test("image controls and previews fit desktop, tablet and mobile dialogs", async ({ page }, info) => {
   test.setTimeout(120000);
+  // Measure final touch targets rather than the dialog's entering scale animation.
+  await page.emulateMedia({ reducedMotion: "reduce" });
   const data = await setup(page);
   for (const width of [1440, 1280, 1032, 768, 393]) {
     await page.setViewportSize({ width, height: 900 });

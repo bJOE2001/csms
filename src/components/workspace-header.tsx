@@ -1,20 +1,13 @@
 "use client";
 
-import Link from "next/link";
+import { LoadingLink as Link } from "./ui/loading-link";
+import { workspaceModules as modules } from "@/lib/workspace";
 import { useEffect, useRef, useState, type Ref } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Menu, X } from "lucide-react";
 import { Icon } from "@/components/ui/icon";
 import { Button } from "./ui/button";
 import { BrandLogo } from "./brand-logo";
-
-const modules = [
-  { key: "pos", label: "POS", href: "/pos", icon: "dashboard" },
-  { key: "menu", label: "Menu", href: "/menu", icon: "menu" },
-  { key: "sales", label: "Sales", href: "/app/sales", icon: "sales" },
-  { key: "expenses", label: "Expenses", href: "/expenses", icon: "wallet" },
-  { key: "libraries", label: "Libraries", href: "/libraries", icon: "libraries" },
-];
 
 function NavigationLinks({ active, onNavigate, navigationRef }: {
   active: string;

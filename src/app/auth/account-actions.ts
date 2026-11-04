@@ -18,11 +18,13 @@ export async function requestPasswordReset(
 ): Promise<ActionState> {
   const parsed = z.email().safeParse(form.get("email"));
   if (!parsed.success)
-    return { status: "error", message: "Enter a valid email." };
+    return { status: "error", validation: true, message: "Enter a valid email." };
   const supabase = await createClient();
-  await supabase.auth.resetPasswordForEmail(parsed.data, {
+  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
     redirectTo: `${appUrl()}/auth/callback?next=/reset-password`,
   });
+  if (error)
+    return { status: "error", message: "The recovery email could not be requested. Please try again." };
   return {
     status: "success",
     message:
@@ -38,9 +40,10 @@ export async function changePassword(
     return {
       status: "error",
       message: "Use a password with at least 12 characters.",
+      validation: true,
     };
   if (form.get("password") !== form.get("confirm"))
-    return { status: "error", message: "Passwords do not match." };
+    return { status: "error", validation: true, message: "Passwords do not match." };
   const supabase = await createClient();
   const {
     data: { user },

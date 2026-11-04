@@ -5,6 +5,8 @@ import { Icon } from "./icon";
 import { Button } from "./button";
 import { Input } from "./primitives/input";
 import { DataTablePagination, type TablePageSize } from "./data-table-pagination";
+import { useLoadingSignal } from "./global-loading-bar";
+import { Skeleton } from "./workspace-skeleton";
 import {
   Table,
   TableHeader,
@@ -31,6 +33,8 @@ export function DataTable({
   actions,
   paginationResetKey = "",
   isLoading = false,
+  searchable = true,
+  paginate = true,
 }: {
   caption: string;
   columns: {
@@ -47,7 +51,10 @@ export function DataTable({
   actions?: ReactNode;
   paginationResetKey?: string;
   isLoading?: boolean;
+  searchable?: boolean;
+  paginate?: boolean;
 }) {
+  useLoadingSignal(isLoading);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<{ key: string; descending: boolean }>();
   const [pageSize, setPageSize] = useState<TablePageSize>(10);
@@ -91,14 +98,14 @@ export function DataTable({
   // Synchronize during render so filters and deletions never show an empty old page.
   if (pagination.page !== page || pagination.criteria !== criteria)
     setPagination({ page, criteria });
-  const visible = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const visible = paginate ? filtered.slice((page - 1) * pageSize, page * pageSize) : filtered;
   return (
     <div className="data-table" aria-busy={isLoading || undefined}>
       <div className="data-toolbar">
         {toolbarLeading && (
           <div className="data-toolbar-leading">{toolbarLeading}</div>
         )}
-        <label className="table-search input-group">
+        {searchable && <label className="table-search input-group">
           <Icon name="search" size={18} />
           <span className="sr-only">{searchPlaceholder}</span>
           <Input
@@ -110,7 +117,7 @@ export function DataTable({
             onChange={(event) => setQuery(event.target.value)}
             aria-controls={id}
           />
-        </label>
+        </label>}
         {actions && <div className="section-actions">{actions}</div>}
       </div>
       <div
@@ -170,7 +177,7 @@ export function DataTable({
               ))}
             </TableRow>
           </TableHeader>
-          <TableBody aria-hidden={isLoading || undefined} inert={isLoading || undefined}>
+          <TableBody>
             {visible.map((row) => (
               <TableRow key={row.id}>
                 {columns.map((column) => (
@@ -186,12 +193,14 @@ export function DataTable({
             ))}
           </TableBody>
         </Table>
-        {isLoading && visible.length > 0 && <div className="table-loading" aria-hidden="true">Loading records…</div>}
-        {!filtered.length && (
+        {isLoading && !rows.length && <div className="table-skeleton" aria-hidden="true">
+          {Array.from({ length: 4 }, (_, i) => <Skeleton className="skeleton-row" key={i} />)}
+        </div>}
+        {!isLoading && !filtered.length && (
           <div className="table-empty">
-            <Icon name={isLoading ? "refresh" : "search"} size={26} />
+            <Icon name="search" size={26} />
             <p>
-              {isLoading ? "Loading records…" : rows.length
+              {rows.length
                 ? "No matching records. Try a different search."
                 : emptyMessage}
             </p>
@@ -207,7 +216,7 @@ export function DataTable({
         )}
       </div>
       <div className="data-table-footer">
-        <DataTablePagination
+        {paginate && <DataTablePagination
           page={page}
           pageSize={pageSize}
           totalItems={filtered.length}
@@ -219,7 +228,7 @@ export function DataTable({
           isLoading={isLoading}
           label={`${caption} pagination`}
           tableId={id}
-        />
+        />}
         {overflowing && (
           <p className="table-scroll-hint" id={`${id}-scroll-hint`}>
             Scroll across for more columns <Icon name="arrow" size={14} />

@@ -153,7 +153,7 @@ test("Menu filters and reporting dates reset page without clearing search or pag
   }
 });
 
-test("sorting resets pages predictably and loading hides stale rows and disables paging", async ({ page }) => {
+test("sorting resets pages predictably and refresh preserves rows while disabling paging", async ({ page }) => {
   await page.goto("/?pagination");
   const nav = pagination(page, "Products");
   const rows = page.getByRole("region", { name: "Products", exact: true }).locator("tbody tr");
@@ -169,10 +169,11 @@ test("sorting resets pages predictably and loading hides stale rows and disables
   const region = page.getByRole("region", { name: "Products", exact: true });
   const tableHeight = (await region.boundingBox())!.height;
   await page.getByRole("button", { name: "Toggle loading" }).click();
-  await expect(region.locator("tbody")).toBeHidden();
-  await expect(region.locator("tbody")).toHaveAttribute("inert", "");
+  await expect(region.locator("tbody")).toBeVisible();
+  await expect(region.locator("tbody")).not.toHaveAttribute("inert", "");
+  await expect(page.locator(".global-loading-bar")).toHaveAttribute("data-busy", "true");
   expect((await region.boundingBox())!.height).toBe(tableHeight);
-  await expect(nav.locator(".table-count")).toHaveText("Loading records…");
+  await expect(nav.locator(".table-count")).toContainText("1–10 of 53");
   await expect(nav.getByRole("combobox", { name: "Rows per page" })).toBeDisabled();
   for (const label of ["First page", "Previous page", "Next page", "Last page"])
     await expect(nav.getByRole("button", { name: label, exact: true })).toBeDisabled();
@@ -230,7 +231,7 @@ test("Sales and Expenses summaries and every CSV retain the full reporting perio
     await page.getByRole("searchbox").fill("no-matches-here");
     expect(await overview.innerText()).toBe(summary);
   }
-  await expect(page.locator(".crud-summary .panel").nth(2)).toContainText("₱3,975.00");
+  await expect(page.locator(".sales-transaction-metrics")).toContainText("₱7,685.00");
   for (const option of ["Profit summary", "Sales history", "Operating expenses"]) {
     await page.getByRole("button", { name: "Export CSV", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: "Export sales data" });

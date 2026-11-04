@@ -174,126 +174,6 @@ tbody tr:last-child td {
   border-radius: 8px;
   color: var(--muted);
 }
-.app-dialog {
-  width: min(560px, calc(100vw - 32px));
-  max-height: calc(100dvh - 40px);
-  padding: 0;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--ink);
-  box-shadow: var(--shadow-dialog);
-}
-.app-dialog.crud-dialog {
-  width: min(720px, calc(100vw - 32px));
-}
-.app-dialog.export-dialog {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.export-dialog .dialog-heading {
-  flex-shrink: 0;
-  margin-bottom: 0;
-}
-.export-dialog form {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-.export-dialog .dialog-body {
-  min-height: 0;
-  overflow-y: auto;
-  padding-top: 20px;
-}
-.export-dialog .dialog-actions {
-  flex-shrink: 0;
-  margin: 0;
-  padding: 16px 24px;
-  border-top: 1px solid var(--line);
-}
-.dialog-heading {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 24px;
-  border-bottom: 1px solid var(--line);
-  margin-bottom: 20px;
-}
-.dialog-heading > div {
-  min-width: 0;
-}
-.dialog-heading h2 {
-  font-size: 20px;
-  line-height: 1.35;
-  margin: 0;
-}
-.dialog-heading p {
-  font-size: 14px;
-  color: var(--muted);
-  margin: 8px 0 0;
-}
-.dialog-body {
-  padding: 0 24px 24px;
-}
-.dialog-note {
-  background: var(--warning-bg);
-  color: var(--warning);
-  padding: 14px;
-  display: flex;
-  gap: 10px;
-}
-.icon-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  border: 0;
-  border-radius: 5px;
-  color: var(--muted);
-  background: transparent;
-}
-.icon-button:hover {
-  background: var(--surface-muted);
-}
-.dialog-heading .icon-button {
-  margin: -8px -8px 0 0;
-}
-.toast-viewport {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 1000;
-  width: min(420px, calc(100vw - 32px));
-  pointer-events: none;
-}
-.success-toast {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: var(--shadow-dialog);
-  padding: 16px;
-  pointer-events: auto;
-}
-.success-toast > div {
-  flex: 1;
-  min-width: 0;
-}
-.success-toast p {
-  font-size: 13px;
-  color: var(--muted);
-  margin: 4px 0 0;
-}
-.success-toast strong {
-  font-size: 14px;
-}
-.toast-icon {
-  color: var(--brand);
-}
 @media (max-width: 760px) {
   .panel {
     padding: 20px;
@@ -309,12 +189,6 @@ tbody tr:last-child td {
   }
   .table-search input {
     font-size: 16px;
-  }
-  .dialog-heading {
-    padding: 20px;
-  }
-  .dialog-body {
-    padding: 0 20px 20px;
   }
 }
 @media (max-width: 600px) {

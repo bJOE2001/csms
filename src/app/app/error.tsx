@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export default function WorkspaceError({ reset }: { reset: () => void }) {
   return (
-    <main className="auth-card" role="alert">
+    <section className="auth-card" role="alert">
       <p className="eyebrow">Workspace unavailable</p>
       <h1>We couldn’t load this page.</h1>
       <p className="hint">
@@ -19,6 +19,6 @@ export default function WorkspaceError({ reset }: { reset: () => void }) {
           Sales
         </Link>
       </div>
-    </main>
+    </section>
   );
 }

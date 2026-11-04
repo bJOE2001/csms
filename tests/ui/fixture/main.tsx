@@ -1,3 +1,10 @@
+import { LandingFixture } from "./landing";
+import { DashboardFixture } from "./dashboard";
+import { LoadingFixture } from "./loading";
+import { LoadingProvider } from "@/components/ui/global-loading-bar";
+import { WorkspaceFrame } from "@/components/workspace-frame";
+import { notify } from "@/lib/notify";
+import { OperationNotice } from "@/components/ui/operation-notice";
 import { SalesView } from "@/components/sales-view";
 import { ExpensesView } from "@/components/expenses-view";
 import { MenuWorkspace } from "@/components/menu/menu-workspace";
@@ -16,18 +23,23 @@ import { salesRange, shopDate } from "@/lib/sales/period";
 import { createRoot } from "react-dom/client";
 import { MutationForm } from "@/components/mutation-form";
 import { FormDialog } from "@/components/ui/form-dialog";
-import { FeedbackProvider } from "@/components/ui/feedback";
+import { NotificationProvider } from "@/components/ui/notification-provider";
 import { Card, CardHeader } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import type { ActionState } from "@/lib/action-state";
 import "@/app/tokens.css";
 import "@/app/globals.css";
 import "@/app/select.css";
+import "@/app/calendar.css";
 import "@/app/workspace.css";
+import "@/app/dialogs.css";
+import "@/app/notifications.css";
+import "@/app/loading.css";
 import "@/app/workspace-shell.css";
 import "@/app/menu.css";
 import "@/app/libraries.css";
 import "@/app/sales.css";
+import "@/app/dashboard.css";
 import "@/app/expenses.css";
 import "@/app/tables.css";
 import "@/app/receipt.css";
@@ -61,8 +73,16 @@ function Fixture() {
   const paginationFixture = new URLSearchParams(location.search).has("pagination");
   const [loading, setLoading] = useState(false);
   return (
-    <FeedbackProvider>
+    <NotificationProvider>
       <main className="workspace-content">
+        {location.search.includes("notifications") && <section aria-label="Notification fixtures" style={{ paddingTop: 112, paddingBottom: 16, display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {(["success", "error", "warning", "info"] as const).map(type =>
+            <button className="button secondary compact" key={type} onClick={() => notify[type](`${type} notification`, { description: "A clear operation result with supporting details." })}>{type} notification</button>)}
+          <button onClick={() => notify.error("Critical failure", { critical: true })}>Critical notification</button>
+          <button onClick={() => { for (let i = 0; i < 6; i++) notify.info(`Operation ${i}`); }}>Rapid notifications</button>
+          <button onClick={() => history.pushState({}, "", "/?notifications&navigated")}>Navigate with notification</button>
+          {location.search.includes("redirect") && <OperationNotice title="Sign-in failed" description="Those credentials could not be verified." />}
+        </section>}
         <div className="page-heading">
           <h1>Record management</h1>
           <FormDialog
@@ -133,7 +153,7 @@ function Fixture() {
           />
         </Card>
       </main>
-    </FeedbackProvider>
+    </NotificationProvider>
   );
 }
 
@@ -212,7 +232,7 @@ function ReceiptFixture() {
     ],
   };
   return (
-    <FeedbackProvider>
+    <NotificationProvider>
       <main className="workspace-content">
         <h1>Receipts</h1>
         <ReceiptDialog
@@ -232,7 +252,7 @@ function ReceiptFixture() {
           />
         )}
       </main>
-    </FeedbackProvider>
+    </NotificationProvider>
   );
 }
 function readFixtureExpenses(): Expense[] {
@@ -246,13 +266,17 @@ function readFixtureExpenses(): Expense[] {
 }
 function ReportFixture() {
   const customSales = sessionStorage.getItem("fixture-sales");
+  const [loadError, setLoadError] = useState<string | undefined>(() => sessionStorage.getItem("fixture:report-error") ?? undefined);
   const [records, setRecords] = useState(readFixtureExpenses);
   const [search, setSearch] = useState(location.search);
   const fixtureRange = salesRange(
     Object.fromEntries(new URLSearchParams(search)), "2026-11-02",
   );
   useEffect(() => {
-    const navigate = () => setSearch(location.search);
+    const navigate = () => {
+      setSearch(location.search);
+      setLoadError(sessionStorage.getItem("fixture:report-error") ?? undefined);
+    };
     window.addEventListener("fixture:navigate", navigate);
     window.addEventListener("popstate", navigate);
     return () => {
@@ -268,14 +292,16 @@ function ReportFixture() {
   const expenses = records.filter(expense => expense.spent_on >= fixtureRange.from && expense.spent_on <= fixtureRange.to);
   const isExpenses = location.pathname === "/expenses" || new URLSearchParams(location.search).has("expenses");
   return (
-    <FeedbackProvider>
+    <NotificationProvider>
       <WorkspaceShell active={isExpenses ? "expenses" : "sales"} shopName="Common Ground Coffee">
         {isExpenses ? <ExpensesView
+          loadError={loadError}
           expenses={expenses}
           shopId="00000000-0000-4000-8000-000000000001"
           founder={!location.search.includes("staff")}
           today="2026-11-02" from={fixtureRange.from} to={fixtureRange.to}
         /> : <SalesView
+          loadError={loadError}
           shopId="00000000-0000-4000-8000-000000000001"
           shopName="Common Ground Coffee"
           founder={!location.search.includes("staff")}
@@ -323,20 +349,21 @@ function ReportFixture() {
           })}
         />}
       </WorkspaceShell>
-    </FeedbackProvider>
+    </NotificationProvider>
   );
 }
 createRoot(document.getElementById("root")!).render(
-  location.search.includes("selects") ? (
+  <LoadingProvider><WorkspaceFrame>{
+  (new URLSearchParams(location.search).has("landing") || ["/coffee-menu", "/visit"].includes(location.pathname)) ? <LandingFixture /> : (location.pathname === "/dashboard" || new URLSearchParams(location.search).has("dashboard")) ? <DashboardFixture /> : location.search.includes("loading") ? <LoadingFixture /> : location.search.includes("selects") ? (
     <SelectFixture />
   ) : location.search.includes("controls") ? (
     <ControlsFixture />
   ) : (location.search.includes("pos") || location.pathname === "/pos") ? (
-    <FeedbackProvider><PosWorkspace /></FeedbackProvider>
+    <NotificationProvider><PosWorkspace /></NotificationProvider>
   ) : (location.search.includes("menu") || location.pathname === "/menu") ? (
-    <FeedbackProvider><MenuWorkspace /></FeedbackProvider>
+    <NotificationProvider><MenuWorkspace /></NotificationProvider>
   ) : (location.search.includes("libraries") || location.pathname === "/libraries") ? (
-    <FeedbackProvider><LibrariesWorkspace /></FeedbackProvider>
+    <NotificationProvider><LibrariesWorkspace /></NotificationProvider>
   ) : location.search.includes("receipt") ? (
     <ReceiptFixture />
   ) : location.search.includes("sales") || location.search.includes("expenses") ||
@@ -344,5 +371,6 @@ createRoot(document.getElementById("root")!).render(
     <ReportFixture />
   ) : (
     <Fixture />
-  ),
+  )
+  }</WorkspaceFrame></LoadingProvider>,
 );

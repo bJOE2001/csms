@@ -1,11 +1,12 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { salesCsv, type ExportKind, type SalesReport } from "@/lib/sales/csv";
 import { summarize } from "@/lib/sales/domain";
-import { Dialog } from "./ui/dialog";
+import { AppFormDialog } from "./ui/app-form-dialog";
+import { DialogBody, DialogFooter } from "./ui/dialog-layout";
 import { Button } from "./ui/button";
 import { Icon } from "./ui/icon";
-import { useFeedback } from "./ui/feedback";
+import { notify } from "@/lib/notify";
 
 const options: { value: ExportKind; label: string; description: string }[] = [
   {
@@ -28,15 +29,9 @@ const options: { value: ExportKind; label: string; description: string }[] = [
 export function ExportSales({ report }: { report: SalesReport }) {
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<ExportKind>("summary");
-  const [error, setError] = useState("");
-  const errorMessage = useRef<HTMLParagraphElement>(null);
-  useEffect(() => {
-    if (error) errorMessage.current?.focus();
-  }, [error]);
-  const notify = useFeedback();
   const missing = summarize(report.sales, report.expenses).missingCosts;
   function download() {
-    setError("");
+    notify.dismiss("sales-export");
     let url: string | undefined;
     const anchor = document.createElement("a");
     try {
@@ -48,14 +43,15 @@ export function ExportSales({ report }: { report: SalesReport }) {
       document.body.appendChild(anchor);
       anchor.click();
       setOpen(false);
-      notify(
-        `${options.find((option) => option.value === kind)!.label} CSV download started.`,
-        "Download started",
-      );
+      notify.success("Download started", {
+        id: "sales-export",
+        description: `${options.find((option) => option.value === kind)!.label} CSV download started.`,
+      });
     } catch {
-      setError(
-        "The CSV could not be prepared. Close this dialog, refresh Sales and try again.",
-      );
+      notify.error("Export failed", {
+        id: "sales-export",
+        description: "The CSV could not be prepared. Close this dialog, refresh Sales and try again.",
+      });
     } finally {
       anchor.remove();
       if (url) {
@@ -70,7 +66,7 @@ export function ExportSales({ report }: { report: SalesReport }) {
         variant="outline"
         onClick={() => {
           setKind("summary");
-          setError("");
+          notify.dismiss("sales-export");
           setOpen(true);
         }}
         aria-haspopup="dialog"
@@ -79,7 +75,7 @@ export function ExportSales({ report }: { report: SalesReport }) {
         <Icon name="download" size={18} />
         Export CSV
       </Button>
-      <Dialog
+      <AppFormDialog
         open={open}
         onClose={() => setOpen(false)}
         title="Export sales data"
@@ -87,12 +83,13 @@ export function ExportSales({ report }: { report: SalesReport }) {
         description="Choose a CSV file to keep your own records or open in a spreadsheet."
       >
         <form
+          className="dialog-form"
           onSubmit={(event) => {
             event.preventDefault();
             download();
           }}
         >
-          <div className="dialog-body">
+          <DialogBody>
             <div className="mb-6 rounded-md border border-border bg-secondary/40 p-4 text-sm">
               <p className="font-semibold">
                 {report.from} — {report.to}
@@ -143,28 +140,18 @@ export function ExportSales({ report }: { report: SalesReport }) {
                 marked incomplete in the CSV.
               </p>
             )}
-            {error && (
-              <p
-                ref={errorMessage}
-                tabIndex={-1}
-                role="alert"
-                className="form-message error mt-3"
-              >
-                {error}
-              </p>
-            )}
-          </div>
-          <div className="dialog-actions">
-            <Button variant="outline" onClick={() => setOpen(false)}>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="outline" data-dialog-cancel onClick={() => setOpen(false)}>
               Cancel
             </Button>
             <Button type="submit">
               <Icon name="download" size={18} />
               Download CSV
             </Button>
-          </div>
+          </DialogFooter>
         </form>
-      </Dialog>
+      </AppFormDialog>
     </>
   );
 }

@@ -10,16 +10,6 @@
 .data-table .numeric { font-variant-numeric: tabular-nums; }
 .data-table td.numeric { font-weight: 600; }
 .data-table .table-empty { padding: 24px 16px; gap: 8px; font-size: 13px; }
-.data-table tbody[aria-hidden="true"] { visibility: hidden; }
-.table-loading {
-  position: absolute;
-  inset: var(--control-height) 0 0;
-  display: grid;
-  place-items: center;
-  padding: 16px;
-  color: var(--muted);
-  font-size: 13px;
-}
 .data-table .table-cell-actions { text-align: right; }
 .table-cell-actions .table-cell-content,
 .table-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }

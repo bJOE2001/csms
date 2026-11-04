@@ -1,5 +1,6 @@
 import {
   Coffee,
+  LayoutDashboard,
   Grid2X2,
   ReceiptText,
   LogOut,
@@ -24,6 +25,7 @@ import {
 
 const icons: Record<string, LucideIcon> = {
   coffee: Coffee,
+  business: LayoutDashboard,
   dashboard: Grid2X2,
   sales: ReceiptText,
   logout: LogOut,

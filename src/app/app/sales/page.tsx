@@ -1,8 +1,11 @@
+import { loadSalesReport } from "@/lib/sales/load-report";
 import { requireMember } from "@/lib/auth/require-member";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { SalesView } from "@/components/sales-view";
 import type { Sale, Expense } from "@/lib/sales/domain";
 import { shopDate, salesRange } from "@/lib/sales/period";
+import { Suspense } from "react";
+import { WorkspaceSkeleton } from "@/components/ui/workspace-skeleton";
 export default async function SalesPage({
   searchParams,
 }: {
@@ -12,31 +15,31 @@ export default async function SalesPage({
   const params = await searchParams;
   const today = shopDate(shop.timezone);
   const { from, to } = salesRange(params, today);
-  const { data, error } = await supabase.rpc("pos_sales", {
-    p_shop_id: shop.id,
-    p_from: from,
-    p_to: to,
-  });
-  const { data: expenses, error: expenseError } = await supabase.rpc(
-    "pos_expenses",
-    { p_shop_id: shop.id, p_from: from, p_to: to },
-  );
-  if (error || expenseError)
-    throw new Error(
-      "Sales could not be loaded. Check the date range and apply the POS profit migration.",
-    );
+  return <WorkspaceShell active="sales" shopName={shop.name}>
+    <Suspense fallback={<WorkspaceSkeleton module="sales" />}>
+      <SalesReport supabase={supabase} shop={shop} role={role} from={from} to={to} />
+    </Suspense>
+  </WorkspaceShell>;
+}
+
+async function SalesReport({ supabase, shop, role, from, to }: Pick<Awaited<ReturnType<typeof requireMember>>, "supabase" | "shop" | "role"> & { from: string; to: string }) {
+  let sales: Sale[] = [], expenses: Expense[] = [], loadError: string | undefined;
+  try {
+    ({ sales, expenses } = await loadSalesReport(supabase, shop.id, from, to));
+  } catch {
+    loadError = "Sales could not be updated. Your previous results are still shown if available. Check your connection and choose a date again to retry.";
+  }
   return (
-    <WorkspaceShell active="sales" shopName={shop.name}>
-      <SalesView
-        sales={data as unknown as Sale[]}
-        expenses={expenses as unknown as Expense[]}
-        shopId={shop.id}
-        shopName={shop.name}
-        founder={role === "founder"}
-        timezone={shop.timezone}
-        from={from}
-        to={to}
-      />
-    </WorkspaceShell>
+    <SalesView
+      sales={sales}
+      expenses={expenses}
+      loadError={loadError}
+      shopId={shop.id}
+      shopName={shop.name}
+      founder={role === "founder"}
+      timezone={shop.timezone}
+      from={from}
+      to={to}
+    />
   );
 }
