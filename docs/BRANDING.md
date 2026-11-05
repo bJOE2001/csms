@@ -57,7 +57,7 @@ At 1280px and above, the 216px sidebar stays vertical with a compact logo, all f
 
 The modal drawer supports its close button, overlay and Escape, traps keyboard focus and restores focus to the trigger. Selecting a route closes it. Crossing into desktop layout closes it and focuses the active sidebar link because the compact trigger becomes hidden. Short screens scroll the drawer; reduced-motion preferences suppress its slide animation. Mobile management grids allocate spare height to content rather than stretching the header.
 
-Below 1280px, POS keeps its full-width product menu and existing modal cart drawer. Independent product/cart scrolling, quantity controls, size choices, pending sales and Cash/GCash interactions remain unchanged. Management content keeps its existing scrolling behavior, with positioned workspace panes containing visually hidden accessibility labels. Financial summaries and CSVs use the full selected period, independent of visible table pages.
+Below 1280px, POS keeps its full-width product menu and existing modal cart drawer. Independent product/cart scrolling, quantity controls, size choices, pending sales and Cash/E-wallet interactions remain unchanged. Management content keeps its existing scrolling behavior, with positioned workspace panes containing visually hidden accessibility labels. Financial summaries and CSVs use the full selected period, independent of visible table pages.
 
 ## Implementation map
 

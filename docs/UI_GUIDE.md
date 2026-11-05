@@ -2,7 +2,7 @@
 
 On desktop, use the sidebar to switch between POS, Menu, Sales, Expenses and Libraries; Sign out stays at the bottom. On tablet and phone, open the menu button beside the logo to find the same links and Sign out. Choose a module, use the close button, press Escape or tap outside the drawer to close it. The separate Cart button continues to open your current order.
 
-Open POS, choose products with Add to cart, then open Cart to adjust quantities and select Cash or GCash. The filled Added to cart label and small quantity indicator show what is already selected; use the plus and minus controls in Cart to change quantities. Decreasing to zero restores Add to cart. Card and cart quantities stay synchronized for the selected size. Use the trash icon to remove an entire cart line immediately, then Place an order to complete the sale. Leave cash received blank for exact payment, or enter it to see change. Confirm a GCash payment has arrived before completing the sale.
+Open POS, choose products with Add to cart, then open Cart to adjust quantities and select Cash or E-wallet. The filled Added to cart label and small quantity indicator show what is already selected; use the plus and minus controls in Cart to change quantities. Decreasing to zero restores Add to cart. Card and cart quantities stay synchronized for the selected size. Use the trash icon to remove an entire cart line immediately, then Place an order to complete the sale. Leave cash received blank for exact payment, or enter it to see change. Confirm an E-wallet payment has arrived before completing the sale.
 
 Use Add product or Edit in Menu Management. Enter name, selling price, cost per item and availability. Include ingredients and packaging in the cost. Use zero only for a genuinely cost-free item. Updating cost affects future sales only.
 
@@ -14,7 +14,7 @@ In Sales and Expenses, choose **From Date** and **To Date**. A complete, valid c
 
 Gross and net margins express each profit as a percentage of revenue. For example, PHP 2,000 net profit on PHP 10,000 revenue is a 20% net margin. Negative margins represent losses. Margins show **Unavailable** when revenue is zero or product costs are missing. The profit-summary CSV includes the same margin calculations, with unavailable values left blank.
 
-The receipt shows your shop name, sale date, quantities, unit prices, total and payment status. Cash received and change appear only when recorded; refunded and cancelled sales are clearly marked. **Print receipt** creates a compact customer copy suitable for 80 mm paper or saving as PDF. Print and Close stay visible while you scroll. Preparation costs, source notes and refund management remain under **Business details** and are excluded from the printout.
+The receipt shows your shop name, sale date, quantities, unit prices, total and payment status. Cash received and change appear only when recorded; refunded and cancelled sales are clearly marked. **Print receipt** creates a branded customer copy for 80 mm paper (default), 58 mm paper, or saving as PDF. Choose the matching Paper width and printer-dialog setting; receipt preparation waits for the original logo and fonts. Print and Close stay visible while you scroll. Preparation costs, source notes and refund management remain under **Business details** and are excluded from the printout.
 
 If checkout loses its connection, retry the saved sale. Refreshing preserves the same pending sale ID. Resolve it before starting another sale. Never clear browser storage while a sale is unresolved.
 
@@ -28,7 +28,7 @@ For your first business-day check:
 
 1. Confirm product costs in Menu before selling and complete any missing historical costs on receipts.
 2. Record the operating expenses belonging to that date, without counting ingredient costs twice.
-3. Resolve pending checkouts and compare completed payments against the matching cash/GCash records. Review refunds separately: this report restates the original sale date, so a later refund can differ from cash movement on its refund date.
+3. Resolve pending checkouts and compare completed payments against the matching cash/E-wallet records. Review refunds separately: this report restates the original sale date, so a later refund can differ from cash movement on its refund date.
 4. Download the three CSVs. Check that revenue minus deducted product costs equals gross profit, and gross profit minus active expenses equals net profit. Keep the files with your own payment and expense records.
 
 Libraries → Product Categories manages reusable product categories. Add, rename and delete unused categories there; assigned categories must be reassigned in Menu before deletion. Menu → Add product manages products. Products without sizes use the regular selling price and direct cost. Add size creates custom labels with individual prices/costs; choose a default size and set availability per size. Category assignment and descriptions are optional. Product Image defaults to Upload Image: choose or drop one JPG, PNG or WebP file up to 5 MB, preview it, and save the product. Replace Image changes the draft; Remove Image clears it when saved. Image URL supports your existing HTTPS URL or local asset path. Cancelling uploads nothing, and failed saves retain the draft for retry. Removing a size affects future orders only. Delete archives a product and preserves receipts. An assigned category must be reassigned before it can be deleted.
@@ -71,4 +71,22 @@ POS, Menu, and Libraries use route loading boundaries plus catalog initializatio
 
 ## Business Dashboard and transaction reporting
 
-Dashboard follows the existing Warm Espresso & Caramel tokens, white bordered KPI surfaces, compact metric strips, responsive ranked lists, and a container-sized SVG sales chart. Its chart data table and period selector expose exact values without relying on color or pointer hover. Three primary KPIs stack on phones; the chart and analytical sections reflow without page-level horizontal scrolling. Dashboard appears first in the existing desktop sidebar and compact navigation drawer. Owner authorization runs on the server before financial loading. Sales uses a compact transaction strip and shared receipt table. See [DASHBOARD.md](DASHBOARD.md) for accounting definitions, reporting scope, and unsupported historical category analytics.
+Dashboard follows the existing Warm Espresso & Caramel tokens, white bordered KPI surfaces, compact metric strips, responsive ranked lists, and a container-sized SVG sales chart. Its screen-reader data table and keyboard-operable chart expose exact values without relying on color or pointer hover. Three primary KPIs stack on phones; the chart and analytical sections reflow without page-level horizontal scrolling. Dashboard appears first in the existing desktop sidebar and compact navigation drawer. Owner authorization runs on the server before financial loading. Sales uses a compact transaction strip and shared receipt table. See [DASHBOARD.md](DASHBOARD.md) for accounting definitions, reporting scope, and unsupported historical category analytics.
+
+## Tablet reports
+
+Dashboard, Sales and Expenses use the existing 768–1279px tablet breakpoint, 24px page gutters, 16px section/card spacing and the unchanged Espresso header with its navigation drawer. Titles sit above a left-aligned row of equal date controls and existing page actions. Automatic filtering, validation, reporting periods and the global loading bar retain their current behavior.
+
+Dashboard metrics use a three-column, two-row grid. Portrait charts and Top Products stack at full width. Sales uses a balanced three-plus-two metric arrangement below 960px, retaining five readable columns on wider tablets. Expenses uses two columns and two rows with complete, unbroken currency amounts. Tablet-only table spacing gives receipts and descriptions more useful width while retaining 44px action buttons, all columns, tooltips, pagination and the existing accessible scroll affordance when exceptionally wide records require it. Desktop arrangements and mobile Sales/Expenses presentation are unchanged; mobile Dashboard metrics now wrap into two columns.
+
+Layout tests use fixture data only and compare all financial values against pre-change captures. They do not modify or reconcile live business records. The existing mobile Expense card layout may still wrap unusually long amounts; the tablet refinement does not shrink its typography or truncate digits.
+
+Validation on November 5, 2026: 54 focused UI tests passed across reports, tables, navigation and expense workflows. The seven-viewport report suite was then expanded and rerun successfully, including tablet calendar positioning, automatic dates, keyboard chart inspection, search, pagination reset, receipt viewing, CSV download, and expense-dialog access. TypeScript, ESLint, the production build, 28 financial unit tests and four production-server end-to-end checks passed. Screenshots were inspected at all seven requested CSS viewport sizes. Physical iPad hardware and live-account financial data were not exercised.
+
+## Remove unsubmitted cart items
+
+Before checkout, use each cart line’s trash button to remove unwanted items. Removing unsubmitted items sends no API request, saves no transaction and does not increase Refunded Transactions. No separate cancellation action is provided. Existing checkout processing and saved-sale retry protections remain in place.
+
+For a completed sale, the owner returns the full payment and records **Refund sale** from the receipt, including a required reason. Historical receipts stay in Sales. Dashboard, Sales and the summary CSV label the refund-only count **Refunded Transactions** (sentence case in CSV); legacy cancellations are not counted as refunds.
+
+Payment controls, receipts, Sales search and CSV exports display **E-wallet**. Existing payments and checkout requests retain the internal `gcash` identifier for compatibility; no payment records or API contracts are migrated. Search accepts both the current display label and the existing stored identifier.

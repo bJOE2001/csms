@@ -20,7 +20,7 @@ begin
   assert exists(select 1 from public.pos_sales where shop_id=shop and method='cash');
   assert exists(select 1 from public.pos_sales where shop_id=shop and method='gcash');
   assert exists(select 1 from public.pos_sales where shop_id=shop and status='refunded');
-  assert exists(select 1 from public.pos_sales where shop_id=shop and status='cancelled');
+  assert not exists(select 1 from public.pos_sales where shop_id=shop and status='cancelled');
   assert not exists(select 1 from public.pos_sales where shop_id=shop and
     ((method='cash' and tendered_cents<total_cents) or (method='gcash' and tendered_cents is not null)));
   assert not exists(select 1 from public.pos_sales s where s.shop_id=shop and

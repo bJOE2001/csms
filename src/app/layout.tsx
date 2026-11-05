@@ -15,6 +15,7 @@ import "./dashboard.css";
 import "./expenses.css";
 import "./tables.css";
 import "./receipt.css";
+import "./sign-in.css";
 import { LoadingProvider } from "@/components/ui/global-loading-bar";
 import { WorkspaceFrame } from "@/components/workspace-frame";
 import { NotificationProvider } from "@/components/ui/notification-provider";

@@ -41,6 +41,7 @@ export type Sale = {
   status: string;
   tendered_cents: number | null;
   refund_reason: string | null;
+  refunded_at?: string | null;
   payment_status: string;
   items: {
     name: string;
@@ -62,6 +63,12 @@ export function money(value: number) {
     style: "currency",
     currency: "PHP",
   }).format(value / 100);
+}
+/** Display names are independent of persisted payment identifiers. */
+export function paymentMethodLabel(method: string) {
+  if (method === "gcash") return "E-wallet";
+  if (method === "cash") return "Cash";
+  return method === "unknown" ? "Not recorded" : method;
 }
 export const expenseSchema = z.object({
   id: z.uuid(),
@@ -107,6 +114,7 @@ export function summarize(sales: Sale[], expenses: Expense[] = []) {
       netProfit === null || total === 0 ? null : (netProfit / total) * 100,
     total,
     orders: completed.length,
+    refunds: sales.filter((s) => s.status === "refunded").length,
     average: completed.length ? Math.round(total / completed.length) : 0,
     cash: completed
       .filter((s) => s.method === "cash")

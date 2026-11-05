@@ -49,6 +49,12 @@ const report: SalesReport = {
 };
 
 describe("sales CSV export", () => {
+  it("uses the E-wallet display label for legacy wallet payments and summary totals", () => {
+    const walletReport = { ...report, sales: [{ ...base, method: "gcash" }] };
+    expect(salesCsv("sales", walletReport)).toContain('"E-wallet"');
+    expect(salesCsv("sales", walletReport)).not.toContain('"gcash"');
+    expect(salesCsv("summary", walletReport)).toContain('"E-wallet revenue","145.00","PHP"');
+  });
   it("exports the saved size label alongside the immutable item name", () => {
     const csv = salesCsv("sales", {
       ...report,
@@ -77,6 +83,8 @@ describe("sales CSV export", () => {
     expect(csv).toContain('"Operating expenses","20.00","PHP"');
     expect(csv).toContain('"Net profit","55.00","PHP"');
     expect(csv).toContain('"Completed sales","1","sales"');
+    expect(csv).toContain('"Refunded transactions","1","transactions"');
+    expect(csv).not.toContain('"Reversed sales"');
     const rows = salesCsv("sales", report).split("\r\n");
     expect(rows[1]).toContain(
       '"2026-11-01T20:00:00Z","2026-11-02","completed"',

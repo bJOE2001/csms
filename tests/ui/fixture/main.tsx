@@ -1,4 +1,5 @@
 import { LandingFixture } from "./landing";
+import { SignInFixture } from "./sign-in";
 import { DashboardFixture } from "./dashboard";
 import { LoadingFixture } from "./loading";
 import { LoadingProvider } from "@/components/ui/global-loading-bar";
@@ -17,6 +18,7 @@ import { Pencil } from "lucide-react";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { ReceiptDialog } from "@/components/receipt-dialog";
 import { ReceiptPrint } from "@/components/receipt-print";
+import type { CustomerReceipt, ReceiptPaperWidth } from "@/lib/sales/receipt";
 import { useCallback, useEffect, useState } from "react";
 import type { Sale, Expense } from "@/lib/sales/domain";
 import { salesRange, shopDate } from "@/lib/sales/period";
@@ -43,6 +45,7 @@ import "@/app/dashboard.css";
 import "@/app/expenses.css";
 import "@/app/tables.css";
 import "@/app/receipt.css";
+import "@/app/sign-in.css";
 
 declare global {
   interface Window {
@@ -194,8 +197,8 @@ function SelectFixture() {
 }
 
 function ReceiptFixture() {
-  const [print, setPrint] = useState(false);
-  const closePrint = useCallback(() => setPrint(false), []);
+  const [print, setPrint] = useState<{ receipt: CustomerReceipt; paperWidth: ReceiptPaperWidth }>();
+  const closePrint = useCallback(() => setPrint(undefined), []);
   const query = new URLSearchParams(location.search);
   const sale: Sale = {
     id: "74a96ee5-921a-4cd6-86b1-ccff156a9931",
@@ -213,6 +216,7 @@ function ReceiptFixture() {
     payment_status: query.has("refunded") ? "refunded" : "confirmed",
     tendered_cents: query.has("unknown-cash") ? null : 50000,
     refund_reason: query.has("refunded") ? "Wrong order returned" : null,
+    refunded_at: query.has("refunded") ? "2026-11-02T10:00:00Z" : null,
     items: [
       {
         name: query.has("long")
@@ -231,6 +235,12 @@ function ReceiptFixture() {
       },
     ],
   };
+  if (query.has("adjustment")) sale.total_cents = 36000;
+  if (query.has("single")) { sale.items = [sale.items[0]]; sale.total_cents = 29000; }
+  if (query.has("many-items")) {
+    sale.items = Array.from({ length: 35 }, (_, i) => ({ ...sale.items[i % 2], name: `${i + 1}. ${sale.items[i % 2].name}` }));
+    sale.total_cents = sale.items.reduce((total, item) => total + item.line_total_cents, 0);
+  }
   return (
     <NotificationProvider>
       <main className="workspace-content">
@@ -240,14 +250,18 @@ function ReceiptFixture() {
           shopId="00000000-0000-4000-8000-000000000001"
           shopName="Common Ground Coffee"
           timezone="Asia/Manila"
-          founder
-          onPrint={() => setPrint(true)}
+          founder={!query.has("staff")}
+          business={query.has("no-business") ? {} : undefined}
+          onPrint={(receipt, paperWidth) => setPrint({ receipt, paperWidth })}
+          printing={!!print}
+          onCancelPrint={closePrint}
         />
         {print && (
           <ReceiptPrint
-            sale={sale}
+            receipt={print.receipt}
+            paperWidth={print.paperWidth}
+            business={query.has("no-business") ? {} : undefined}
             shopName="Common Ground Coffee"
-            timezone="Asia/Manila"
             onClose={closePrint}
           />
         )}
@@ -354,7 +368,7 @@ function ReportFixture() {
 }
 createRoot(document.getElementById("root")!).render(
   <LoadingProvider><WorkspaceFrame>{
-  (new URLSearchParams(location.search).has("landing") || ["/coffee-menu", "/visit"].includes(location.pathname)) ? <LandingFixture /> : (location.pathname === "/dashboard" || new URLSearchParams(location.search).has("dashboard")) ? <DashboardFixture /> : location.search.includes("loading") ? <LoadingFixture /> : location.search.includes("selects") ? (
+  location.pathname === "/sign-in" ? <SignInFixture /> : (new URLSearchParams(location.search).has("landing") || ["/coffee-menu", "/visit"].includes(location.pathname)) ? <LandingFixture /> : (location.pathname === "/dashboard" || new URLSearchParams(location.search).has("dashboard")) ? <DashboardFixture /> : location.search.includes("loading") ? <LoadingFixture /> : location.search.includes("selects") ? (
     <SelectFixture />
   ) : location.search.includes("controls") ? (
     <ControlsFixture />

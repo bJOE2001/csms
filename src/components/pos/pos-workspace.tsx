@@ -13,6 +13,7 @@ import { Card } from "../ui/card";
 import {
   cents,
   money,
+  paymentMethodLabel,
   checkoutSchema,
   type Checkout,
 } from "@/lib/sales/domain";
@@ -191,7 +192,7 @@ export function PosWorkspace() {
             Cart
           </Dialog.Title>
         ) : (
-          <h2>Cart</h2>
+          <h2 ref={cartHeading} tabIndex={-1}>Cart</h2>
         )}
         <span
           className="cart-count"
@@ -326,7 +327,7 @@ export function PosWorkspace() {
                   aria-pressed={method === "gcash"}
                   onClick={() => setMethod("gcash")}
                 >
-                  GCash
+                  {paymentMethodLabel("gcash")}
                 </Button>
               </div>
               {method === "cash" ? (

@@ -6,6 +6,7 @@ import { DateRangeFilter } from "./date-range-filter";
 import { SalesRecords } from "./sales-records";
 import { periodDates } from "@/lib/sales/period";
 import { useReportSnapshot } from "@/lib/use-report-snapshot";
+import type { ReceiptBusinessDetails } from "@/lib/sales/receipt";
 export function SalesView({
   sales: loadedSales,
   expenses: loadedExpenses = [],
@@ -16,6 +17,7 @@ export function SalesView({
   from,
   to,
   loadError,
+  business,
 }: {
   sales: Sale[];
   expenses?: Expense[];
@@ -26,6 +28,7 @@ export function SalesView({
   from: string;
   to: string;
   loadError?: string;
+  business?: ReceiptBusinessDetails;
 }) {
   const report = useReportSnapshot(shopId, loadError ? null : { sales: loadedSales, expenses: loadedExpenses, from, to });
   const sales = report?.sales ?? [];
@@ -57,8 +60,8 @@ export function SalesView({
             { label: "Net Sales", value: money(summary.total) },
             { label: "Completed Transactions", value: summary.orders },
             { label: "Cash", value: money(summary.cash) },
-            { label: "GCash / Wallet", value: money(summary.wallet) },
-            { label: "Reversed Transactions", value: sales.filter(sale => sale.status !== "completed").length },
+            { label: "E-wallet", value: money(summary.wallet) },
+            { label: "Refunded Transactions", value: summary.refunds },
           ].map(({ label, value }) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
         </dl>
         <p className="sales-report-notes"><Link href={`/dashboard?from=${appliedFrom}&to=${appliedTo}`}>View business performance on Dashboard</Link></p>
@@ -72,7 +75,7 @@ export function SalesView({
           </p>
         )}
       </section>
-      <SalesRecords sales={sales} shopId={shopId} shopName={shopName} timezone={timezone} founder={founder} from={appliedFrom} to={appliedTo} />
+      <SalesRecords sales={sales} shopId={shopId} shopName={shopName} timezone={timezone} founder={founder} from={appliedFrom} to={appliedTo} business={business} />
       </>}
     </div>
   );

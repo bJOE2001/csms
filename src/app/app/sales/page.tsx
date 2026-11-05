@@ -6,6 +6,7 @@ import type { Sale, Expense } from "@/lib/sales/domain";
 import { shopDate, salesRange } from "@/lib/sales/period";
 import { Suspense } from "react";
 import { WorkspaceSkeleton } from "@/components/ui/workspace-skeleton";
+import { visitDetails } from "@/lib/site/config";
 export default async function SalesPage({
   searchParams,
 }: {
@@ -23,6 +24,7 @@ export default async function SalesPage({
 }
 
 async function SalesReport({ supabase, shop, role, from, to }: Pick<Awaited<ReturnType<typeof requireMember>>, "supabase" | "shop" | "role"> & { from: string; to: string }) {
+  const { address, phone } = visitDetails();
   let sales: Sale[] = [], expenses: Expense[] = [], loadError: string | undefined;
   try {
     ({ sales, expenses } = await loadSalesReport(supabase, shop.id, from, to));
@@ -40,6 +42,7 @@ async function SalesReport({ supabase, shop, role, from, to }: Pick<Awaited<Retu
       timezone={shop.timezone}
       from={from}
       to={to}
+      business={{ address, phone }}
     />
   );
 }

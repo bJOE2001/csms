@@ -1,19 +1,20 @@
 "use client";
 import { useCallback, useState, type ReactNode } from "react";
 import type { Sale } from "@/lib/sales/domain";
-import { money } from "@/lib/sales/domain";
+import { money, paymentMethodLabel } from "@/lib/sales/domain";
 import { DataTable } from "./ui/data-table";
 import { Card } from "./ui/card";
 import { ReceiptDialog } from "./receipt-dialog";
 import { ReceiptPrint } from "./receipt-print";
+import type { CustomerReceipt, ReceiptBusinessDetails, ReceiptPaperWidth } from "@/lib/sales/receipt";
 
-export function SalesRecords({ sales, shopId, shopName, timezone, founder, from, to, recent = false, actions }: {
+export function SalesRecords({ sales, shopId, shopName, timezone, founder, from, to, recent = false, actions, business }: {
   sales: Sale[]; shopId: string; shopName: string; timezone: string; founder: boolean;
   from: string; to: string; recent?: boolean; actions?: ReactNode;
+  business?: ReceiptBusinessDetails;
 }) {
-  const [print, setPrint] = useState<string>();
+  const [print, setPrint] = useState<{ receipt: CustomerReceipt; paperWidth: ReceiptPaperWidth }>();
   const closePrint = useCallback(() => setPrint(undefined), []);
-  const printSale = sales.find(sale => sale.id === print);
   return <>
       <Card className="sales-section sales-history">
         <DataTable
@@ -42,7 +43,7 @@ export function SalesRecords({ sales, shopId, shopName, timezone, founder, from,
           ]}
           rows={sales.map((s) => ({
             id: s.id,
-            search: `${s.id} ${s.method} ${s.status}`,
+            search: `${s.id} ${s.method} ${paymentMethodLabel(s.method)} ${s.status}`,
             cells: {
               receipt: <strong className="table-receipt-number">#{s.id.slice(0, 8).toUpperCase()}</strong>,
               date: new Intl.DateTimeFormat("en-PH", {
@@ -50,12 +51,7 @@ export function SalesRecords({ sales, shopId, shopName, timezone, founder, from,
                 timeStyle: "short",
                 timeZone: timezone,
               }).format(new Date(s.created_at)),
-              method:
-                s.method === "cash"
-                  ? "Cash"
-                  : s.method === "gcash"
-                    ? "GCash"
-                    : s.method,
+              method: paymentMethodLabel(s.method),
               total: money(s.total_cents),
               status: (
                 <>
@@ -78,7 +74,10 @@ export function SalesRecords({ sales, shopId, shopName, timezone, founder, from,
                   shopName={shopName}
                   timezone={timezone}
                   founder={founder}
-                  onPrint={() => setPrint(s.id)}
+                  onPrint={(receipt, paperWidth) => setPrint({ receipt, paperWidth })}
+                  printing={print?.receipt.reference === s.id}
+                  onCancelPrint={closePrint}
+                  business={business}
                   tableAction
                 />
               ),
@@ -86,11 +85,12 @@ export function SalesRecords({ sales, shopId, shopName, timezone, founder, from,
           }))}
         />
       </Card>
-      {printSale && (
+      {print && (
         <ReceiptPrint
-          sale={printSale}
+          receipt={print.receipt}
+          paperWidth={print.paperWidth}
+          business={business}
           shopName={shopName}
-          timezone={timezone}
           onClose={closePrint}
         />
       )}

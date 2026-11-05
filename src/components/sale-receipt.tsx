@@ -1,160 +1,64 @@
-import { money, type Sale } from "@/lib/sales/domain";
-import { Icon } from "./ui/icon";
+"use client";
+import { useState } from "react";
+import { coffeeBrand } from "@/lib/brand";
+import { money } from "@/lib/sales/domain";
+import type { CustomerReceipt, ReceiptBusinessDetails } from "@/lib/sales/receipt";
 
-function paymentMethod(method: string) {
-  if (method === "gcash") return "GCash";
-  if (method === "cash") return "Cash";
-  return method === "unknown" ? "Not recorded" : method;
+function ReceiptHeader({ shopName, business }: { shopName: string; business: ReceiptBusinessDetails }) {
+  const [failed, setFailed] = useState(false);
+  const branch = shopName.trim() && ![coffeeBrand.name.toLowerCase(), "coffee logo"].includes(shopName.trim().toLowerCase()) ? shopName : undefined;
+  return <header className="receipt-brand">
+    {!failed && <>
+      {/* Use the unchanged official artwork for both preview and printing. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={coffeeBrand.logo.src} alt={coffeeBrand.name} width={coffeeBrand.logo.width} height={coffeeBrand.logo.height} onError={() => setFailed(true)} className="receipt-logo" />
+    </>}
+    <p className="receipt-kind">Sales receipt</p>
+    {(branch || business.address || business.phone) && <address className="receipt-store-details">
+      {branch && <span>{branch}</span>}
+      {business.address && <span>{business.address}</span>}
+      {business.phone && <span>{business.phone}</span>}
+    </address>}
+  </header>;
 }
 
 /** Customer-facing receipt, shared by the dialog and printout. */
-export function SaleReceipt({
-  sale,
-  shopName,
-  timezone,
-}: {
-  sale: Sale;
-  shopName: string;
-  timezone: string;
+export function SaleReceipt({ receipt, shopName, business = { address: coffeeBrand.address } }: {
+  receipt: CustomerReceipt; shopName: string; business?: ReceiptBusinessDetails;
 }) {
-  const reversed = sale.status === "refunded" || sale.status === "cancelled";
-  const cashRecorded =
-    sale.method === "cash" &&
-    sale.tendered_cents !== null &&
-    sale.tendered_cents >= sale.total_cents;
-  const itemCount = sale.items.reduce((sum, item) => sum + item.quantity, 0);
-  const timestamp = new Date(sale.created_at);
-  const status =
-    sale.status === "completed"
-      ? "Completed"
-      : sale.status === "refunded"
-        ? "Refunded"
-        : sale.status === "cancelled"
-          ? "Cancelled"
-          : sale.status;
-  const paymentStatus =
-    sale.payment_status === "confirmed"
-      ? "Confirmed"
-      : sale.payment_status === "refunded"
-        ? "Refunded"
-        : sale.payment_status === "unknown"
-          ? "Not recorded"
-          : sale.payment_status;
-  return (
-    <article className="receipt-paper" aria-label="Customer receipt">
-      <header className="receipt-brand">
-        <span className="receipt-mark">
-          <Icon name="coffee" size={28} />
-        </span>
-        <h2>{shopName}</h2>
-        <p>Sales receipt</p>
-      </header>
-      <div className="receipt-reference">
-        <div>
-          <span className="receipt-label">Receipt no.</span>
-          <p className="font-mono font-semibold">
-            #{sale.id.slice(0, 8).toUpperCase()}
-          </p>
-        </div>
-        <span
-          className={`receipt-status ${reversed ? "receipt-status-reversed" : ""}`}
-        >
-          {status}
-        </span>
-      </div>
-      <time className="receipt-date" dateTime={sale.created_at}>
-        {new Intl.DateTimeFormat("en-PH", {
-          dateStyle: "medium",
-          timeStyle: "short",
-          timeZone: timezone,
-        }).format(timestamp)}
-      </time>
-      <table className="receipt-items">
-        <caption className="sr-only">
-          Purchased items, quantities and amounts in PHP
-        </caption>
-        <thead>
-          <tr>
-            <th scope="col">Qty</th>
-            <th scope="col">Item</th>
-            <th scope="col">Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sale.items.map((item, index) => (
-            <tr key={index}>
-              <td>{item.quantity}</td>
-              <td>
-                <span className="receipt-item-name">{item.name}</span>
-                {item.size_label && (
-                  <span className="receipt-unit-price">
-                    Size: {item.size_label}
-                  </span>
-                )}
-                <span className="receipt-unit-price">
-                  {money(item.unit_price_cents)} each
-                </span>
-              </td>
-              <td>{money(item.line_total_cents)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {!sale.items.length && (
-        <p className="receipt-empty">
-          Item details were not recorded for this sale.
-        </p>
-      )}
-      <dl className="receipt-totals">
-        <div className="receipt-grand-total">
-          <dt>{reversed ? "Original total" : "Total"}</dt>
-          <dd>{money(sale.total_cents)}</dd>
-        </div>
-        <div>
-          <dt>Payment method</dt>
-          <dd>{paymentMethod(sale.method)}</dd>
-        </div>
-        <div>
-          <dt>Payment status</dt>
-          <dd className="capitalize">{paymentStatus}</dd>
-        </div>
-        {cashRecorded && (
-          <>
-            <div>
-              <dt>Cash received</dt>
-              <dd>{money(sale.tendered_cents!)}</dd>
-            </div>
-            <div>
-              <dt>Change given</dt>
-              <dd>{money(sale.tendered_cents! - sale.total_cents)}</dd>
-            </div>
-          </>
-        )}
-        {sale.status === "refunded" && (
-          <div className="receipt-refund-total">
-            <dt>Refunded in full</dt>
-            <dd>{money(sale.total_cents)}</dd>
-          </div>
-        )}
-      </dl>
-      {reversed && (
-        <p className="receipt-reversal-note">
-          {sale.status === "refunded"
-            ? "Fully refunded. Cash received and change refer to the original payment."
-            : "This sale was cancelled. The original total is shown for reference."}
-        </p>
-      )}
-      <footer className="receipt-footer">
-        <p className="receipt-thanks">
-          {reversed
-            ? "Keep this receipt for your records."
-            : "Thank you for your visit."}
-        </p>
-        <p>
-          {itemCount} {itemCount === 1 ? "item" : "items"}
-        </p>
-        <p className="receipt-full-reference">Reference: {sale.id}</p>
-      </footer>
-    </article>
-  );
+  return <article className="receipt-paper" aria-label="Customer receipt">
+    <ReceiptHeader shopName={shopName} business={business} />
+    <div className="receipt-reference">
+      <div><span className="receipt-label">Receipt no.</span><p className="font-mono font-semibold">#{receipt.number}</p></div>
+      <span className={`receipt-status ${receipt.reversed ? "receipt-status-reversed" : ""}`}>{receipt.status}</span>
+    </div>
+    <dl className="receipt-date"><div><dt>Date</dt><dd><time dateTime={receipt.createdAt}>{receipt.date}</time></dd></div><div><dt>Time</dt><dd>{receipt.time}</dd></div></dl>
+    <table className="receipt-items">
+      <caption className="sr-only">Purchased items, quantities and amounts in PHP</caption>
+      <thead><tr><th scope="col">Qty</th><th scope="col">Item</th><th scope="col">Amount</th></tr></thead>
+      <tbody>{receipt.items.map((item, index) => <tr key={index}>
+        <td>{item.quantity}</td><td><span className="receipt-item-name">{item.name}</span>
+          {item.size && <span className="receipt-unit-price">Size: {item.size}</span>}
+          <span className="receipt-unit-price">{money(item.unitPrice)} each</span>
+        </td><td>{money(item.amount)}</td>
+      </tr>)}</tbody>
+    </table>
+    {!receipt.items.length && <p className="receipt-empty">Item details were not recorded for this sale.</p>}
+    <dl className="receipt-totals">
+      {receipt.subtotal !== null && <div><dt>Item subtotal</dt><dd>{money(receipt.subtotal)}</dd></div>}
+      {receipt.adjustment !== null && <div><dt>Recorded adjustment</dt><dd>{money(receipt.adjustment)}</dd></div>}
+      <div className="receipt-grand-total"><dt>{receipt.reversed ? "Original total" : "Total"}</dt><dd>{money(receipt.total)}</dd></div>
+      <div><dt>Payment method</dt><dd>{receipt.method}</dd></div>
+      <div><dt>Payment status</dt><dd className="capitalize">{receipt.paymentStatus}</dd></div>
+      {receipt.cash && <><div><dt>Cash received</dt><dd>{money(receipt.cash.received)}</dd></div><div><dt>Change given</dt><dd>{money(receipt.cash.change)}</dd></div></>}
+      {receipt.refunded && <div className="receipt-refund-total"><dt>Refunded in full</dt><dd>{money(receipt.total)}</dd></div>}
+      {receipt.refundedOn && <div><dt>Refund date</dt><dd>{receipt.refundedOn}</dd></div>}
+    </dl>
+    {receipt.reversed && <p className="receipt-reversal-note">{receipt.refunded ? "Fully refunded. Payment details refer to the original transaction." : "This historical sale was cancelled. The original total is shown for reference."}</p>}
+    <footer className="receipt-footer">
+      <p className="receipt-thanks">{receipt.reversed ? "Keep this receipt for your records." : "Thank you for your visit!"}</p>
+      <p>{receipt.quantity} {receipt.quantity === 1 ? "item" : "items"}</p>
+      <p className="receipt-full-reference">Transaction reference: {receipt.reference}</p>
+    </footer>
+  </article>;
 }

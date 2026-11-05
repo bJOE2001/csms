@@ -23,6 +23,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 800
         height: rect(".dashboard-management").height,
         kpis: [...document.querySelectorAll(".dashboard-kpi")].map(el => el.getBoundingClientRect().height),
         chart: rect(".dashboard-line-chart"),
+        analyticsHeights: [...document.querySelectorAll(".dashboard-main-analytics > .dashboard-section")].map(el => el.getBoundingClientRect().height),
         sectionPositions: [...document.querySelectorAll(".dashboard-management h2")].map(el => ({ title: el.textContent, y: el.getBoundingClientRect().y })),
         financialValues: Object.fromEntries([...document.querySelectorAll(".dashboard-kpi, .dashboard-metrics > div")]
           .map(el => [el.querySelector("dt")!.textContent!, el.querySelector("dd")!.textContent])),
@@ -37,13 +38,15 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 800
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     expect(measurements.chart.height).toBeGreaterThanOrEqual(220);
     expect(measurements.chart.height).toBeLessThanOrEqual(260);
-    await expect(page.locator(".chart-details")).not.toHaveAttribute("open");
-    await expect(page.getByRole("combobox", { name: "Inspect sales period" })).toBeHidden();
+    expect(Math.abs(measurements.analyticsHeights[0] - measurements.analyticsHeights[1])).toBeLessThan(1);
+    await expect(page.locator(".chart-details, .chart-inspector, .dashboard-disclosure")).toHaveCount(0);
+    await expect(page.getByText("View chart data", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("Ranking details", { exact: true })).toHaveCount(0);
     const beforeFile = `${folder}/before-${viewport.width}.json`;
     if (existsSync(beforeFile)) {
       const before = JSON.parse(readFileSync(beforeFile, "utf8"));
       for (const [label, value] of Object.entries(measurements.financialValues))
-        expect(value).toBe(before.financialValues[label]);
+        if (label !== "Refunded Transactions") expect(value).toBe(before.financialValues[label] ?? before.financialValues[label === "E-wallet Sales" ? "GCash / Wallet Sales" : label]);
       expect(measurements.topProducts).toBe(before.topProducts);
       expect(measurements.height).toBeLessThan(before.height);
     }
@@ -55,7 +58,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 800
   });
 }
 
-for (const width of [1440, 393]) {
+for (const width of [1440, 768, 393]) {
   test(`Dashboard preserves five historical rankings and large values at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.addInitScript(() => sessionStorage.setItem("fixture-sales", JSON.stringify(Array.from({ length: 6 }, (_, i) => ({
@@ -69,17 +72,15 @@ for (const width of [1440, 393]) {
     await expect(page.locator(".performance-list li")).toHaveCount(5);
     await expect(page.locator(".sales-history")).toHaveCount(0);
     await expect(page.locator(".dashboard-kpis")).toContainText("₱59,259,259.41");
+    const heights = await page.locator(".dashboard-main-analytics > .dashboard-section").evaluateAll(items => items.map(el => el.getBoundingClientRect().height));
+    expect(Math.abs(heights[0] - heights[1])).toBeLessThan(1);
     expect(await page.evaluate(() => [...document.querySelectorAll(".dashboard-kpi, .dashboard-metrics > div, .dashboard-section, .performance-list li")].every(el => el.scrollWidth <= el.clientWidth + 2))).toBe(true);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    const summary = page.locator(".chart-details > summary");
-    await summary.focus();
-    await page.keyboard.press("Enter");
-    await expect(page.getByRole("combobox", { name: "Inspect sales period" })).toBeVisible();
-    await expect(page.getByRole("table", { name: "Daily net sales in PHP" })).toBeVisible();
-    await summary.focus();
-    await page.keyboard.press("Enter");
-    await expect(page.getByRole("combobox", { name: "Inspect sales period" })).toBeHidden();
-    await page.locator(".dashboard-accounting > summary").click();
-    await expect(page.getByText(/Refunds remove revenue;/)).toBeVisible();
+    const chart = page.locator(".dashboard-line-chart");
+    await chart.focus();
+    await page.keyboard.press("End");
+    await page.keyboard.press("ArrowLeft");
+    await expect(page.getByRole("tooltip")).toContainText("Nov 2, 2026");
+    await expect(page.getByRole("table", { name: "Daily net sales in PHP" }).locator("..")).toHaveClass("sr-only");
   });
 }

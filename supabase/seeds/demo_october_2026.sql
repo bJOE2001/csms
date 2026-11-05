@@ -161,10 +161,7 @@ begin
       perform public.pos_checkout(target_shop, payload);
       occurred_at := (first_day+day_offset+time '08:00' + make_interval(mins => (order_number-1)*600/orders_today)) at time zone shop_zone;
       update public.pos_sales set created_at=occurred_at where id=sale_id;
-      if sequence_number%97=0 then
-        update public.pos_sales set status='cancelled',payment_status='cancelled',
-          refund_reason='[Demo] Order cancelled before preparation' where id=sale_id;
-      elsif sequence_number%41=0 then
+      if sequence_number%41=0 then
         perform public.pos_refund(target_shop,sale_id,'[Demo] Customer returned an incorrect drink');
         update public.pos_sales set refunded_at=occurred_at+interval '15 minutes' where id=sale_id;
       end if;
@@ -184,8 +181,9 @@ begin
       expense_id := pg_temp.coffee_demo_id(target_shop,'expense:'||(first_day+day_offset)::text||':'||expense_kind);
       expense_ids := array_append(expense_ids, expense_id);
       if exists(select 1 from public.pos_expenses where id=expense_id) then continue; end if;
+      -- Keep the original expense-kind identifier so renamed display text does not duplicate seeded expenses.
       perform public.pos_add_expense(target_shop,jsonb_build_object('id',expense_id,
-        'spent_on',first_day+day_offset,'description',expense_kind,'amount_cents',expense_amount));
+        'spent_on',first_day+day_offset,'description',replace(expense_kind,'[Demo] GCash transaction fees','[Demo] E-wallet transaction fees'),'amount_cents',expense_amount));
       update public.pos_expenses set created_at=(first_day+day_offset+time '18:00') at time zone shop_zone where id=expense_id;
       if expense_kind='[Demo] Duplicate utility entry (voided)' then
         perform public.pos_void_expense(target_shop,expense_id);

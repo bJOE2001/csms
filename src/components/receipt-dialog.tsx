@@ -1,5 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useLoadingTransition } from "./ui/global-loading-bar";
 import { Eye } from "lucide-react";
 import { money, type Sale } from "@/lib/sales/domain";
@@ -10,6 +11,8 @@ import { Icon } from "./ui/icon";
 import { MutationForm } from "./mutation-form";
 import { RecordSaleCost } from "./record-sale-cost";
 import { SaleReceipt } from "./sale-receipt";
+import { Select } from "./ui/select";
+import { customerReceipt, type CustomerReceipt, type ReceiptBusinessDetails, type ReceiptPaperWidth } from "@/lib/sales/receipt";
 
 export function ReceiptDialog({
   sale: s,
@@ -19,17 +22,25 @@ export function ReceiptDialog({
   founder,
   onPrint,
   tableAction = false,
+  printing = false,
+  onCancelPrint,
+  business,
 }: {
   sale: Sale;
   shopId: string;
   shopName: string;
   timezone: string;
   founder: boolean;
-  onPrint: () => void;
+  onPrint: (receipt: CustomerReceipt, paperWidth: ReceiptPaperWidth) => void;
   tableAction?: boolean;
+  printing?: boolean;
+  onCancelPrint?: () => void;
+  business?: ReceiptBusinessDetails;
 }) {
   const router = useRouter();
   const startRefresh = useLoadingTransition();
+  const [paperWidth, setPaperWidth] = useState<ReceiptPaperWidth>("80");
+  const receipt = customerReceipt(s, timezone);
   return (
     <FormDialog
       trigger={`#${s.id.slice(0, 8).toUpperCase()}`}
@@ -38,15 +49,19 @@ export function ReceiptDialog({
       title="Sale receipt"
       readOnly
       className="receipt-dialog"
+      onClose={onCancelPrint}
       readOnlyActions={
-        <Button onClick={onPrint}>
+        <>
+        <label className="receipt-paper-setting">Paper width<Select value={paperWidth} disabled={printing} onValueChange={value => setPaperWidth(value === "58" ? "58" : "80")} options={[{ value: "80", label: "80 mm" }, { value: "58", label: "58 mm" }]} /></label>
+        <Button pending={printing} pendingLabel="Preparing…" onClick={() => onPrint(receipt, paperWidth)}>
           <Icon name="print" size={18} />
           Print receipt
         </Button>
+        </>
       }
     >
-      <SaleReceipt sale={s} shopName={shopName} timezone={timezone} />
-      <section className="receipt-business" aria-label="Business details">
+      <SaleReceipt receipt={receipt} shopName={shopName} business={business} />
+      {founder && <section className="receipt-business" aria-label="Business details">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3>Business details</h3>
           <span className="receipt-label">Not printed</span>
@@ -140,7 +155,7 @@ export function ReceiptDialog({
             </FormDialog>
           </div>
         )}
-      </section>
+      </section>}
     </FormDialog>
   );
 }

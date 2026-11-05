@@ -142,7 +142,7 @@ test("wallet checkout stays in POS and product editing lives in Menu", async ({
   const calls = await mock(page);
   await page.goto("/pos");
   await page.getByRole("button", { name: /Spanish latte.*145/ }).click();
-  await page.getByRole("button", { name: "GCash", exact: true }).click();
+  await page.getByRole("button", { name: "E-wallet", exact: true }).click();
   await expect(
     page.getByText(/Check that the wallet payment arrived/),
   ).toBeVisible();

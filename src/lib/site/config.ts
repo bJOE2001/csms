@@ -1,7 +1,9 @@
+import { coffeeBrand } from "../brand";
+
 /** Owner-confirmed address and hours. Contact channels stay unpublished until supplied. */
 export type VisitDetails = { address?: string; hours?: string; email?: string; phone?: string; directions?: string; instagram?: string; facebook?: string; ordering?: string };
 export const siteContent = {
-  name: "LOGO Coffee",
+  name: coffeeBrand.name,
   eyebrow: "YOUR NEXT COFFEE MOMENT",
   headline: ["Good coffee.", "Better moments."],
   description: "Find your next favorite cup at LOGO Coffee. Explore the menu and make your coffee moment worth sharing.",
@@ -16,7 +18,7 @@ export function httpsUrl(value?: string) {
   try { const url = new URL(value ?? ""); return url.protocol === "https:" && !url.username && !url.password ? url.href : undefined; } catch { return undefined; }
 }
 export function visitDetails(): VisitDetails {
-  const address = process.env.SITE_ADDRESS?.trim() || "Purok 6, Ising, Carmen, Davao del Norte";
+  const address = process.env.SITE_ADDRESS?.trim() || coffeeBrand.address;
   const hours = process.env.SITE_OPENING_HOURS?.trim() || "5:00 PM–9:00 PM";
   const email = process.env.SITE_CONTACT_EMAIL?.trim();
   const phone = process.env.SITE_CONTACT_PHONE?.trim();

@@ -1,4 +1,4 @@
-import { summarize, type Sale, type Expense } from "./domain";
+import { paymentMethodLabel, summarize, type Sale, type Expense } from "./domain";
 
 export type ExportKind = "summary" | "sales" | "expenses";
 export type SalesReport = {
@@ -91,12 +91,12 @@ export function salesCsv(kind: ExportKind, report: SalesReport): string {
       ["Completed sales", summary.orders, "sales", ""],
       ["Average sale", php(summary.average), "PHP", "Completed sales only"],
       ["Cash revenue", php(summary.cash), "PHP", "After full refunds"],
-      ["Wallet revenue", php(summary.wallet), "PHP", "After full refunds"],
+      ["E-wallet revenue", php(summary.wallet), "PHP", "After full refunds"],
       [
-        "Reversed sales",
-        report.sales.filter((s) => s.status !== "completed").length,
-        "sales",
-        "Refunded or cancelled",
+        "Refunded transactions",
+        summary.refunds,
+        "transactions",
+        "Full refunds only; historical cancellations excluded",
       ],
       [
         "Sales missing cost",
@@ -147,7 +147,7 @@ export function salesCsv(kind: ExportKind, report: SalesReport): string {
           sale.created_at,
           localDate.format(new Date(sale.created_at)),
           sale.status,
-          sale.method,
+          paymentMethodLabel(sale.method),
           sale.payment_status,
           sale.items
             .map(
