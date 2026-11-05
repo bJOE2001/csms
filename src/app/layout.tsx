@@ -22,7 +22,7 @@ import { NotificationProvider } from "@/components/ui/notification-provider";
 export const metadata: Metadata = {
   title: "Logo",
   description: "Logo Coffee point of sale, menu management, and business reporting.",
-  icons: { icon: "/images/LogoWithWhiteStoke.png" },
+  icons: { icon: "/images/Logov1.png" },
 };
 
 export const viewport: Viewport = { themeColor: "#3B1B12" };

@@ -4,7 +4,7 @@ A small online POS with five screens: **POS**, **Menu**, **Sales**, **Expenses**
 
 Stack: Next.js 15, React 19, Tailwind 3, shadcn/ui and Supabase Auth/PostgreSQL. There is no inventory, recipe, purchasing, budgeting, funding, staff administration, device pairing, cash shift or offline checkout module.
 
-The **LOGO Coffee — Warm Espresso & Caramel** theme shares the approved transparent artwork at `public/images/LogoWithWhiteStoke.png`, centralized colors and accessible controls across all five modules and account screens. See [brand tokens, artwork rules and accessibility treatments](docs/BRANDING.md).
+The **LOGO Coffee — Warm Espresso & Caramel** theme shares the approved transparent artwork at `public/images/Logov1.png`, centralized colors and accessible controls across all five modules and account screens. See [brand tokens, artwork rules and accessibility treatments](docs/BRANDING.md).
 
 ## Run
 

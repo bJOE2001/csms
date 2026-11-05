@@ -57,7 +57,7 @@ for (const viewport of [
       if (headerHeight === undefined) headerHeight = currentHeaderHeight;
       expect(currentHeaderHeight).toBe(headerHeight);
       const logo = sidebar.getByRole("img", { name: "LOGO Coffee", exact: true });
-      await expect(logo).toHaveAttribute("src", "/images/LogoWithWhiteStoke.png");
+      await expect(logo).toHaveAttribute("src", "/images/Logov1.png");
       await expect.poll(() => logo.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth === 1774 && image.naturalHeight === 887)).toBe(true);
       await expect(logo).toHaveCSS("object-fit", "contain");
       await expect(logo).toHaveCSS("filter", "none");
@@ -80,7 +80,7 @@ for (const viewport of [
         const drawerLogo = page.getByRole("dialog", { name: "Navigation menu", exact: true }).locator(".brand-artwork");
         await expect(drawerLogo).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
         await expect(drawerLogo).toHaveCSS("box-shadow", "none");
-        await expect(drawerLogo.locator("img")).toHaveAttribute("src", "/images/LogoWithWhiteStoke.png");
+        await expect(drawerLogo.locator("img")).toHaveAttribute("src", "/images/Logov1.png");
       }
       const nav = page.getByRole("navigation", { name: "Shop", exact: true });
       await expect(nav.getByRole("link")).toHaveCount(6);

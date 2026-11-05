@@ -6,7 +6,6 @@ import { useReportSnapshot } from "@/lib/use-report-snapshot";
 import { DateRangeFilter } from "../date-range-filter";
 import { Card, CardHeader } from "../ui/card";
 import { LoadingLink as Link } from "../ui/loading-link";
-import { SalesRecords } from "../sales-records";
 import { SalesChart } from "./sales-chart";
 
 function RankedList({ rows, empty }: { rows: Performance[]; empty: string }) {
@@ -18,7 +17,7 @@ function RankedList({ rows, empty }: { rows: Performance[]; empty: string }) {
   </li>)}</ol> : <p className="dashboard-empty">{empty}</p>;
 }
 
-export function DashboardView({ report: loaded, shopId, shopName, timezone, from, to, loadError }: {
+export function DashboardView({ report: loaded, shopId, timezone, from, to, loadError }: {
   report: DashboardReport | null; shopId: string; shopName: string; timezone: string; from: string; to: string; loadError?: string;
 }) {
   const snapshot = useReportSnapshot(shopId, loaded && !loadError ? { data: loaded, from, to } : null);
@@ -45,29 +44,17 @@ export function DashboardView({ report: loaded, shopId, shopName, timezone, from
       </dl>
       {summary.missingCosts > 0 && <p className="form-message error" role="status">Profit is incomplete: {summary.missingCosts} sale(s) have no saved product cost. <Link href={salesHref}>Review affected receipts in Sales</Link>.</p>}
       {report.unattributedSales > 0 && <p className="dashboard-accounting-note">{report.unattributedSales} completed receipt(s) lack item revenue details. Their revenue is included in totals, but cannot be attributed to products or sizes.</p>}
-      <dl className="dashboard-metrics" aria-label="Business metrics">{[
+      <dl className="dashboard-metrics" aria-label="Business metrics" tabIndex={0}>{[
         ["Completed Sales", summary.orders], ["Average Order Value", money(summary.average)],
         ["Product Costs", `${money(summary.productCosts)}${summary.missingCosts ? " · Known costs only" : ""}`],
-        ["Operating Expenses", money(summary.operatingExpenses)], ["Cash Sales", money(summary.cash)],
-        ["GCash / Wallet Sales", money(summary.wallet)], ["Reversed Sales", report.reversed],
+        ["Operating Expenses", money(summary.operatingExpenses)],
+        ["Cash Sales", money(summary.cash)], ["GCash / Wallet Sales", money(summary.wallet)],
+        ["Reversed Sales", report.reversed],
       ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
       <div className="dashboard-main-analytics">
         <Card className="dashboard-section"><CardHeader title="Sales Performance" /><SalesChart key={`${appliedFrom}:${appliedTo}`} points={report.series} granularity={report.granularity} hasSales={summary.orders > 0} timezone={timezone} /></Card>
         <Card className="dashboard-section"><CardHeader title="Top Products" description="Top five by quantity sold" /><RankedList rows={report.products} empty="No recorded product sales in this period." /><details className="dashboard-disclosure"><summary>Ranking details</summary><p>Completed sales only, grouped by transaction-time name. Item revenue is net of allocated receipt discounts.</p></details></Card>
       </div>
-      <div className="dashboard-supporting-analytics">
-        <Card className="dashboard-section"><CardHeader title="Payment Breakdown" description="Net sales contribution · not profit." />
-          {summary.total > 0 ? <>
-            <div className="payment-breakdown-bar" aria-hidden="true"><span style={{ width: `${summary.cash / summary.total * 100}%` }} /><span style={{ width: `${summary.wallet / summary.total * 100}%` }} /></div>
-            <dl className="payment-breakdown-legend">{[["Cash", summary.cash], ["GCash / Wallet", summary.wallet]].map(([name, amount]) => <div key={name}><dt>{name}</dt><dd>{money(Number(amount))}<span>{(Number(amount) / summary.total * 100).toFixed(1)}%</span></dd></div>)}</dl>
-          </> : <p className="dashboard-empty">No payment revenue in this period.</p>}
-        </Card>
-        <Card className="dashboard-section"><CardHeader title="Product Insights" description="Size Performance · top five by quantity sold" /><RankedList rows={report.sizes} empty="No size sales in this period." />
-          <details className="dashboard-disclosure"><summary>About size history</summary><p>Historical size labels are preserved. No size recorded includes unsized products and older receipts without a size snapshot.</p></details>
-          <details className="dashboard-disclosure dashboard-category-note"><summary>Category Performance <span>Historical data unavailable</span></summary><p>Categories were not saved with transaction items. Accurate historical category performance is unavailable. Current menu categories are not used to relabel past sales.</p></details>
-        </Card>
-      </div>
-      <SalesRecords recent sales={report.recent} shopId={shopId} shopName={shopName} timezone={timezone} founder from={appliedFrom} to={appliedTo} actions={<Link className="button secondary compact" href={salesHref}>View all sales</Link>} />
     </>}
   </div>;
 }

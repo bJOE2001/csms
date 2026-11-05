@@ -4,7 +4,7 @@ The application uses a dark Espresso navigation shell, a transparent logo treatm
 
 ## Approved artwork
 
-The artwork file is `public/images/LogoWithWhiteStoke.png`, served at `/images/LogoWithWhiteStoke.png`. It is the supplied 1774 × 887 transparent RGBA PNG with a built-in cream-white outer stroke. Its SHA-256 is `cec76778b6579b2ccec8b233e73fa5d7b31c77fd093acb7952f3b163dc221bc0`. `BrandLogo` serves the original file directly, with explicit intrinsic dimensions, `alt="LOGO Coffee"`, automatic height and `object-fit: contain`. It applies no crop, filter, artificial stroke, image background, shadow or transform.
+The artwork file is `public/images/Logov1.png`, served at `/images/Logov1.png`. It is the supplied 1774 × 887 transparent RGBA PNG with a built-in cream-white outer stroke. Its SHA-256 is `cec76778b6579b2ccec8b233e73fa5d7b31c77fd093acb7952f3b163dc221bc0`. `BrandLogo` serves the original file directly, with explicit intrinsic dimensions, `alt="LOGO Coffee"`, automatic height and `object-fit: contain`. It applies no crop, filter, artificial stroke, image background, shadow or transform.
 
 The shared `.brand-artwork` wrapper is fully transparent, with no padding, border, rounded backing or shadow. Desktop workspace branding renders at 128 × 64px, aligned with the navigation icons horizontally and the workspace header's top content boundary vertically. Compact headers and the navigation drawer render the logo at 104 × 52px. Public home, account and setup headers use the same transparent component directly on their existing Espresso topbars. The favicon references the same approved file. Shop names remain in account context and receipt/report data; the workspace brand link retains the current shop name in its accessible label and title.
 
@@ -70,4 +70,4 @@ Below 1280px, POS keeps its full-width product menu and existing modal cart draw
 | Add action treatments | `src/components/menu/product-dialog.tsx`, `src/components/libraries/category-dialog.tsx`, `src/components/expense-dialog.tsx` |
 | Documentation and verification | `README.md`, `docs/UI_DESIGN.md`, `docs/BRANDING.md`, `tests/ui/branding.spec.ts`, `tests/ui/navigation.spec.ts` |
 
-`public/images/LogoWithWhiteStoke.png` is the supplied asset, not a generated derivative. Existing Tailwind configuration, APIs, financial services and database migrations require no branding changes.
+`public/images/Logov1.png` is the supplied asset, not a generated derivative. Existing Tailwind configuration, APIs, financial services and database migrations require no branding changes.

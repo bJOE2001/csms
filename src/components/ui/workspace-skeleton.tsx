@@ -36,12 +36,11 @@ export function WorkspaceSkeleton({ module, track = true }: { module: WorkspaceM
       {module === "dashboard" && <>
         <Skeleton className="skeleton-strip" />
         <div className="dashboard-main-analytics"><Skeleton className="skeleton-chart" /><Skeleton className="skeleton-chart" /></div>
-        <div className="dashboard-supporting-analytics"><Skeleton className="skeleton-insights" /><Skeleton className="skeleton-insights" /></div>
       </>}
-      <div className="skeleton-table">
+      {module !== "dashboard" && <div className="skeleton-table">
         <Skeleton className="skeleton-search" />
         {Array.from({ length: 5 }, (_, i) => <Skeleton className="skeleton-row" key={i} />)}
-      </div>
+      </div>}
     </>}
   </div>;
 }
