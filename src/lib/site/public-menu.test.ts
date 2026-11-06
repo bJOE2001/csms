@@ -35,7 +35,7 @@ describe("public storefront data boundary", () => {
   it("selects only actual available products without mutating the catalog or claiming a sales rank", () => {
     const products = projectPublicMenu(Array.from({ length: 10 }, (_, n) => ({ ...product, id: id(n + 10), name: `Coffee ${n}` })), []);
     expect(featuredProducts(products, [id(18), id(18), id(999)])[0].id).toBe(id(18));
-    expect(featuredProducts(products)).toHaveLength(6);
+    expect(featuredProducts(products)).toHaveLength(4);
     expect(products[0].id).toBe(id(10));
   });
   it("keeps owner-confirmed visit facts and omits fictional contact channels and operating days", () => {
@@ -48,12 +48,15 @@ describe("public storefront data boundary", () => {
     expect(coffeeShopSchema()).not.toHaveProperty("openingHours");
     expect(coffeeShopSchema()).not.toHaveProperty("aggregateRating");
     expect(coffeeShopSchema()).not.toHaveProperty("geo");
+    expect(coffeeShopSchema().name).toBe("LOGO");
+    expect(new URL(visit.directions!).searchParams.get("query")).toBe(`LOGO, ${visit.address}`);
   });
   it("uses only configured public origins for canonical and social URLs", () => {
     vi.stubEnv("SITE_URL", "");
     expect(publicMetadata("Menu", "Our menu", "/coffee-menu").alternates).toBeUndefined();
     vi.stubEnv("SITE_URL", "https://coffee.example");
     expect(publicMetadata("Menu", "Our menu", "/coffee-menu").alternates).toEqual({ canonical: "https://coffee.example/coffee-menu" });
+    expect(publicMetadata("Menu", "Our menu", "/coffee-menu").openGraph).toMatchObject({ siteName: "LOGO", images: [{ url: "https://coffee.example/images/Logov1.png", width: 1774, height: 887 }] });
     expect(sitemap().map(entry => entry.url)).toEqual(["https://coffee.example/", "https://coffee.example/coffee-menu", "https://coffee.example/visit"]);
     expect(robots().sitemap).toBe("https://coffee.example/sitemap.xml");
   });
