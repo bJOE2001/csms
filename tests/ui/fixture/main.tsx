@@ -368,13 +368,13 @@ function ReportFixture() {
 }
 createRoot(document.getElementById("root")!).render(
   <LoadingProvider><WorkspaceFrame>{
-  location.pathname === "/sign-in" ? <SignInFixture /> : (new URLSearchParams(location.search).has("landing") || ["/coffee-menu", "/visit"].includes(location.pathname)) ? <LandingFixture /> : (location.pathname === "/dashboard" || new URLSearchParams(location.search).has("dashboard")) ? <DashboardFixture /> : location.search.includes("loading") ? <LoadingFixture /> : location.search.includes("selects") ? (
+  location.pathname === "/sign-in" ? <SignInFixture /> : (new URLSearchParams(location.search).has("landing") || ["/menu", "/visit"].includes(location.pathname)) ? <LandingFixture /> : (location.pathname === "/dashboard" || new URLSearchParams(location.search).has("dashboard")) ? <DashboardFixture /> : location.search.includes("loading") ? <LoadingFixture /> : location.search.includes("selects") ? (
     <SelectFixture />
   ) : location.search.includes("controls") ? (
     <ControlsFixture />
   ) : (location.search.includes("pos") || location.pathname === "/pos") ? (
     <NotificationProvider><PosWorkspace /></NotificationProvider>
-  ) : (location.search.includes("menu") || location.pathname === "/menu") ? (
+  ) : (location.search.includes("menu") || location.pathname === "/app/menu") ? (
     <NotificationProvider><MenuWorkspace /></NotificationProvider>
   ) : (location.search.includes("libraries") || location.pathname === "/libraries") ? (
     <NotificationProvider><LibrariesWorkspace /></NotificationProvider>

@@ -26,7 +26,7 @@ const sales: Sale[] = ["completed", "refunded", "cancelled"].map((status, i) => 
   items: [{ name: "Café Latte", size_label: "16 oz", quantity: 1, unit_price_cents: i ? 14500 : 100000000, line_total_cents: i ? 14500 : 100000000 }],
 }));
 const screens = [
-  { path: "/menu", caption: "Menu products", heading: "Menu Management", search: "Search product name", rows: 3 },
+  { path: "/app/menu", caption: "Menu products", heading: "Menu Management", search: "Search product name", rows: 3 },
   { path: "/libraries", caption: "Product categories", heading: "Libraries", search: "Search category name", rows: 2 },
   { path: "/expenses", caption: "Expense records", heading: "Expenses Management", search: "Search expenses", rows: 2 },
   { path: "/app/sales", caption: "Sales history", heading: "Sales", search: "Search receipt or payment method", rows: 3 },
@@ -105,7 +105,7 @@ for (const viewport of [
         expect(button.height).toBe(button.width);
         expect(button.icon).toBe(18);
       }
-      if (screen.path === "/menu") {
+      if (screen.path === "/app/menu") {
         await expect(region).toContainText("22 oz · Unavailable");
         await expect(region).toContainText("Cost not recorded");
         await expect(region).toContainText("Uncategorized");
@@ -126,7 +126,7 @@ test("table action tooltips support hover, keyboard, dialogs and safe cancellati
   await page.setViewportSize({ width: 1032, height: 1376 });
   const writes = await seed(page);
   for (const scenario of [
-    { path: "/menu", label: "Edit Café Latte", tooltip: "Edit product", dialog: "Edit product", field: "Product name", value: "Café Latte" },
+    { path: "/app/menu", label: "Edit Café Latte", tooltip: "Edit product", dialog: "Edit product", field: "Product name", value: "Café Latte" },
     { path: "/libraries", label: "Edit category Coffee", tooltip: "Edit category", dialog: "Edit category", field: "Category name", value: "Coffee" },
     { path: "/expenses", label: "Edit expense Electricity", tooltip: "Edit expense", dialog: "Edit expense", field: "Description", value: "Electricity" },
     { path: "/app/sales", label: "View receipt 00000060", tooltip: "View receipt", dialog: "Sale receipt" },
@@ -153,7 +153,7 @@ test("table action tooltips support hover, keyboard, dialogs and safe cancellati
     await expect(button).toBeFocused();
   }
   for (const scenario of [
-    { path: "/menu", label: "Delete product Café Latte", title: "Delete Café Latte?" },
+    { path: "/app/menu", label: "Delete product Café Latte", title: "Delete Café Latte?" },
     { path: "/libraries", label: "Delete category Coffee", title: "Delete Coffee?" },
     { path: "/expenses", label: "Delete expense Electricity", title: "Delete this expense?" },
   ]) {

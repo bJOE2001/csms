@@ -7,7 +7,9 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 800
     await page.goto("/?landing");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Good coffee.");
     await expect(page.locator(".workspace-sidebar")).toHaveCount(0);
-    await expect(page.getByRole("link", { name: "Explore Our Menu", exact: true })).toHaveAttribute("href", "/coffee-menu");
+    await expect(page.locator(".site-header").getByRole("link", { name: "View Menu", exact: true })).toHaveCount(0);
+    if (viewport.width >= 900) await expect(page.locator(".site-header").getByRole("link", { name: "Menu", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Explore Our Menu", exact: true })).toHaveAttribute("href", "/menu");
     const hero = page.locator(".site-hero-photo .site-photo-composition > img");
     await expect(hero).toBeVisible();
     await page.evaluate(async () => { await document.fonts.ready; await Promise.all([...document.images].map(image => image.decode().catch(() => {}))); });
@@ -23,18 +25,34 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 800
     await expect(page.locator(".site-gallery, .site-location-ribbon")).toHaveCount(0);
     await expect(page.locator("main section")).toHaveCount(5);
     await expect(page.locator(".site-featured .site-product")).toHaveCount(4);
-    await expect(page.getByRole("list", { name: "Available sizes for Café Latte", exact: true })).toContainText("12 oz16 oz");
+    await expect(page.getByRole("list", { name: "Available sizes for Café Latte", exact: true })).toContainText("12 oz₱120.00");
+    await expect(page.getByRole("list", { name: "Available sizes for Café Latte", exact: true })).toContainText("16 oz₱145.00");
+    const featuredColumns = viewport.width >= 1200 ? 4 : viewport.width >= 640 ? 2 : 1;
+    expect(await page.locator(".site-featured .site-product-grid").evaluate(el => getComputedStyle(el).gridTemplateColumns.split(" ").length)).toBe(featuredColumns);
+    for (const photo of await page.locator(".site-featured .site-product-photo").all()) {
+      const bounds = (await photo.boundingBox())!;
+      expect(bounds.width / bounds.height).toBeCloseTo(4 / 3, 2);
+    }
+    await page.locator(".site-featured").screenshot({ path: `.local/ui-review/storefront/featured-${viewport.width}.png` });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: `.local/ui-review/storefront/home-${viewport.width}.png` });
     await page.screenshot({ path: `.local/ui-review/storefront/full-${viewport.width}.png`, fullPage: true });
     await page.getByRole("heading", { name: "Your next coffee stop." }).scrollIntoViewIfNeeded();
     await expect(page.locator(".site-visit-details")).toContainText("Purok 6, Ising, Carmen, Davao del Norte");
     await expect(page.locator(".site-visit-details")).toContainText("5:00 PM–9:00 PM");
-    await expect(page.getByRole("link", { name: /Get Directions/ })).toHaveAttribute("href", /google\.com\/maps\/search/);
-    expect(new URL((await page.getByRole("link", { name: /Get Directions/ }).getAttribute("href"))!).searchParams.get("query")).toBe("LOGO, Purok 6, Ising, Carmen, Davao del Norte");
+    await expect(page.getByRole("link", { name: /Get Directions/ })).toHaveAttribute("href", "https://maps.app.goo.gl/JFPkDck15BBvFdLe9");
     await page.screenshot({ path: `.local/ui-review/storefront/visit-${viewport.width}.png` });
-    await page.goto("/coffee-menu");
+    await page.goto("/menu");
     await expect(page.locator(".site-product")).toHaveCount(4);
+    await page.locator(".site-header .brand-logo").evaluate((image: HTMLImageElement) => image.decode());
+    const menuColumns = viewport.width >= 1200 ? 3 : viewport.width >= 640 ? 2 : 1;
+    expect(await page.locator(".site-product-grid").evaluate(el => getComputedStyle(el).gridTemplateColumns.split(" ").length)).toBe(menuColumns);
+    expect((await page.locator(".site-menu-heading").boundingBox())!.height).toBeLessThan(260);
+    expect((await page.locator(".site-product-photo").first().boundingBox())!.y).toBeLessThan(viewport.height - 80);
+    for (const photo of await page.locator(".site-product-photo").all()) {
+      const bounds = (await photo.boundingBox())!;
+      expect(bounds.width / bounds.height).toBeCloseTo(4 / 3, 2);
+    }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: `.local/ui-review/storefront/menu-${viewport.width}.png`, fullPage: true });
     if (viewport.width < 900) {
@@ -42,7 +60,9 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 800
       const drawer = page.getByRole("dialog", { name: "Customer navigation", exact: true });
       await expect(drawer.getByRole("button", { name: "Close customer navigation", exact: true })).toBeFocused();
       await expect(drawer.getByRole("navigation").getByRole("link")).toHaveCount(4);
-      await expect(drawer.getByRole("link", { name: "View Menu", exact: true })).toHaveAttribute("href", "/coffee-menu");
+      await expect(drawer.getByRole("link", { name: "Menu", exact: true })).toHaveCount(1);
+      await expect(drawer.getByRole("link", { name: "Menu", exact: true })).toHaveAttribute("href", "/menu");
+      await expect(drawer.getByRole("link", { name: "View Menu", exact: true })).toHaveCount(0);
       await page.keyboard.press("Escape");
       await expect(drawer).toHaveCount(0);
       await expect(page.getByRole("button", { name: "Open customer navigation", exact: true })).toBeFocused();

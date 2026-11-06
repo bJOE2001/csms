@@ -33,7 +33,7 @@ async function setup(page: Page) {
     if (existing) Object.assign(existing, next); else products.push(next);
     await route.fulfill({ json: { data: next } });
   });
-  await page.goto("/menu");
+  await page.goto("/app/menu");
   await expect(page.getByRole("heading", { name: "Menu Management", exact: true })).toBeVisible();
   const file = { name: "latte.png", mimeType: "image/png", buffer: bytes };
   return { calls, products, state, file };

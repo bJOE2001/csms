@@ -1,6 +1,6 @@
 # Simple POS architecture
 
-Five product screens: `/pos`, `/menu`, `/app/sales`, `/expenses` and `/libraries`; `/app` redirects to Sales. Setup and account recovery support access. Product management lives in Menu, product category management in Libraries; operating expense management lives in Expenses.
+Five product screens: `/pos`, `/app/menu`, `/app/sales`, `/expenses` and `/libraries`; `/app` redirects to Sales. Setup and account recovery support access. Product management lives in Menu, product category management in Libraries; operating expense management lives in Expenses. The customer-facing catalog is `/menu`, outside the staff workspace.
 
 `src/components/pos/pos-workspace.tsx` owns the cart and one pending sale. `src/components/sales-view.tsx` renders receipts and revenue/profit figures. `expenses-view.tsx` owns expense reporting/search, while `expense-dialog.tsx` owns creation, editing and retained deletion. `src/app/api/pos/route.ts` authenticates, validates bounded requests and calls SQL commands for checkout, products, refunds and expenses. Sales and Expenses both read the existing `pos_expenses` RPC for their applied dates. Shop selection is based on the signed-in user's active membership.
 

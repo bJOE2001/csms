@@ -61,6 +61,10 @@ export type Database = {
     };
     Views: { [_ in never]: never };
     Functions: {
+      read_public_menu: {
+        Args: { p_shop_id?: string };
+        Returns: Json;
+      };
       pos_save_category: {
         Args: { p_shop_id: string; p_data: Json };
         Returns: Json;

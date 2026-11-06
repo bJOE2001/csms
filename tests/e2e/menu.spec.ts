@@ -141,7 +141,7 @@ test("Menu creates a regular product and synchronizes it to POS", async ({
   context,
 }) => {
   const state = await catalog(context);
-  await page.goto("/menu");
+  await page.goto("/app/menu");
   await page.getByRole("button", { name: "Add product", exact: true }).click();
   await page.getByLabel("Product name", { exact: true }).fill("Oat cookie");
   await chooseOption(page, page.getByRole("dialog").getByLabel("Category", { exact: true }), "Food");
@@ -181,7 +181,7 @@ for (const count of [1, 3])
     context,
   }) => {
     const state = await catalog(context);
-    await page.goto("/menu");
+    await page.goto("/app/menu");
     await page
       .getByRole("button", { name: "Add product", exact: true })
       .click();
@@ -224,7 +224,7 @@ test("size validation retains drafts and removing a size chooses a valid default
   context,
 }) => {
   const state = await catalog(context);
-  await page.goto("/menu");
+  await page.goto("/app/menu");
   await page
     .getByRole("button", { name: "Edit Café Latte", exact: true })
     .click();
@@ -323,7 +323,7 @@ test("menu changes in another tab require cart review and preserve the old price
     .getByRole("button", { name: /Café Latte 12 oz.*120.*Add to cart/ })
     .click();
   const menu = await context.newPage();
-  await menu.goto("/menu");
+  await menu.goto("/app/menu");
   await menu
     .getByRole("button", { name: "Edit Café Latte", exact: true })
     .click();
@@ -431,7 +431,7 @@ test("Menu and size forms fit desktop tablet and phone; members have read-only a
   await catalog(context);
   for (const width of [1440, 768, 375]) {
     await page.setViewportSize({ width, height: width === 768 ? 1024 : 900 });
-    await page.goto("/menu");
+    await page.goto("/app/menu");
     await expect(
       page.getByRole("heading", { name: "Menu Management", exact: true }),
     ).toBeVisible();
@@ -505,7 +505,7 @@ test("staff can view Menu without management actions", async ({
   context,
 }) => {
   await catalog(context, false);
-  await page.goto("/menu");
+  await page.goto("/app/menu");
   await expect(
     page.getByRole("heading", { name: "Menu Management", exact: true }),
   ).toBeVisible();
@@ -522,7 +522,7 @@ test("Libraries changes synchronize category records with Menu and POS", async (
   const state = await catalog(context);
   const assignments = state.products.map(product => [product.id, product.category_id]);
   const menu = await context.newPage(), pos = await context.newPage();
-  await menu.goto("/menu");
+  await menu.goto("/app/menu");
   await pos.goto("/pos");
   await page.goto("/libraries");
   await expect(page.getByRole("link", { name: "Libraries", exact: true })).toHaveAttribute("aria-current", "page");

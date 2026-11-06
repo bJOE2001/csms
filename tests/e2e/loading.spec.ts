@@ -10,7 +10,7 @@ async function catalog(page: Page) {
 async function holdMenu(page: Page) {
   let release!: () => void;
   const gate = new Promise<void>(resolve => { release = resolve; });
-  await page.route(/\/menu\?.*_rsc=/, async route => { await gate; await route.continue(); });
+  await page.route(/\/app\/menu\?.*_rsc=/, async route => { await gate; await route.continue(); });
   return release;
 }
 

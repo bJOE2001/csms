@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 const modules = [
   { path: "/dashboard", label: "Dashboard", heading: "Dashboard" },
   { path: "/pos", label: "POS", heading: "Product menu" },
-  { path: "/menu", label: "Menu", heading: "Menu Management" },
+  { path: "/app/menu", label: "Menu", heading: "Menu Management" },
   { path: "/app/sales", label: "Sales", heading: "Sales" },
   { path: "/expenses", label: "Expenses", heading: "Expenses Management" },
   { path: "/libraries", label: "Libraries", heading: "Libraries" },
@@ -26,7 +26,7 @@ async function compactHeader(page: Page) {
   await expect(page.locator(".workspace-sidebar")).toBeHidden();
   await expect(page.getByRole("navigation", { name: "Shop", exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Sign out", exact: true })).toHaveCount(0);
-  await expect(header.getByRole("img", { name: "LOGO Coffee", exact: true })).toBeVisible();
+  await expect(header.getByRole("img", { name: "LOGO", exact: true })).toBeVisible();
   await expect(header.locator(":scope > *")).toHaveCount(2);
   const logo = (await header.locator(".brand-artwork").boundingBox())!;
   const button = (await trigger(page).boundingBox())!;
@@ -114,7 +114,7 @@ for (const viewport of [
 test("drawer supports keyboard trapping, Escape, close button and overlay dismissal", async ({ page }) => {
   await page.setViewportSize({ width: 393, height: 844 });
   await catalog(page);
-  await page.goto("/menu");
+  await page.goto("/app/menu");
   const toggle = trigger(page);
   await toggle.focus();
   await page.keyboard.press("Enter");
@@ -182,7 +182,7 @@ test("navigation and cart drawers remain independent and preserve the current or
 test("short screens and enlarged drawer text remain scrollable and keyboard accessible", async ({ page }, info) => {
   await catalog(page);
   await page.setViewportSize({ width: 812, height: 375 });
-  await page.goto("/menu");
+  await page.goto("/app/menu");
   // Enlarge navigation text without changing the CSS viewport, then test zoom-style reflow separately.
   await page.addStyleTag({ content: ".workspace-navigation-drawer .nav-link { font-size: 28px; }" });
   await trigger(page).click();

@@ -24,12 +24,26 @@ try:
  for migration in sorted((root/"supabase/migrations").glob("*.sql")):
   if migration.name=="202611020001_simple_pos.sql":sql((root/"tests/database/pre-upgrade.sql").read_text(encoding="utf-8"))
   sql(migration.read_text(encoding="utf-8"))
+ publication_setup=(root/"supabase/publication/publish-public-menu.sql").read_text(encoding="utf-8")
+ sql(publication_setup+publication_setup) # The sole legacy shop is selected; retries are idempotent.
+ sql((root/"supabase/migrations/202611060001_public_menu.sql").read_text(encoding="utf-8"))
+ sql("do $$begin assert (select count(*) from public.shops where public_menu_enabled)=1, 'Migration retry reset publication';end $$;update public.shops set public_menu_enabled=false;")
  sql("do $$begin assert (select total_cents from public.pos_sales where id='00000000-0000-4000-8000-000000000098')=12000;assert (select items->0->>'name' from public.pos_sales where id='00000000-0000-4000-8000-000000000098')='Original latte · Regular';assert (select count(*) from public.pos_products where name='Original latte')=1;end $$;")
  print(sql((root/"tests/database/simple-pos.sql").read_text(encoding="utf-8")))
  print(sql((root/"tests/database/profit.sql").read_text(encoding="utf-8")))
  print(sql((root/"tests/database/record-cost.sql").read_text(encoding="utf-8")))
  print(sql((root/"tests/database/menu.sql").read_text(encoding="utf-8")))
  print(sql((root/"tests/database/expenses-management.sql").read_text(encoding="utf-8")))
+ sql((root/"supabase/migrations/202611060001_public_menu.sql").read_text(encoding="utf-8")) # Idempotent reapplication.
+ print(sql((root/"tests/database/public-menu.sql").read_text(encoding="utf-8")))
+ try:
+  sql(publication_setup)
+ except RuntimeError as error:
+  if 'Choose the shop with coffee_pos.public_menu_shop_id' not in str(error):raise
+ else:raise RuntimeError("Public menu setup accepted an ambiguous target shop")
+ sql("select set_config('coffee_pos.public_menu_shop_id',(select id::text from public.shops where name='Legacy shop'),false);"+publication_setup+publication_setup)
+ sql("do $$begin assert (select count(*) from public.shops where public_menu_enabled)=1;assert (select public_menu_enabled from public.shops where name='Legacy shop');end $$;update public.shops set public_menu_enabled=false;")
+ print("Public menu setup selection, retries and migration preservation passed.")
  storage_setup=(root/"supabase/storage/product-images.sql").read_text(encoding="utf-8")
  sql((root/"tests/database/storage-fixture.sql").read_text(encoding="utf-8"))
  sql(storage_setup)

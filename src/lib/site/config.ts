@@ -31,7 +31,7 @@ export function visitDetails(): VisitDetails {
     address, hours,
     email: email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : undefined,
     phone: phone && /^\+?[\d\s()-]{7,24}$/.test(phone) ? phone : undefined,
-    directions: httpsUrl(process.env.SITE_DIRECTIONS_URL) || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`LOGO, ${address}`)}`,
+    directions: httpsUrl(process.env.SITE_DIRECTIONS_URL) || coffeeBrand.directions,
     instagram: httpsUrl(process.env.SITE_INSTAGRAM_URL), facebook: httpsUrl(process.env.SITE_FACEBOOK_URL), ordering: httpsUrl(process.env.SITE_ORDERING_URL),
   };
 }

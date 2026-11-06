@@ -1,28 +1,45 @@
 "use client";
-import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowUpRight, ImageIcon } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import type { PublicProduct } from "@/lib/site/public-menu";
 import { money } from "@/lib/sales/domain";
+import { Dialog } from "../ui/dialog";
+import { DialogBody } from "../ui/dialog-layout";
+import { PublicProductImage } from "./public-product-image";
 
-function optimizedImage(src: string) {
-  if (src.startsWith("/")) return true;
-  try {
-    const image = new URL(src);
-    return image.hostname === new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").hostname && image.pathname.startsWith("/storage/v1/object/public/");
-  } catch { return false; }
+function ProductSizes({ product }: { product: PublicProduct }) {
+  return product.sizes.length > 0 && <ul className="site-product-sizes" aria-label={`Available sizes for ${product.name}`}>
+    {product.sizes.map(size => <li key={size.label}><span>{size.label}</span><strong>{money(size.price)}</strong></li>)}
+  </ul>;
 }
+
 export function PublicProductCard({ product, featured = false }: { product: PublicProduct; featured?: boolean }) {
-  const [failed, setFailed] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const price = <>{product.sizes.some(size => size.price !== product.price) ? "From " : ""}{money(product.price)}</>;
+  const sizes = featured
+    ? "(min-width: 1400px) 302px, (min-width: 1200px) 23vw, (min-width: 640px) 46vw, calc(100vw - 40px)"
+    : "(min-width: 1400px) 411px, (min-width: 1200px) 31vw, (min-width: 640px) 46vw, calc(100vw - 40px)";
   return <article className="site-product" id={`product-${product.id}`}>
-    <div className="site-product-photo">
-      {product.image && !failed ? <Image src={product.image} alt={product.name} fill sizes={featured ? "(max-width: 600px) calc(100vw - 40px), (max-width: 1100px) 44vw, 22vw" : "(max-width: 600px) calc(100vw - 40px), (max-width: 900px) 44vw, 30vw"} unoptimized={!optimizedImage(product.image)} onError={() => setFailed(true)} />
-        : <div className="site-photo-fallback"><ImageIcon size={32} strokeWidth={1} aria-hidden="true" /><span>Product photo coming soon</span></div>}
+    <PublicProductImage product={product} sizes={sizes} />
+    <div className="site-product-info">
+      <div className="site-product-meta"><span>{product.category}</span><strong>{price}</strong></div>
+      <h3>{product.name}</h3>
+      {product.description && <p className="site-product-description">{product.description}</p>}
+      <ProductSizes product={product} />
+      <div className="site-product-action">
+        {featured ? <Link prefetch={false} className="site-text-link" href={`/menu#product-${product.id}`} aria-label={`View ${product.name} on the full menu`}>View details<ArrowUpRight size={16} aria-hidden="true" /></Link>
+          : <button type="button" className="site-text-link" onClick={() => setDetailsOpen(true)} aria-label={`View details for ${product.name}`}>View details<ArrowUpRight size={16} aria-hidden="true" /></button>}
+      </div>
     </div>
-    <div className="site-product-meta"><span>{product.category}</span><span>{product.sizes.some(size => size.price !== product.price) ? "From " : ""}{money(product.price)}</span></div>
-    <h3>{product.name}</h3>{product.description && <p>{product.description}</p>}
-    {product.sizes.length > 0 && <ul className={`site-product-sizes${featured ? " site-featured-sizes" : ""}`} aria-label={`Available sizes for ${product.name}`}>{product.sizes.map(size => <li key={size.label}><span>{size.label}</span>{!featured && <strong>{money(size.price)}</strong>}</li>)}</ul>}
-    {featured && <Link prefetch={false} className="site-text-link" href={`/coffee-menu#product-${product.id}`}>View {product.name}<ArrowUpRight size={16} aria-hidden="true" /></Link>}
+    {!featured && <Dialog open={detailsOpen} onClose={() => setDetailsOpen(false)} title={product.name} size="lg" className="coffee-site site-product-dialog">
+      <DialogBody className="site-product-detail-body">
+        <PublicProductImage product={product} sizes="(min-width: 768px) 300px, calc(100vw - 80px)" />
+        <div className="site-product-detail-copy"><div className="site-product-meta"><span>{product.category}</span><strong>{price}</strong></div>
+          {product.description && <p>{product.description}</p>}
+          <ProductSizes product={product} />
+        </div>
+      </DialogBody>
+    </Dialog>}
   </article>;
 }

@@ -27,7 +27,7 @@ for (const viewport of [
     for (const [path, trigger, size, maxWidth] of [
       ["/libraries", "Add category", "sm", 448],
       ["/expenses", "Add Expense", "md", 560],
-      ["/menu", "Edit Latte", "lg", 760],
+      ["/app/menu", "Edit Latte", "lg", 760],
     ] as const) {
       await page.goto(path);
       await page.getByRole("button", { name: trigger, exact: true }).click();
@@ -79,7 +79,7 @@ for (const viewport of [
 
 test("dirty confirmations preserve the original form and focus the safe action across repeated openings", async ({ page }) => {
   await catalog(page);
-  await page.goto("/menu");
+  await page.goto("/app/menu");
   await page.getByRole("button", { name: "Edit Latte", exact: true }).click();
   const form = page.getByRole("dialog", { name: "Edit product", exact: true });
   await form.getByLabel("Product name", { exact: true }).fill("Latte with oat milk");
@@ -105,7 +105,7 @@ test("destructive confirmations initially focus Cancel and do not submit on outs
     mutations++;
     return route.fulfill({ json: { data: {} } });
   });
-  await page.goto("/menu");
+  await page.goto("/app/menu");
   const trigger = page.getByRole("button", { name: "Delete product Latte", exact: true });
   await trigger.click();
   const confirmation = page.getByRole("alertdialog", { name: "Delete Latte?", exact: true });
@@ -128,7 +128,7 @@ test("validation stays above the fields and a pending save locks every dismissal
     await hold;
     return route.fulfill({ status: 503, json: { error: "Save interrupted. Retry the same record." } });
   });
-  await page.goto("/menu");
+  await page.goto("/app/menu");
   await page.getByRole("button", { name: "Add product", exact: true }).click();
   const form = page.getByRole("dialog");
   await form.getByLabel("Product name", { exact: true }).fill("New latte");

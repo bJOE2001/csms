@@ -7,7 +7,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 800
     await page.goto("/?receipt&long");
     await page.getByRole("button", { name: "View receipt" }).click();
     const dialog = page.getByRole("dialog", { name: "Sale receipt", exact: true });
-    const logo = dialog.getByRole("img", { name: "LOGO Coffee", exact: true });
+    const logo = dialog.getByRole("img", { name: "LOGO", exact: true });
     await expect(logo).toHaveAttribute("src", "/images/Logov1.png");
     await expect.poll(() => logo.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
     const box = (await logo.boundingBox())!;

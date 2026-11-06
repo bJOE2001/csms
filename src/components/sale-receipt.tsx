@@ -6,7 +6,7 @@ import type { CustomerReceipt, ReceiptBusinessDetails } from "@/lib/sales/receip
 
 function ReceiptHeader({ shopName, business }: { shopName: string; business: ReceiptBusinessDetails }) {
   const [failed, setFailed] = useState(false);
-  const branch = shopName.trim() && ![coffeeBrand.name.toLowerCase(), "coffee logo"].includes(shopName.trim().toLowerCase()) ? shopName : undefined;
+  const branch = shopName.trim() && ![coffeeBrand.name.toLowerCase(), "logo coffee", "coffee logo"].includes(shopName.trim().toLowerCase()) ? shopName : undefined;
   return <header className="receipt-brand">
     {!failed && <>
       {/* Use the unchanged official artwork for both preview and printing. */}
