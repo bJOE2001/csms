@@ -1,10 +1,12 @@
-# LOGO Coffee — Warm Espresso & Caramel
+# LOGO — Warm Espresso & Caramel
 
 The application uses a dark Espresso navigation shell, a transparent logo treatment, a Warm Canvas workspace, white panels and Caramel highlights. Self-hosted Manrope, existing Lucide icons, compact POS cards, shared tables and pagination remain in place. This is a presentation refactor; transaction calculations, authentication, requests, database schemas and reporting scope are unchanged.
 
 ## Approved artwork
 
-The artwork file is `public/images/Logov1.png`, served at `/images/Logov1.png`. It is the supplied 1774 × 887 transparent RGBA PNG with a built-in cream-white outer stroke. Its SHA-256 is `cec76778b6579b2ccec8b233e73fa5d7b31c77fd093acb7952f3b163dc221bc0`. `BrandLogo` serves the original file directly, with explicit intrinsic dimensions, `alt="LOGO Coffee"`, automatic height and `object-fit: contain`. It applies no crop, filter, artificial stroke, image background, shadow or transform.
+The official business name is **LOGO**, centralized in `src/lib/brand.ts`. Existing `shops.name` database values are not rewritten by visual branding or menu-publication changes. `supabase/branding/rename-logo-shop.sql` renames only the owner-identified shop to LOGO while retaining its UUID, publication flag and related records. Receipt headers still recognize the legacy Coffee Logo and LOGO Coffee aliases without printing a duplicate branch label.
+
+The artwork file is `public/images/Logov1.png`, served at `/images/Logov1.png`. It is the supplied 1774 × 887 transparent RGBA PNG with a built-in cream-white outer stroke. Its SHA-256 is `5cd6b880112565461c5905d0e042ae0bb13ac1ba6faa12f12751858e13c43b25`. `BrandLogo` serves the original file directly, with explicit intrinsic dimensions, `alt="LOGO"`, automatic height and `object-fit: contain`. It applies no crop, filter, artificial stroke, image background, shadow or transform.
 
 The shared `.brand-artwork` wrapper is fully transparent, with no padding, border, rounded backing or shadow. Desktop workspace branding renders at 128 × 64px, aligned with the navigation icons horizontally and the workspace header's top content boundary vertically. Compact headers and the navigation drawer render the logo at 104 × 52px. Public home, account and setup headers use the same transparent component directly on their existing Espresso topbars. The favicon references the same approved file. Shop names remain in account context and receipt/report data; the workspace brand link retains the current shop name in its accessible label and title.
 

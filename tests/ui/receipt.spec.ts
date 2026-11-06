@@ -18,7 +18,7 @@ test("receipt shows branded items, original payment and change across screen siz
     });
     const receipt = dialog.getByRole("article", { name: "Customer receipt" });
     await expect(
-      receipt.getByRole("img", { name: "LOGO Coffee", exact: true }),
+      receipt.getByRole("img", { name: "LOGO", exact: true }),
     ).toBeVisible();
     await expect(receipt).toContainText("Nov 2, 2026");
     await expect(receipt).toContainText("5:18 PM");

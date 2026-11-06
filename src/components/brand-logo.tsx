@@ -1,7 +1,7 @@
 import { coffeeBrand } from "@/lib/brand";
 
 /** The approved artwork is shared unchanged by workspace and account headers. */
-export function BrandLogo({ alt = "LOGO Coffee" }: { alt?: string }) {
+export function BrandLogo({ alt = coffeeBrand.name }: { alt?: string }) {
   return (
     <span className="brand-artwork">
       {/* Serve the original transparent PNG without optimizer transformations. */}

@@ -43,7 +43,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1032, height: 137
   });
 }
 
-for (const path of ["/pos", "/menu", "/libraries"]) {
+for (const path of ["/pos", "/app/menu", "/libraries"]) {
   test(`${path} stops loading on failure, retains navigation and retries to a genuine empty result`, async ({ page }) => {
     let fail = true;
     let release!: () => void;

@@ -34,7 +34,8 @@ export function usePathname() {
       if (window.location.pathname !== "/") return window.location.pathname;
       const query = new URLSearchParams(window.location.search);
       if (query.has("sales")) return "/app/sales";
-      for (const moduleKey of ["dashboard", "pos", "menu", "libraries", "expenses"])
+      if (query.has("menu")) return "/app/menu";
+      for (const moduleKey of ["dashboard", "pos", "libraries", "expenses"])
         if (query.has(moduleKey)) return `/${moduleKey}`;
       return "/";
     },

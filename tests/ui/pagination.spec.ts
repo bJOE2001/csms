@@ -6,7 +6,7 @@ import type { Expense, Sale } from "../../src/lib/sales/domain";
 
 const uid = (n: number) => `${String(n).padStart(8, "0")}-0000-4000-8000-000000000001`;
 const screens = [
-  { path: "/menu", caption: "Menu products", query: "Coffee", matches: 23 },
+  { path: "/app/menu", caption: "Menu products", query: "Coffee", matches: 23 },
   { path: "/libraries", caption: "Product categories", query: "Coffee", matches: 23 },
   { path: "/app/sales", caption: "Sales history", query: "gcash", matches: 30 },
   { path: "/expenses", caption: "Expense records", query: "Coffee", matches: 23 },
@@ -128,7 +128,7 @@ for (const count of [0, 7, 10]) {
 
 test("Menu filters and reporting dates reset page without clearing search or page size", async ({ page }) => {
   await seed(page);
-  await page.goto("/menu");
+  await page.goto("/app/menu");
   const menu = pagination(page, "Menu products");
   await menu.getByRole("button", { name: "Last page", exact: true }).click();
   await chooseOption(page, page.getByRole("combobox", { name: "Availability", exact: true }), "Available");
@@ -247,7 +247,7 @@ test("Sales and Expenses summaries and every CSV retain the full reporting perio
 
 test("product CRUD preserves active search and clamps after removing the final page", async ({ page }) => {
   await seed(page, 11);
-  await page.goto("/menu");
+  await page.goto("/app/menu");
   const nav = pagination(page, "Menu products");
   await page.getByRole("searchbox").fill("Coffee");
   await nav.getByRole("button", { name: "Last page", exact: true }).click();

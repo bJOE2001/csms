@@ -5,7 +5,7 @@ const uid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0"
 const screens = [
   { path: "/dashboard", name: "Dashboard", heading: "Dashboard" },
   { path: "/pos", name: "POS", heading: "Product menu" },
-  { path: "/menu", name: "Menu", heading: "Menu Management" },
+  { path: "/app/menu", name: "Menu", heading: "Menu Management" },
   { path: "/app/sales", name: "Sales", heading: "Sales" },
   { path: "/expenses", name: "Expenses", heading: "Expenses Management" },
   { path: "/libraries", name: "Libraries", heading: "Libraries" },
@@ -56,7 +56,7 @@ for (const viewport of [
       const currentHeaderHeight = (await sidebar.boundingBox())!.height;
       if (headerHeight === undefined) headerHeight = currentHeaderHeight;
       expect(currentHeaderHeight).toBe(headerHeight);
-      const logo = sidebar.getByRole("img", { name: "LOGO Coffee", exact: true });
+      const logo = sidebar.getByRole("img", { name: "LOGO", exact: true });
       await expect(logo).toHaveAttribute("src", "/images/Logov1.png");
       await expect.poll(() => logo.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth === 1774 && image.naturalHeight === 887)).toBe(true);
       await expect(logo).toHaveCSS("object-fit", "contain");
@@ -117,7 +117,7 @@ for (const viewport of [
 
 test("brand buttons, controls, statuses and focus retain readable contrast", async ({ page }) => {
   await catalog(page);
-  await page.goto("/menu");
+  await page.goto("/app/menu");
   const add = page.getByRole("button", { name: "Add product", exact: true });
   await expect(add).toHaveCSS("background-color", "rgb(242, 161, 94)");
   await expect(add).toHaveCSS("color", "rgb(59, 27, 18)");

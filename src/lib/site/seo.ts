@@ -16,7 +16,7 @@ export function coffeeShopSchema() {
   return {
     "@context": "https://schema.org", "@type": "CafeOrCoffeeShop", name: "LOGO",
     address: visit.address,
-    ...(origin ? { url: origin, image: `${origin}/images/Logov1.png`, hasMenu: `${origin}/coffee-menu` } : {}),
+    ...(origin ? { url: origin, image: `${origin}/images/Logov1.png`, hasMenu: `${origin}/menu` } : {}),
     ...(visit.phone ? { telephone: visit.phone } : {}), ...(visit.email ? { email: visit.email } : {}),
     ...(visit.directions ? { hasMap: visit.directions } : {}),
     // Operating days were not supplied; do not imply a daily schedule in structured data.
