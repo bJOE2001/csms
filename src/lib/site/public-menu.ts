@@ -31,5 +31,5 @@ export function projectPublicMenu(products: Product[], categories: Category[]): 
 export function featuredProducts(products: PublicProduct[], ids: string[] = []) {
   const byName = [...products].sort((a, b) => a.name.localeCompare(b.name));
   const chosen = ids.flatMap(id => products.find(product => product.id === id) ?? []);
-  return [...new Map([...chosen, ...byName].map(product => [product.id, product])).values()].slice(0, 6);
+  return [...new Map([...chosen, ...byName].map(product => [product.id, product])).values()].slice(0, 4);
 }

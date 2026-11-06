@@ -13,7 +13,7 @@ export const fixturePublicMenu: PublicMenu = { status: "published", products: [
   { id: "00000000-0000-4000-8000-000000000003", name: "Butter Croissant", description: "Flaky pastry.", category: "Food", image: null, price: 8500, sizes: [] },
   { id: "00000000-0000-4000-8000-000000000004", name: "Chocolate", description: "Cocoa and milk.", category: "Non-Coffee", image: null, price: 11000, sizes: [{ label: "16 oz", price: 11000 }] },
 ] };
-const visit: VisitDetails = { address: "Purok 6, Ising, Carmen, Davao del Norte", hours: "5:00 PM–9:00 PM", directions: "https://www.google.com/maps/search/?api=1&query=LOGO%20Coffee%2C%20Purok%206%2C%20Ising%2C%20Carmen%2C%20Davao%20del%20Norte" };
+const visit: VisitDetails = { address: "Purok 6, Ising, Carmen, Davao del Norte", hours: "5:00 PM–9:00 PM", directions: "https://www.google.com/maps/search/?api=1&query=LOGO%2C%20Purok%206%2C%20Ising%2C%20Carmen%2C%20Davao%20del%20Norte" };
 export function LandingFixture() {
   const params = new URLSearchParams(location.search);
   const menu: PublicMenu = params.has("unpublished") ? { status: "unpublished", products: [] } : fixturePublicMenu;

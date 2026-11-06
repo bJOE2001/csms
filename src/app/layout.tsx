@@ -20,8 +20,8 @@ import { WorkspaceFrame } from "@/components/workspace-frame";
 import { NotificationProvider } from "@/components/ui/notification-provider";
 
 export const metadata: Metadata = {
-  title: "Logo",
-  description: "Logo Coffee point of sale, menu management, and business reporting.",
+  title: "LOGO",
+  description: "LOGO. Explore the coffee menu and find your next coffee moment.",
   icons: { icon: "/images/Logov1.png" },
 };
 
