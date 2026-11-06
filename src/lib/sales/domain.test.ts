@@ -1,6 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { cents, checkoutSchema, summarize, type Sale } from "./domain";
+import { cents, checkoutSchema, paymentMethodLabel, summarize, type Sale } from "./domain";
 describe("simple sales", () => {
+  it("labels existing wallet records without changing their stored identifiers", () => {
+    expect(paymentMethodLabel("gcash")).toBe("E-wallet");
+    expect(paymentMethodLabel("cash")).toBe("Cash");
+    expect(paymentMethodLabel("unknown")).toBe("Not recorded");
+    expect(paymentMethodLabel("bank_transfer")).toBe("bank_transfer");
+  });
   it("uses exact centavos and rejects fractional centavos", () => {
     expect(cents("145.01")).toBe(14501);
     expect(() => cents("1.001")).toThrow();
@@ -24,11 +30,14 @@ describe("simple sales", () => {
     expect(summarize(sales)).toMatchObject({
       total: 30000,
       orders: 2,
+      refunds: 1,
       average: 15000,
       cash: 10000,
       wallet: 20000,
     });
     expect(summarize([]).average).toBe(0);
+    expect(summarize([]).refunds).toBe(0);
+    expect(summarize([{ ...sales[0], status: "cancelled" }]).refunds).toBe(0);
     expect(summarize(sales).netProfit).toBeNull();
   });
   it("deducts snapshot costs, retained refund costs and active expenses, including losses", () => {

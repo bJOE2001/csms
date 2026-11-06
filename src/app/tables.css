@@ -103,6 +103,13 @@
   .data-table-pagination { grid-template-columns: 1fr auto; }
   .table-pagination-actions { grid-column: 1 / -1; justify-content: flex-end; }
 }
+@media (min-width: 768px) and (max-width: 1279px) {
+  :is(.sales-history, .expenses-list) .data-table :is(th, td) { padding: 8px; }
+  :is(.sales-history, .expenses-list) .data-table :is(th, td):first-child { padding-left: 12px; }
+  :is(.sales-history, .expenses-list) .data-table :is(th, td):last-child { padding-right: 12px; }
+  .sales-history .table-cell-primary .table-cell-content { min-width: 96px; }
+  .expenses-list .table-cell-primary .table-cell-content { min-width: 144px; }
+}
 @media (max-width: 767px) {
   .table-pagination-actions { justify-content: space-between; }
   .data-table thead {

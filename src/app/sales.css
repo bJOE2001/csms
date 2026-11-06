@@ -166,12 +166,6 @@
   background: var(--success-bg);
   color: var(--success);
 }
-@media (min-width: 761px) and (max-width: 1279px) {
-  .sales-secondary-metrics > div:nth-child(4n + 1) {
-    padding-inline-start: 0;
-    border-inline-start: 0;
-  }
-}
 @media (max-width: 760px) {
   :is(.sales-date-range, .expenses-date-range) .field {
     flex: 1 1 140px;
@@ -213,3 +207,31 @@
 .sales-transaction-metrics > div { border: 0; padding-inline: 0; }
 @media (max-width: 900px) { .sales-transaction-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; } }
 @media (max-width: 600px) { .sales-transaction-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 16px; } }
+
+/* Tablet reports group their title above left-aligned dates and page actions. */
+@media (min-width: 768px) and (max-width: 1279px) {
+  :is(.sales-management, .expenses-management) { gap: var(--space-4); }
+  :is(.sales-management, .expenses-management, .dashboard-management) .sales-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+  .sales-header-actions {
+    width: 100%;
+    margin: 0;
+    justify-content: flex-start;
+  }
+  :is(.sales-date-range, .expenses-date-range) .report-filter { flex: 0 1 440px; }
+  :is(.sales-date-range, .expenses-date-range) .field { gap: var(--space-2); }
+  .sales-transaction-metrics { gap: var(--space-4); padding: var(--space-4); }
+  .sales-transaction-metrics dd { white-space: nowrap; overflow-wrap: normal; }
+  :is(.sales-section, .expenses-list).panel { padding: var(--space-4); }
+  :is(.sales-section, .expenses-list) .data-toolbar { align-items: center; gap: var(--space-3); }
+  :is(.sales-section, .expenses-list) .data-toolbar-leading { flex: 1 1 280px; min-width: 0; }
+  :is(.sales-section, .expenses-list) .table-search { flex: 1 1 260px; width: auto; max-width: 360px; min-width: 0; }
+}
+@media (min-width: 768px) and (max-width: 959px) {
+  .sales-transaction-metrics { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .sales-transaction-metrics > div { grid-column: span 2; }
+  .sales-transaction-metrics > div:nth-child(n + 4) { grid-column: span 3; }
+}

@@ -18,9 +18,10 @@ test("receipt shows branded items, original payment and change across screen siz
     });
     const receipt = dialog.getByRole("article", { name: "Customer receipt" });
     await expect(
-      receipt.getByRole("heading", { name: "Common Ground Coffee" }),
+      receipt.getByRole("img", { name: "LOGO Coffee", exact: true }),
     ).toBeVisible();
-    await expect(receipt).toContainText("Nov 2, 2026, 5:18 PM");
+    await expect(receipt).toContainText("Nov 2, 2026");
+    await expect(receipt).toContainText("5:18 PM");
     await expect(receipt).toContainText("₱385.00");
     await expect(receipt).toContainText("₱500.00");
     await expect(receipt).toContainText("₱115.00");
@@ -59,7 +60,11 @@ test("wallet and unknown cash amounts do not invent tendered cash or change", as
     await expect(
       receipt.getByText("Change given", { exact: true }),
     ).toHaveCount(0);
-    if (query === "wallet") await expect(receipt).toContainText("GCash");
+    if (query === "wallet") {
+      await expect(receipt).toContainText("E-wallet");
+      await receipt.getByText("E-wallet", { exact: true }).scrollIntoViewIfNeeded();
+      await page.screenshot({ path: ".local/ui-review/payments/receipt-wallet.png", animations: "disabled" });
+    }
   }
 });
 

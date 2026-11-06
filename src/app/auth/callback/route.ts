@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       new URL("/sign-in?error=credentials", process.env.APP_URL ?? request.url),
     );
   const next =
-    query.get("next") === "/reset-password" ? "/reset-password" : "/pos";
+    query.get("next") === "/reset-password" ? "/reset-password" : "/dashboard";
   const response = NextResponse.redirect(
     new URL(next, process.env.APP_URL ?? request.url),
   );

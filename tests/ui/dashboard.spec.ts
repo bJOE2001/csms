@@ -1,5 +1,4 @@
 import { expect, test } from "@playwright/test";
-import { chooseOption } from "../helpers/select";
 
 const reportUrl = "/dashboard?from=2026-10-01&to=2026-11-03";
 for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 800 }, { width: 1032, height: 1376 }, { width: 960, height: 1440 }, { width: 768, height: 1024 }, { width: 393, height: 852 }]) {
@@ -10,8 +9,9 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 800
     await expect(page.locator(".dashboard-kpi")).toHaveCount(3);
     await expect(page.locator(".dashboard-kpi").first()).toContainText("Net Sales");
     await expect(page.locator(".dashboard-metrics dt")).toHaveText([
-      "Completed Sales", "Average Order Value", "Product Costs", "Operating Expenses", "Cash Sales", "GCash / Wallet Sales", "Reversed Sales",
+      "Completed Sales", "Product Costs", "Operating Expenses", "Cash Sales", "E-wallet Sales", "Refunded Transactions",
     ]);
+    await expect(page.getByText("Average Order Value", { exact: true })).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Product Insights", exact: true })).toHaveCount(0);
     await expect(page.getByText("Category Performance", { exact: false })).toHaveCount(0);
     await expect(page.locator(".dashboard-supporting-analytics")).toHaveCount(0);
@@ -19,24 +19,16 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 800
     await expect(page.locator(".dashboard-payments, .skeleton-payment")).toHaveCount(0);
     const metrics = page.locator(".dashboard-metrics");
     const metricRows = await metrics.locator(":scope > div").evaluateAll(items => items.map(item => item.getBoundingClientRect().y));
-    expect(new Set(metricRows).size).toBe(1);
+    expect(new Set(metricRows).size).toBe(viewport.width >= 1280 ? 1 : viewport.width >= 768 ? 2 : 3);
     const metricsOverflow = await metrics.evaluate(el => el.scrollWidth > el.clientWidth);
-    if (viewport.width >= 1280) expect(metricsOverflow).toBe(false);
-    if (metricsOverflow) {
-      await metrics.focus();
-      await page.keyboard.press("ArrowRight");
-      await expect.poll(() => metrics.evaluate(el => el.scrollLeft)).toBeGreaterThan(0);
-      await metrics.evaluate(el => { el.scrollLeft = el.scrollWidth; });
-      const lastMetric = metrics.locator(":scope > div").last();
-      const lastBox = (await lastMetric.boundingBox())!, metricsBox = (await metrics.boundingBox())!;
-      expect(lastBox.x + lastBox.width).toBeLessThanOrEqual(metricsBox.x + metricsBox.width);
-      await metrics.evaluate(el => { el.scrollLeft = 0; });
-    }
+    expect(metricsOverflow).toBe(false);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     const boxes = await page.locator(".dashboard-kpi").evaluateAll(items => items.map(el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y }; }));
     if (viewport.width >= 1032) expect(new Set(boxes.map(box => box.y)).size).toBe(1);
     if (viewport.width < 600) expect(new Set(boxes.map(box => box.x)).size).toBe(1);
     await expect(page.getByRole("button", { name: "Apply Dates", exact: true })).toHaveCount(0);
+    await expect(page.getByText("View chart data", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("Ranking details", { exact: true })).toHaveCount(0);
     await page.screenshot({ path: `.local/ui-review/dashboard/top-${viewport.width}.png` });
     await page.locator(".dashboard-line-chart").scrollIntoViewIfNeeded();
     const chart = page.locator(".dashboard-line-chart");
@@ -56,20 +48,19 @@ test("Dashboard preserves accessible chart values, payments and navigation", asy
   const nav = page.getByRole("navigation", { name: "Shop", exact: true });
   expect(await nav.getByRole("link").allTextContents()).toEqual(["Dashboard", "POS", "Menu", "Sales", "Expenses", "Libraries"]);
   await expect(nav.getByRole("link", { name: "Dashboard", exact: true })).toHaveAttribute("aria-current", "page");
-  const selector = page.getByRole("combobox", { name: "Inspect sales period" });
-  await expect(selector).toBeHidden();
-  await page.getByText("View chart data", { exact: true }).click();
-  await chooseOption(page, selector, "Oct 2, 2026");
-  await expect(page.getByLabel("Selected period net sales")).toHaveText("₱290.00");
+  const chart = page.getByRole("img", { name: /Net Sales performance in PHP/ });
+  await chart.focus();
+  await page.keyboard.press("Home");
+  await page.keyboard.press("ArrowRight");
+  await expect(page.getByRole("tooltip")).toContainText("Oct 2, 2026");
   await expect(page.getByRole("tooltip")).toContainText("₱290.00");
-  await selector.focus();
-  await page.keyboard.press("ArrowDown");
-  await page.keyboard.press("ArrowDown");
-  await page.keyboard.press("Enter");
-  await expect(selector).toBeFocused();
-  await expect(page.getByRole("table", { name: "Daily net sales in PHP" })).toBeVisible();
+  await page.keyboard.press("End");
+  await expect(page.getByRole("tooltip")).toContainText("Nov 3, 2026");
+  await expect(chart).toBeFocused();
+  await expect(chart).toHaveCSS("outline-style", "solid");
+  await expect(page.getByRole("table", { name: "Daily net sales in PHP" }).locator("..")).toHaveClass("sr-only");
   await expect(page.locator(".dashboard-metrics > div").filter({ has: page.getByText("Cash Sales", { exact: true }) }).locator("dd")).toHaveText("₱4,035.00");
-  await expect(page.locator(".dashboard-metrics > div").filter({ has: page.getByText("GCash / Wallet Sales", { exact: true }) }).locator("dd")).toHaveText("₱2,290.00");
+  await expect(page.locator(".dashboard-metrics > div").filter({ has: page.getByText("E-wallet Sales", { exact: true }) }).locator("dd")).toHaveText("₱2,290.00");
   await expect(page.locator(".dashboard-kpi").filter({ has: page.getByText("Net Sales", { exact: true }) }).locator("dd")).toHaveText("₱6,325.00");
   await expect(page.getByText("About size history", { exact: true })).toHaveCount(0);
   await nav.getByRole("link", { name: "Sales", exact: true }).click();
@@ -80,27 +71,27 @@ test("Dashboard automatic dates retain the last valid report on failed and rapid
   await page.goto(reportUrl);
   const original = (await page.locator(".dashboard-kpis").textContent())!;
   const originalMetrics = (await page.locator(".dashboard-metrics").textContent())!;
-  const period = await page.locator(".sales-period").innerText();
+  const firstPeriod = page.getByRole("table", { name: "Daily net sales in PHP" }).locator("tbody th").first();
+  const period = await firstPeriod.innerText();
   await page.evaluate(() => sessionStorage.setItem("fixture:report-error", "Dashboard could not be updated. Previous results remain shown."));
   await page.getByLabel("From Date", { exact: true }).fill("2026-10-02");
   await expect(page.getByRole("alert")).toContainText("Previous results");
   await expect(page.locator(".dashboard-kpis")).toHaveText(original);
   await expect(page.locator(".dashboard-metrics")).toHaveText(originalMetrics);
-  await expect(page.locator(".sales-period")).toContainText(period);
-  await expect(page.locator(".sales-period")).toContainText("update failed");
+  await expect(firstPeriod).toHaveText(period);
   await page.evaluate(() => { sessionStorage.removeItem("fixture:report-error"); sessionStorage.setItem("fixture:navigation-delay", "600"); });
   const from = page.getByLabel("From Date", { exact: true });
   await from.fill("2026-10-03");
   await expect(page.locator(".global-loading-bar")).toHaveAttribute("data-busy", "true");
   await from.fill("2026-10-04");
   await expect(page).toHaveURL(/from=2026-10-04/);
-  await expect(page.locator(".sales-period")).toContainText("Oct 4");
+  await expect(firstPeriod).toHaveText("Oct 4, 2026");
   await expect(page.locator(".dashboard-metrics > div").filter({ has: page.getByText("Cash Sales", { exact: true }) }).locator("dd")).toHaveText("₱3,635.00");
-  await expect(page.locator(".dashboard-metrics > div").filter({ has: page.getByText("GCash / Wallet Sales", { exact: true }) }).locator("dd")).toHaveText("₱2,290.00");
+  await expect(page.locator(".dashboard-metrics > div").filter({ has: page.getByText("E-wallet Sales", { exact: true }) }).locator("dd")).toHaveText("₱2,290.00");
   await expect(page.locator(".global-loading-bar")).toHaveAttribute("data-busy", "false");
   await from.fill("2026-12-01");
   await expect(page.getByRole("alert")).toContainText("To Date");
-  await expect(page.locator(".sales-period")).toContainText("Oct 4");
+  await expect(firstPeriod).toHaveText("Oct 4, 2026");
 });
 
 test("Dashboard distinguishes empty, missing-cost, and unavailable reports", async ({ page }) => {
@@ -108,7 +99,7 @@ test("Dashboard distinguishes empty, missing-cost, and unavailable reports", asy
   await expect(page.locator(".dashboard-kpis")).toContainText("₱0.00");
   await expect(page.getByText("No completed sales in this period.")).toBeVisible();
   await expect(page.locator(".dashboard-metrics > div").filter({ has: page.getByText("Cash Sales", { exact: true }) }).locator("dd")).toHaveText("₱0.00");
-  await expect(page.locator(".dashboard-metrics > div").filter({ has: page.getByText("GCash / Wallet Sales", { exact: true }) }).locator("dd")).toHaveText("₱0.00");
+  await expect(page.locator(".dashboard-metrics > div").filter({ has: page.getByText("E-wallet Sales", { exact: true }) }).locator("dd")).toHaveText("₱0.00");
   await expect(page.locator(".dashboard-line-chart")).toHaveCount(0);
   await page.goto("/dashboard?missing");
   await expect(page.locator(".dashboard-kpis")).toContainText("Incomplete");

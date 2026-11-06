@@ -17,7 +17,7 @@ describe("Dashboard financial reporting", () => {
     const report = build(sales, expenses);
     expect(report.summary).toEqual(summarize(sales, expenses));
     expect(report.summary).toMatchObject({ total: 29000, orders: 2, productCosts: 15000, operatingExpenses: 2000, grossProfit: 14000, netProfit: 12000, average: 14500, cash: 14500, wallet: 14500 });
-    expect(report.reversed).toBe(2);
+    expect(report.summary.refunds).toBe(1);
     expect(report.series.reduce((sum, point) => sum + point.cents, 0)).toBe(report.summary.total);
     expect(report.products).toEqual([{ name: "Historical Latte", quantity: 2, revenue: 29000 }]);
   });

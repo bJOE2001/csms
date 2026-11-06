@@ -80,7 +80,9 @@ test("history search, empty states, wallet totals and voided expenses remain acc
   await page.goto("/?sales&wallet&voided");
   await expect(page.locator(".sales-secondary-metrics")).toContainText("₱145.00");
   const history = page.getByRole("region", { name: "Sales history", exact: true });
-  await expect(history.getByRole("cell", { name: "GCash", exact: true })).toBeVisible();
+  await expect(history.getByRole("cell", { name: "E-wallet", exact: true })).toBeVisible();
+  await page.getByRole("searchbox").fill("E-wallet");
+  await expect(history.getByRole("cell", { name: "E-wallet", exact: true })).toBeVisible();
   await expect(page.locator(".sales-expenses")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Void expense Electricity" })).toHaveCount(0);
   await page.getByRole("searchbox").fill("not-a-receipt");

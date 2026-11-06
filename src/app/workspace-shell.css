@@ -821,6 +821,11 @@ body:has(.workspace-shell) {
   .workspace-sidebar { display: none; }
   .workspace-mobile-header { display: flex; }
 }
+@media (min-width: 768px) and (max-width: 1279px) {
+  .workspace-shell:is(.dashboard-shell, .sales-shell, .expenses-shell) > .workspace-content {
+    padding: var(--space-6);
+  }
+}
 @media (max-width: 760px) {
   .workspace-shell:not(.pos-shell) {
     height: auto;
@@ -887,7 +892,7 @@ body:has(.workspace-shell) {
   padding: 0;
   color: var(--muted);
 }
-.pos-cart-drawer .cart-heading h2:focus-visible {
+.cart-heading h2:focus-visible {
   outline: var(--control-focus-width) solid var(--focus);
   outline-offset: 4px;
 }

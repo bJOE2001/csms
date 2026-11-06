@@ -29,10 +29,7 @@ export function DashboardView({ report: loaded, shopId, timezone, from, to, load
     <header className="sales-header">
       <div className="sales-heading"><h1 className="m-0">Dashboard</h1><p className="hint">Sales, profitability, and product performance.</p></div>
       <div className="sales-header-actions sales-date-range"><DateRangeFilter from={appliedFrom} to={appliedTo} action="/dashboard" label="Filter dashboard by date" loadFailure={loadError ? { from, to, message: loadError } : undefined} /></div>
-      {snapshot && <div className="dashboard-header-meta">
-        <p className="sales-period">Reporting period: <strong>{periodDates(appliedFrom, appliedTo)}</strong>{loadError && " · Previous results; update failed."}</p>
-        <details className="dashboard-disclosure dashboard-accounting"><summary>Profit based on recorded costs and expenses</summary><p>Profit is based on recorded product costs and operating expenses. Refunds remove revenue; prepared-product costs remain deducted. Cancelled sales are excluded.</p></details>
-      </div>}
+      <p className="sales-period dashboard-header-meta">Reporting period: <strong>{periodDates(appliedFrom, appliedTo)}</strong></p>
     </header>
     {report && summary && <>
       <dl className="dashboard-kpis" aria-label="Business performance">
@@ -45,15 +42,15 @@ export function DashboardView({ report: loaded, shopId, timezone, from, to, load
       {summary.missingCosts > 0 && <p className="form-message error" role="status">Profit is incomplete: {summary.missingCosts} sale(s) have no saved product cost. <Link href={salesHref}>Review affected receipts in Sales</Link>.</p>}
       {report.unattributedSales > 0 && <p className="dashboard-accounting-note">{report.unattributedSales} completed receipt(s) lack item revenue details. Their revenue is included in totals, but cannot be attributed to products or sizes.</p>}
       <dl className="dashboard-metrics" aria-label="Business metrics" tabIndex={0}>{[
-        ["Completed Sales", summary.orders], ["Average Order Value", money(summary.average)],
-        ["Product Costs", `${money(summary.productCosts)}${summary.missingCosts ? " · Known costs only" : ""}`],
+        ["Completed Sales", summary.orders],
+        ["Product Costs", money(summary.productCosts), summary.missingCosts ? "Known costs only" : undefined],
         ["Operating Expenses", money(summary.operatingExpenses)],
-        ["Cash Sales", money(summary.cash)], ["GCash / Wallet Sales", money(summary.wallet)],
-        ["Reversed Sales", report.reversed],
-      ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+        ["Cash Sales", money(summary.cash)], ["E-wallet Sales", money(summary.wallet)],
+        ["Refunded Transactions", summary.refunds],
+      ].map(([label, value, note]) => <div key={label}><dt>{label}</dt><dd><span className="dashboard-metric-value">{value}</span>{note && <small className="dashboard-metric-note"> · {note}</small>}</dd></div>)}</dl>
       <div className="dashboard-main-analytics">
         <Card className="dashboard-section"><CardHeader title="Sales Performance" /><SalesChart key={`${appliedFrom}:${appliedTo}`} points={report.series} granularity={report.granularity} hasSales={summary.orders > 0} timezone={timezone} /></Card>
-        <Card className="dashboard-section"><CardHeader title="Top Products" description="Top five by quantity sold" /><RankedList rows={report.products} empty="No recorded product sales in this period." /><details className="dashboard-disclosure"><summary>Ranking details</summary><p>Completed sales only, grouped by transaction-time name. Item revenue is net of allocated receipt discounts.</p></details></Card>
+        <Card className="dashboard-section"><CardHeader title="Top Products" description="Top five by quantity sold" /><RankedList rows={report.products} empty="No recorded product sales in this period." /></Card>
       </div>
     </>}
   </div>;

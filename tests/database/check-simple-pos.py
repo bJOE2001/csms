@@ -65,12 +65,26 @@ try:
    assert not exists(select * from seed_observed_rows except select * from first_seed), 'Rerun added duplicates';
  end $$;
  """
- print(sql(seed_setup+seed+seed_checks+first_checks+seed+seed_checks+repeat_checks))
+ cleanup=(root/"supabase/seeds/cleanup_demo_cancellations.sql").read_text(encoding="utf-8")
+ cleanup_setup=(root/"tests/database/demo-cancellation-cleanup.sql").read_text(encoding="utf-8")
+ cleanup_checks="""
+ do $$ begin
+   assert not exists(select 1 from public.pos_sales where id in(select id from old_demo_cancellations where fixture_number>2)), 'Old demo cancellation survived';
+   assert not exists(select id,snapshot from cleanup_protected except select id,to_jsonb(s) from public.pos_sales s), 'Cleanup changed a protected receipt';
+   assert not exists(select id,to_jsonb(s) from public.pos_sales s except select id,snapshot from cleanup_protected), 'Cleanup changed another record';
+ end $$;
+ """
+ print(sql(seed_setup+seed+seed_checks+first_checks+seed+seed_checks+repeat_checks+cleanup_setup+cleanup+cleanup_checks+cleanup+cleanup_checks))
  try:
   sql("select set_config('coffee_pos.demo_shop_id','',false);"+seed)
  except RuntimeError as error:
   if 'Select a shop with coffee_pos.demo_shop_id' not in str(error):raise
  else:raise RuntimeError("Demo seed accepted an ambiguous target shop")
+ try:
+  sql("select set_config('coffee_pos.demo_shop_id','',false);"+cleanup)
+ except RuntimeError as error:
+  if 'Select a shop with coffee_pos.demo_shop_id' not in str(error):raise
+ else:raise RuntimeError("Demo cleanup accepted an ambiguous target shop")
  print("Demo seed date range, snapshots, permissions, preservation and idempotence passed.")
  print("All migrations and simple POS database assertions passed.")
 finally:

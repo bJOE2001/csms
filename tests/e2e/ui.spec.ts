@@ -47,7 +47,7 @@ test("sign-in prevents duplicate submissions without resizing its button", async
     await page
       .getByLabel("Password", { exact: true })
       .fill("ui-check-placeholder");
-    const button = page.getByRole("button", { name: "Continue", exact: true });
+    const button = page.getByRole("button", { name: "Sign in", exact: true });
     const before = await button.boundingBox();
     await button.click();
     const pending = page.getByRole("button", {
@@ -62,4 +62,17 @@ test("sign-in prevents duplicate submissions without resizing its button", async
   } finally {
     releaseRequest();
   }
+});
+
+test("sign-in transport failure preserves the form and offers a safe retry", async ({ page }) => {
+  await page.route("**/sign-in", route => route.request().method() === "POST" ? route.abort() : route.continue());
+  await page.goto("/sign-in");
+  await page.getByLabel("Email", { exact: true }).fill("ui-check@example.invalid");
+  await page.getByLabel("Password", { exact: true }).fill("ui-check-placeholder");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page.locator(".sign-in-card").getByRole("alert")).toContainText("check your connection");
+  await expect(page.getByLabel("Email", { exact: true })).toHaveValue("ui-check@example.invalid");
+  await expect(page.getByRole("button", { name: "Sign in", exact: true })).toBeEnabled();
+  await expect(page.locator(".topbar")).toHaveCount(0);
+  await expect(page.locator("[data-sonner-toast]")).toHaveCount(0);
 });

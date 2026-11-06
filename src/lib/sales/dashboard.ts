@@ -74,7 +74,6 @@ export function buildDashboard(sales: Sale[], expenses: Expense[], from: string,
   return {
     summary, granularity, series: [...slots.values()], products: rank(products), sizes: rank(sizes),
     unattributedSales: sales.filter(s => s.status === "completed" && s.total_cents > 0 && !s.items.some(item => item.line_total_cents > 0)).length,
-    reversed: sales.filter(s => s.status !== "completed").length,
     recent: [...sales].sort((a, b) => b.created_at.localeCompare(a.created_at) || a.id.localeCompare(b.id)).slice(0, 5),
     comparison: before && before.orders > 0 && before.total > 0 ? { percent: (summary.total - before.total) / before.total * 100, ...previousPeriod(from, to) } : null,
   };

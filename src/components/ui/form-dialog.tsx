@@ -45,6 +45,7 @@ export function FormDialog({
   size = "md",
   readOnlyActions,
   tableAction,
+  onClose,
 }: {
   trigger: ReactNode;
   title: string;
@@ -60,6 +61,7 @@ export function FormDialog({
   className?: string;
   size?: DialogSize;
   readOnlyActions?: ReactNode;
+  onClose?: () => void;
   tableAction?: {
     icon: LucideIcon;
     tooltip: string;
@@ -84,7 +86,8 @@ export function FormDialog({
     setOpen(false);
     setDirty(false);
     setDiscard(false);
-  }, []);
+    onClose?.();
+  }, [onClose]);
   const requestClose = useCallback(() => {
     if (pending) return;
     if (discard) setDiscard(false);

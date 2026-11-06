@@ -65,7 +65,7 @@ test("inline sizes keep defaults, keyboard navigation and separate cart prices",
   await add(page, "Cafe Latte 16 oz").click();
   await expect(page.locator(".order-line")).toHaveCount(2);
   await expect(page.locator(".pos-total")).toContainText("₱410.00");
-  await page.getByRole("button", { name: "GCash", exact: true }).click();
+  await page.getByRole("button", { name: "E-wallet", exact: true }).click();
   await page.getByRole("button", { name: "Place an order", exact: true }).click();
   await expect(page.locator("[data-sonner-toast][data-type=success]")).toContainText("Sale complete");
   expect(calls[0].data).toMatchObject({ method: "gcash", items: [
@@ -234,10 +234,10 @@ test("tablet drawer traps focus, retains selections and cash across closing and 
   await page.getByRole("button", { name: "Remove Cafe Latte 12 oz from cart", exact: true }).click();
   await expect(page.locator(".pos-total")).toContainText("₱230.00");
   await expect(page.locator(".cart-change")).toContainText("₱370.00");
-  await page.getByRole("button", { name: "GCash", exact: true }).click();
+  await page.getByRole("button", { name: "E-wallet", exact: true }).click();
   await page.getByRole("button", { name: "Close cart", exact: true }).click();
   await page.getByRole("button", { name: "Open cart, 2 items", exact: true }).click();
-  await expect(page.getByRole("button", { name: "GCash", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "E-wallet", exact: true })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Cash", exact: true }).click();
   await expect(page.getByLabel("Cash received", { exact: true })).toHaveValue("600");
   await checkout.click();
@@ -248,7 +248,7 @@ test("tablet drawer traps focus, retains selections and cash across closing and 
   ] });
 });
 
-test("touch users can select sizes and complete GCash checkout inside the drawer", async ({ browser }) => {
+test("touch users can select sizes and complete E-wallet checkout inside the drawer", async ({ browser }) => {
   const context = await browser.newContext({ baseURL: test.info().project.use.baseURL, viewport: { width: 1032, height: 1376 }, hasTouch: true, isMobile: true, reducedMotion: "reduce" });
   const page = await context.newPage();
   const calls = await mock(page);
@@ -258,7 +258,7 @@ test("touch users can select sizes and complete GCash checkout inside the drawer
   await page.getByRole("button", { name: /^Open cart/ }).tap();
   await page.getByRole("button", { name: "Increase Cafe Latte 16 oz", exact: true }).tap();
   await page.getByRole("button", { name: "Decrease Cafe Latte 16 oz", exact: true }).tap();
-  await page.getByRole("button", { name: "GCash", exact: true }).tap();
+  await page.getByRole("button", { name: "E-wallet", exact: true }).tap();
   await page.getByRole("button", { name: "Place an order", exact: true }).tap();
   await expect(page.locator("[data-sonner-toast][data-type=success]")).toContainText("Sale completed successfully");
   expect(calls[0].data).toMatchObject({ method: "gcash", items: [{ size_id: uid(12), quantity: 1, price_cents: 15000 }] });

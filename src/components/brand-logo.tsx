@@ -1,3 +1,5 @@
+import { coffeeBrand } from "@/lib/brand";
+
 /** The approved artwork is shared unchanged by workspace and account headers. */
 export function BrandLogo({ alt = "LOGO Coffee" }: { alt?: string }) {
   return (
