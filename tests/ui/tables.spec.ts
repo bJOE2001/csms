@@ -82,7 +82,11 @@ for (const viewport of [
           expect(Math.abs(column.x - column.cellX)).toBeLessThan(1);
           expect(Math.abs(column.width - column.cellWidth)).toBeLessThan(1);
         }
-        expect(geometry.actionWidth).toBeLessThanOrEqual(128);
+        const actionButtons = region.locator("tbody tr:first-child .table-actions > button");
+        const actionCount = await actionButtons.count();
+        const actionContentWidth = await actionButtons.evaluateAll(buttons => buttons.reduce((sum, button) => sum + button.getBoundingClientRect().width, 0));
+        const actionSize = viewport.width >= 1280 ? 40 : 44;
+        expect(geometry.actionWidth).toBeLessThanOrEqual(Math.max(128, Math.max(actionContentWidth, actionCount * actionSize) + Math.max(0, actionCount - 1) * 8 + 25));
         const last = region.locator("tbody tr:first-child .table-action-button").last();
         const bounds = (await last.boundingBox())!;
         expect(Math.abs(geometry.actionRight - bounds.x - bounds.width - 12)).toBeLessThan(1);

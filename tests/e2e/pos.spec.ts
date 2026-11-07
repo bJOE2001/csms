@@ -164,8 +164,8 @@ test("wallet checkout stays in POS and product editing lives in Menu", async ({
     "Spanish latte",
   );
   await page.getByLabel("Selling price (PHP)").fill("150");
-  await expect(page.getByLabel("Cost per item (PHP)")).toHaveValue("50.00");
-  await page.getByLabel("Cost per item (PHP)").fill("55.25");
+  await expect(page.getByLabel("Manual Estimated Cost (PHP)")).toHaveValue("50.00");
+  await page.getByLabel("Manual Estimated Cost (PHP)").fill("55.25");
   await page.getByRole("button", { name: "Save product", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   expect(calls[1]).toMatchObject({
@@ -217,7 +217,7 @@ test("POS fits desktop, tablet, phone and landscape", async ({
       ).toBe(true);
     }
     if (size.width >= 1280)
-      await expect(page.getByRole("navigation", { name: "Shop" }).getByRole("link")).toHaveCount(6);
+      await expect(page.getByRole("navigation", { name: "Shop" }).getByRole("link")).toHaveCount(7);
     else
       await expect(page.getByRole("button", { name: "Open navigation menu", exact: true })).toBeVisible();
     if (size.width === 375) {

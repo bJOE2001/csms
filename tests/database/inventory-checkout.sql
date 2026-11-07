@@ -1,0 +1,94 @@
+begin;
+insert into auth.users(id,email) values('00000000-0000-4000-8000-000000009100','inventory-checkout@example.invalid');
+create function pg_temp.expect_error(command text, expected text) returns void language plpgsql as $$
+begin begin execute command;exception when others then if position(expected in sqlerrm)=0 then raise exception 'Expected %, got %',expected,sqlerrm;end if;return;end;raise exception 'Expected failure: %',expected;end $$;
+set role authenticated;
+select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000009100',false);
+select set_config('test.inventory_shop',public.create_shop('Inventory checkout shop','Asia/Manila')::text,false);
+do $$declare shop uuid:=current_setting('test.inventory_shop')::uuid; item uuid:='00000000-0000-4000-8000-000000009101'; prod uuid:='00000000-0000-4000-8000-000000009102'; small uuid:='00000000-0000-4000-8000-000000009103'; large uuid:='00000000-0000-4000-8000-000000009104';
+ p jsonb; sizes jsonb; sale jsonb; before_qty numeric; original jsonb; recipe_payload jsonb; consumed uuid; ret jsonb; day date:=(now() at time zone 'Asia/Manila')::date;
+begin
+ perform public.pos_inventory_save_item(shop,jsonb_build_object('id',item,'name','Ground Coffee','base_unit','g','item_type','ingredient','minimum_stock',100,'active',true));
+ perform public.pos_inventory_post(shop,jsonb_build_object('operation_id',gen_random_uuid(),'ingredient_id',item,'kind','opening','quantity','2','purchase_unit','kg','total_cost_cents',100000,'occurred_on',day,'reason','Opening stock'));
+ sizes:=jsonb_build_array(jsonb_build_object('id',small,'label','12 oz','price_cents',12000,'cost_cents',5000,'active',true,'is_default',true),jsonb_build_object('id',large,'label','16 oz','price_cents',14500,'cost_cents',7000,'active',true,'is_default',false));
+ perform public.pos_save_product(shop,jsonb_build_object('id',prod,'name','Inventory latte','price_cents',12000,'cost_cents',5000,'active',true,'sizes',sizes));
+ sale:=jsonb_build_object('id',gen_random_uuid(),'method','cash','items',jsonb_build_array(jsonb_build_object('product_id',prod,'size_id',small,'quantity',2,'price_cents',12000)));
+ -- Existing products remain sellable before any inventory recipe is active.
+ perform public.pos_checkout(shop,sale);
+ assert (select quantity from public.inventory_balances where ingredient_id=item)=2000;
+ assert (select total_cost_cents from public.pos_sales where id=(sale->>'id')::uuid)=10000;
+ original:=(select to_jsonb(s) from public.pos_sales s where id=(sale->>'id')::uuid);
+ recipe_payload:=jsonb_build_object('operation_id',gen_random_uuid(),'product_id',prod,'size_id',small,'action','draft','mode','recipe','expected_revision',0,'components',jsonb_build_array(jsonb_build_object('ingredient_id',item,'quantity','18')));
+ perform public.pos_inventory_recipe(shop,recipe_payload);
+ assert (select count(*) from public.pos_sale_consumptions where sale_id=(sale->>'id')::uuid)=0,'No retroactive consumption';
+ perform public.pos_inventory_recipe(shop,recipe_payload||jsonb_build_object('operation_id',gen_random_uuid(),'action','activate','expected_revision',1));
+ sale:=sale||jsonb_build_object('id',gen_random_uuid());
+ perform public.pos_checkout(shop,sale);perform public.pos_checkout(shop,sale);
+ assert (select quantity from public.inventory_balances where ingredient_id=item)=1964,'Cash/retry stock deduction';
+ assert (select total_cost_cents from public.pos_sales where id=(sale->>'id')::uuid)=1800;
+ assert (select sum(cost_cents) from public.pos_sale_consumptions where sale_id=(sale->>'id')::uuid)=1800;
+ perform public.pos_refund(shop,(sale->>'id')::uuid,'Prepared drink returned');
+ assert (select quantity from public.inventory_balances where ingredient_id=item)=1964,'Refund must not restore ingredients';
+ consumed:=(select id from public.pos_sale_consumptions where sale_id=(sale->>'id')::uuid limit 1);
+ perform pg_temp.expect_error(format('select public.pos_inventory_return(%L,%L)',shop,jsonb_build_object('operation_id',gen_random_uuid(),'consumption_id',consumed,'quantity','1','reason','Attempt ingredient return')),'Only recorded finished goods');
+ recipe_payload:=recipe_payload||jsonb_build_object('operation_id',gen_random_uuid(),'expected_revision',2,'components',jsonb_build_array(jsonb_build_object('ingredient_id',item,'quantity','20')));
+ perform public.pos_inventory_recipe(shop,recipe_payload);
+ -- A newer draft does not silently replace the active 18g recipe.
+ sale:=sale||jsonb_build_object('id',gen_random_uuid(),'method','gcash'); perform public.pos_checkout(shop,sale);
+ assert (select quantity from public.inventory_balances where ingredient_id=item)=1928,'E-wallet must use the same active inventory rules';
+ perform public.pos_inventory_recipe(shop,recipe_payload||jsonb_build_object('operation_id',gen_random_uuid(),'size_id',large,'expected_revision',0,'components',jsonb_build_array(jsonb_build_object('ingredient_id',item,'quantity','30'))));
+ perform public.pos_inventory_recipe(shop,recipe_payload||jsonb_build_object('operation_id',gen_random_uuid(),'size_id',large,'expected_revision',1,'action','activate'));
+ sale:=jsonb_build_object('id',gen_random_uuid(),'method','cash','items',jsonb_build_array(jsonb_build_object('product_id',prod,'size_id',small,'quantity',1,'price_cents',12000),jsonb_build_object('product_id',prod,'size_id',large,'quantity',1,'price_cents',14500)));
+ perform public.pos_checkout(shop,sale);
+ assert (select quantity from public.inventory_balances where ingredient_id=item)=1880,'Aggregate shared ingredients across sizes';
+ assert (select sum(cost_cents) from public.pos_sale_consumptions where sale_id=(sale->>'id')::uuid)=2400;
+ assert (select total_cost_cents from public.pos_sales where id=(sale->>'id')::uuid)=2400;
+ perform public.pos_inventory_post(shop,jsonb_build_object('operation_id',gen_random_uuid(),'ingredient_id',item,'kind','receipt','quantity','1','purchase_unit','kg','total_cost_cents',100000,'occurred_on',day,'reason','New higher-cost delivery'));
+ assert exists(select 1 from public.pos_sales s where to_jsonb(s)=original),'Historical manual-cost receipt changed';
+ before_qty:=(select quantity from public.inventory_balances where ingredient_id=item);
+ perform public.pos_inventory_post(shop,jsonb_build_object('operation_id',gen_random_uuid(),'ingredient_id',item,'kind','waste','quantity',before_qty::text,'purchase_unit','g','occurred_on',day,'reason','Write off spoiled stock'));
+ sale:=sale||jsonb_build_object('id',gen_random_uuid());
+ perform pg_temp.expect_error(format('select public.pos_checkout(%L,%L)',shop,sale),'Insufficient stock');
+ assert not exists(select 1 from public.pos_sales where id=(sale->>'id')::uuid),'Failed checkout committed a sale';
+ assert not exists(select 1 from public.pos_sale_consumptions where sale_id=(sale->>'id')::uuid),'Failed checkout left consumption';
+
+ -- Finished goods require an explicit audited return after a full refund.
+ item:='00000000-0000-4000-8000-000000009110';prod:='00000000-0000-4000-8000-000000009111';
+ perform public.pos_inventory_save_item(shop,jsonb_build_object('id',item,'name','Brownie','base_unit','each','item_type','finished_good','minimum_stock',1,'active',true));
+ perform public.pos_inventory_post(shop,jsonb_build_object('operation_id',gen_random_uuid(),'ingredient_id',item,'kind','receipt','quantity','4','purchase_unit','each','total_cost_cents',10000,'occurred_on',day,'reason','Delivery'));
+ perform public.pos_save_product(shop,jsonb_build_object('id',prod,'name','Brownie','price_cents',5000,'cost_cents',2500,'active',true));
+ recipe_payload:=jsonb_build_object('operation_id',gen_random_uuid(),'product_id',prod,'action','draft','mode','finished_good','expected_revision',0,'components',jsonb_build_array(jsonb_build_object('ingredient_id',item,'quantity','1')));
+ perform public.pos_inventory_recipe(shop,recipe_payload);
+ perform public.pos_inventory_recipe(shop,recipe_payload||jsonb_build_object('operation_id',gen_random_uuid(),'action','activate','expected_revision',1));
+ sale:=jsonb_build_object('id',gen_random_uuid(),'method','gcash','items',jsonb_build_array(jsonb_build_object('product_id',prod,'quantity',2,'price_cents',5000)));
+ perform public.pos_checkout(shop,sale);perform public.pos_refund(shop,(sale->>'id')::uuid,'Unopened goods returned');
+ assert (select quantity from public.inventory_balances where ingredient_id=item)=2;
+ consumed:=(select id from public.pos_sale_consumptions where sale_id=(sale->>'id')::uuid);
+ ret:=jsonb_build_object('operation_id',gen_random_uuid(),'consumption_id',consumed,'quantity','1','reason','Unopened and reusable');
+ perform public.pos_inventory_return(shop,ret);perform public.pos_inventory_return(shop,ret);
+ assert (select quantity from public.inventory_balances where ingredient_id=item)=3;
+ assert public.pos_inventory_cost_credits(shop,day,day)=2500;
+ assert (select total_cost_cents from public.pos_sales where id=(sale->>'id')::uuid)=5000,'Return rewrote receipt cost';
+ perform public.pos_inventory_return(shop,ret||jsonb_build_object('operation_id',gen_random_uuid()));
+ assert (select quantity from public.inventory_balances where ingredient_id=item)=4;
+ assert public.pos_inventory_cost_credits(shop,day,day)=5000;
+ perform pg_temp.expect_error(format('select public.pos_inventory_return(%L,%L)',shop,ret||jsonb_build_object('operation_id',gen_random_uuid())),'remaining return quantity');
+ perform pg_temp.expect_error(format('select public.pos_inventory_post(%L,%L)',shop,jsonb_build_object('operation_id',gen_random_uuid(),'ingredient_id',item,'kind','receipt','quantity','0.5','purchase_unit','each','total_cost_cents',100,'occurred_on',day,'reason','Invalid fractional piece')),'Purchase unit must match');
+ assert (select count(*) from public.pos_expenses where shop_id=shop)=0,'Stock receiving created operating expenses';
+ perform public.pos_add_expense(shop,jsonb_build_object('id',gen_random_uuid(),'spent_on',day,'description','Inventory purchase recorded for reconciliation','amount_cents',10000,'classification','inventory_purchase'));
+ assert public.pos_expenses(shop,day,day)->0->>'classification'='inventory_purchase';
+ -- A mixed tracked/untracked receipt retains known costs when its missing cost
+ -- is supplemented through the pre-existing owner workflow.
+ perform public.pos_save_product(shop,jsonb_build_object('id','00000000-0000-4000-8000-000000009112','name','Untracked legacy item','price_cents',1000,'cost_cents',null,'active',true));
+ sale:=jsonb_build_object('id',gen_random_uuid(),'method','cash','items',jsonb_build_array(jsonb_build_object('product_id',prod,'quantity',1,'price_cents',5000),jsonb_build_object('product_id','00000000-0000-4000-8000-000000009112','quantity',1,'price_cents',1000)));
+ perform public.pos_checkout(shop,sale);
+ assert (select total_cost_cents is null from public.pos_sales where id=(sale->>'id')::uuid);
+ p:=jsonb_build_object('id',sale->>'id','cost_cents',2000,'note','Owner verified whole-receipt cost');
+ perform pg_temp.expect_error(format('select public.pos_record_cost(%L,%L)',shop,p),'less than recorded inventory consumption');
+ perform public.pos_record_cost(shop,p||jsonb_build_object('cost_cents',3000));
+ perform public.pos_record_cost(shop,p||jsonb_build_object('cost_cents',3000));
+ assert (select total_cost_cents from public.pos_sales where id=(sale->>'id')::uuid)=3000;
+ assert (select sum(cost_cents) from public.pos_sale_consumptions where sale_id=(sale->>'id')::uuid)=2500;
+end $$;
+reset role;
+rollback;

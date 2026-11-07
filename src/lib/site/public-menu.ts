@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { imageUrlSchema, isAvailable, type Category, type Product } from "@/lib/menu/domain";
+import { imageUrlSchema, type Category, type Product } from "@/lib/menu/domain";
 
 const price = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER);
 export const publicProductSchema = z.object({
@@ -15,7 +15,7 @@ export type PublicMenu = z.infer<typeof publicMenuSchema>;
 
 /** Explicit allowlist: nested size costs must never cross the public boundary. */
 export function projectPublicMenu(products: Product[], categories: Category[]): PublicProduct[] {
-  return products.filter(isAvailable).map(product => {
+  return products.filter(product => product.active && !product.archived_at && (!product.sizes?.length || product.sizes.some(size => size.active))).map(product => {
     const sizes = (product.sizes ?? []).filter(size => size.active).map(size => ({ label: size.label, price: size.price_cents }));
     const image = imageUrlSchema.safeParse(product.image_url);
     const safeImage = image.success && (!image.data.startsWith("/") || /^\/(?:images|site|uploads)\/[a-zA-Z0-9_./%-]+$/.test(image.data) && !image.data.includes("..")) ? image.data : null;

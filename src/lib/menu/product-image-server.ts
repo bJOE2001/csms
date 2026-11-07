@@ -35,7 +35,7 @@ export async function validateProductImage(file: File) {
 
 /** Upload only during a validated save. Previous images are retained for history. */
 export async function saveProductWithImage(db: SupabaseClient<Database>, userId: string,
-  shopId: string, product: Omit<Product, "id"> & { id?: string }, file: File) {
+  shopId: string, product: Omit<Product, "id" | "sizes"> & { id?: string; sizes?: Omit<NonNullable<Product["sizes"]>[number], "cost_cents">[] }, file: File) {
   const { data: member, error: accessError } = await db.from("shop_members")
     .select("role").eq("shop_id", shopId).eq("user_id", userId).eq("status", "active").maybeSingle();
   if (accessError) throw new ProductImageError("Shop permissions could not be checked. Try again.", 503);

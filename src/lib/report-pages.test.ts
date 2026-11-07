@@ -12,7 +12,7 @@ const pages = [{ name: "Sales", render: SalesPage }, { name: "Expenses", render:
 beforeEach(() => {
   vi.resetAllMocks();
   mocks.member.mockResolvedValue({ supabase: { rpc: mocks.rpc }, shop: { id: shopId, name: "LOGO Coffee", timezone: "Asia/Manila" }, role: "founder" });
-  mocks.rpc.mockResolvedValue({ data: [], error: null });
+  mocks.rpc.mockImplementation(name => Promise.resolve({ data: name === "pos_inventory_cost_credits" ? 0 : [], error: null }));
 });
 async function renderReport(render: typeof SalesPage | typeof ExpensesPage) {
   const element = await render({ searchParams: Promise.resolve(range) });
@@ -27,7 +27,7 @@ describe("server-rendered report refreshes", () => {
       expect(props).toMatchObject({ shopId, from: range.from, to: range.to, founder: true });
       expect(props.loadError).toBeUndefined();
       for (const [, params] of mocks.rpc.mock.calls) expect(params).toEqual({ p_shop_id: shopId, p_from: range.from, p_to: range.to });
-      expect(mocks.rpc.mock.calls.map(call => call[0])).toEqual(page.name === "Sales" ? ["pos_sales", "pos_expenses"] : ["pos_expenses"]);
+      expect(mocks.rpc.mock.calls.map(call => call[0])).toEqual(page.name === "Sales" ? ["pos_sales", "pos_expenses", "pos_inventory_cost_credits"] : ["pos_expenses"]);
     });
     it(`${page.name} returns load feedback without replacing the mounted report with an error page`, async () => {
       mocks.rpc.mockResolvedValue({ data: null, error: { message: "Network unavailable" } });
@@ -72,12 +72,12 @@ describe("Dashboard server authorization and report consistency", () => {
     const props = await renderDashboard();
     expect(props.report.summary).toMatchObject({ total: 0, orders: 0 });
     expect(props.report.recent).toHaveLength(0);
-    expect(mocks.rpc.mock.calls.map(call => call[0])).toEqual(["pos_sales", "pos_expenses", "pos_sales"]);
+    expect(mocks.rpc.mock.calls.map(call => call[0])).toEqual(["pos_sales", "pos_expenses", "pos_inventory_cost_credits", "pos_sales"]);
     expect(mocks.rpc.mock.calls[0][1]).toEqual({ p_shop_id: shopId, p_from: range.from, p_to: range.to });
-    expect(mocks.rpc.mock.calls[2][1]).toEqual({ p_shop_id: shopId, p_from: "2026-10-28", p_to: "2026-10-31" });
+    expect(mocks.rpc.mock.calls[3][1]).toEqual({ p_shop_id: shopId, p_from: "2026-10-28", p_to: "2026-10-31" });
   });
   it("keeps a valid current report when previous-period data fails", async () => {
-    mocks.rpc.mockImplementation((_name, params) => Promise.resolve(params.p_from === range.from ? { data: [], error: null } : { data: null, error: { message: "Unavailable" } }));
+    mocks.rpc.mockImplementation((name, params) => Promise.resolve(params.p_from === range.from ? { data: name === "pos_inventory_cost_credits" ? 0 : [], error: null } : { data: null, error: { message: "Unavailable" } }));
     const props = await renderDashboard();
     expect(props.loadError).toBeUndefined();
     expect(props.report.comparison).toBeNull();

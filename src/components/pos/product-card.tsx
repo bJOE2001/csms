@@ -2,7 +2,7 @@
 
 import { useId, useLayoutEffect, useRef } from "react";
 import type { Product } from "@/lib/menu/domain";
-import { isAvailable } from "@/lib/menu/domain";
+import { inventoryAvailable, isAvailable } from "@/lib/menu/domain";
 import { money } from "@/lib/sales/domain";
 import { Icon } from "../ui/icon";
 import { Button } from "../ui/button";
@@ -37,7 +37,7 @@ export function ProductCard({
   const itemName = `${product.name}${selected ? ` ${selected.label}` : ""}`;
   const price = selected?.price_cents ?? product.price_cents;
   const available =
-    isAvailable(product) && (!product.sizes?.length || !!selected?.active);
+    isAvailable(product) && inventoryAvailable(product, sizeId) && (!product.sizes?.length || !!selected?.active);
   return (
     <article
       ref={card}
@@ -57,7 +57,7 @@ export function ProductCard({
           )}
           <div className="product-meta">
             <span className="product-availability">
-              {available ? "Available" : "Unavailable"}
+              {product.active && product.inventory?.[sizeId ?? "regular"]?.state !== "active" ? "Inventory recipe required before this product can be sold." : available ? "Available" : product.active && selected?.active !== false && product.inventory?.[sizeId ?? "regular"]?.state === "active" ? "Out of stock" : "Unavailable"}
             </span>
             {quantity > 0 && (
               <span className="product-cart-quantity">{quantity} in cart</span>

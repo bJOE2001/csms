@@ -56,6 +56,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           resolvedVariant === "destructive" && "danger",
           (resolvedVariant === "ghost" || resolvedVariant === "link") &&
             "border-transparent bg-transparent shadow-none",
+          resolvedVariant === "ghost" && "text-foreground",
           resolvedVariant === "secondary" && "border-transparent",
           className,
         )}

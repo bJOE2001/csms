@@ -12,6 +12,7 @@
   },
   "scripts": {
     "dev": "next dev",
+    "dev:reset": "python scripts/reset-development.py",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",

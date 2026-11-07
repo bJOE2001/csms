@@ -8,6 +8,7 @@ export type SalesReport = {
   to: string;
   sales: Sale[];
   expenses: Expense[];
+  stockReturnCredits?: number;
 };
 type CsvCell = string | number | { cents: number } | null;
 const php = (value: number | null): CsvCell =>
@@ -30,7 +31,7 @@ function cell(value: CsvCell) {
 }
 
 export function salesCsv(kind: ExportKind, report: SalesReport): string {
-  const summary = summarize(report.sales, report.expenses);
+  const summary = summarize(report.sales, report.expenses, report.stockReturnCredits ?? 0);
   let rows: CsvCell[][];
   if (kind === "summary") {
     const incomplete =
@@ -111,6 +112,7 @@ export function salesCsv(kind: ExportKind, report: SalesReport): string {
         "Refunds restate the original sale period",
       ],
     ];
+    if (summary.stockReturnCredits > 0) rows.push(["Stock return cost credits", php(summary.stockReturnCredits), "PHP", "Explicit finished-good returns dated in this reporting period; original receipt costs unchanged"]);
   } else if (kind === "sales") {
     const localDate = new Intl.DateTimeFormat("sv-SE", {
       timeZone: report.timezone,
@@ -182,6 +184,7 @@ export function salesCsv(kind: ExportKind, report: SalesReport): string {
         "Status",
         "Original amount (PHP)",
         "Expense deducted (PHP)",
+        ...(report.expenses.some(expense => expense.classification === "inventory_purchase") ? ["Accounting classification"] : []),
       ],
       ...report.expenses.map((expense) => [
         report.shopName,
@@ -193,7 +196,8 @@ export function salesCsv(kind: ExportKind, report: SalesReport): string {
         expense.description,
         expense.voided ? "Voided" : "Active",
         php(expense.amount_cents),
-        php(expense.voided ? 0 : expense.amount_cents),
+        php(expense.voided || expense.classification === "inventory_purchase" ? 0 : expense.amount_cents),
+        ...(report.expenses.some(row => row.classification === "inventory_purchase") ? [expense.classification === "inventory_purchase" ? "Inventory purchase — excluded" : "Operating expense"] : []),
       ]),
     ];
   }

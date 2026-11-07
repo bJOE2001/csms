@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type ReactNode } from "react";
+import { useRef, type ReactNode, type RefObject } from "react";
 import { Icon } from "@/components/ui/icon";
 import {
   Dialog as ShadcnDialog,
@@ -26,6 +26,7 @@ export type DialogProps = {
   initialFocus?: "field" | "cancel";
   dismissible?: boolean;
   dismissOnOutside?: boolean;
+  returnFocusRef?: RefObject<HTMLElement | null>;
 };
 
 /** Preserve the application API while Radix owns the modal, focus trap and portal. */
@@ -42,6 +43,7 @@ export function Dialog({
   initialFocus = "field",
   dismissible = true,
   dismissOnOutside = true,
+  returnFocusRef,
 }: DialogProps) {
   const trigger = useRef<HTMLElement | null>(null);
   return (
@@ -85,8 +87,8 @@ export function Dialog({
         }}
         onCloseAutoFocus={(event) => {
           event.preventDefault();
-          if (trigger.current?.isConnected)
-            trigger.current.focus({ preventScroll: true });
+          const target = returnFocusRef?.current ?? trigger.current;
+          if (target?.isConnected) target.focus({ preventScroll: true });
         }}
         onEscapeKeyDown={(event) => {
           event.preventDefault();

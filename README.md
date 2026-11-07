@@ -16,9 +16,13 @@ The **LOGO Coffee — Warm Espresso & Caramel** theme shares the approved transp
 
 For device image uploads, run `supabase/storage/product-images.sql` in Supabase SQL Editor after the application migrations. This configures persistent Storage without changing product tables. Existing image URLs remain supported. See [product images, deployment limits and retention](docs/PRODUCT_IMAGES.md).
 
-For repeatable sample activity from October 1 through November 3, 2026, see [Demo data](docs/DEMO_DATA.md). It adds clearly marked records to a chosen demo shop without replacing existing rows.
+For the current recipe-only system, use the [hosted development reset](docs/HOSTED_DEVELOPMENT_RESET.md) to replace one explicitly selected development shop's business data with integrated catalog, inventory, sales and expenses for October 1 through November 7, 2026. Auth accounts and settings are retained. The older [Demo data](docs/DEMO_DATA.md) instructions apply only to the pre-inventory version.
 
 Never reset a live database to apply this update. Older migrations are retained as the database upgrade history; they are not imported by the running application. The initial simple POS migration copies current products and saved sales into `pos_products` and `pos_sales`. Old financial/history tables are retained to preserve records; no destructive hosted schema cleanup is run automatically. Back up the database before applying upgrades.
+
+Inventory requires the four additive `202611070001` through `202611070004` migrations before activation. Owners configure actual items, opening stock/receipts and per-size recipe drafts in `/app/inventory` and Menu; saving a draft does not enable deductions. No supplies or quantities are seeded. Review [inventory workflows, accounting, permissions and safe rollout](docs/INVENTORY.md) before activating recipes or reconciling existing purchase expenses. These migrations have been tested locally, not deployed to hosted business data.
+
+The optional October development sample seed now requires `select set_config('coffee_pos.allow_sample_data','on',false);` in the same SQL session. It writes clean business names and creates no inventory. Existing sample records are not renamed automatically. Skip this optional seed for normal owner onboarding.
 
 ## Behavior
 
@@ -51,3 +55,5 @@ Add overhead expenses such as rent, wages, utilities, payment fees and applicabl
 Older sales with unknown costs show **Incomplete** profit. The owner can open an affected receipt and choose **Record missing cost**, enter the actual total preparation cost for all items and quantities, and explain its source. This one-time supplement saves the owner, timestamp and note without changing original receipt items, selling prices or payment status. Identical retries are safe; known costs cannot be overwritten. A zero cost must be entered explicitly if nothing was consumed. Setting a product cost affects future sales only; historical costs are never invented.
 
 The additive migrations preserve existing unsized checkout payloads. Old clients omitting product metadata retain the stored fields; they cannot overwrite configured size prices. After introducing sized products, keep a size-aware POS frontend deployed: older clients cannot select sizes and the server rejects those orders. A frontend rollback retains all additive data; do not drop menu, cost, audit or expense records. See `docs/MENU_MANAGEMENT.md` for rollout and compatibility details.
+
+Current recipe-only development initialization: `npm run dev:reset -- --confirm-local-business-reset`. This resets only the dedicated disposable local PostgreSQL cluster, not configured hosted Supabase. See [recipe-only workflow, reset boundaries and fixture data](docs/RECIPE_ONLY_DEVELOPMENT.md).

@@ -1,10 +1,12 @@
--- Coffee POS demo: October 1 through November 3, 2026, in the shop's timezone.
--- Run in Supabase SQL Editor as postgres, after all application migrations.
--- Existing rows are never overwritten. All added names/descriptions start [Demo].
--- If there is more than one shop, uncomment and set your intended demo shop:
+-- LOGO development sample data: October 1 through November 3, 2026, in the shop's timezone.
+-- Run in Supabase SQL Editor as postgres, after all application migrations, in development only.
+-- Existing rows are never overwritten; inventory items, stock balances and active recipes remain empty.
+-- Explicit opt-in: select set_config('coffee_pos.allow_sample_data','on',false);
+-- If there is more than one shop, uncomment and set your intended development shop:
 -- select set_config('coffee_pos.demo_shop_id', 'YOUR-SHOP-UUID', false);
 
 begin;
+do $$begin if current_setting('coffee_pos.allow_sample_data',true) is distinct from 'on' then raise exception 'Sample data is opt-in: set coffee_pos.allow_sample_data to on in a development database';end if;end $$;
 
 -- Deterministic UUID v4 identifiers, scoped to this shop and this demo dataset.
 create or replace function pg_temp.coffee_demo_id(shop uuid, label text)
@@ -82,7 +84,7 @@ begin
     category_ids := array_append(category_ids, category_id);
     if not exists(select 1 from public.pos_categories where id = category_id) then
       perform public.pos_save_category(target_shop,
-        jsonb_build_object('id',category_id,'name','[Demo] '||category_name));
+        jsonb_build_object('id',category_id,'name',category_name));
     end if;
   end loop;
 
@@ -116,9 +118,9 @@ begin
     end loop;
     if not exists(select 1 from public.pos_products where id = product_id) then
       perform public.pos_save_product(target_shop, jsonb_build_object(
-        'id',product_id,'name','[Demo] '||(definition->>'name'),
+        'id',product_id,'name',(definition->>'name'),
         'category_id',pg_temp.coffee_demo_id(target_shop,'category:'||(definition->>'category')),
-        'description','[Demo] '||(definition->>'description'),
+        'description',(definition->>'description'),
         'price_cents',(definition->>'price')::bigint,'cost_cents',(definition->>'cost')::bigint,
         'active',coalesce((definition->>'active')::boolean,true),'sizes',configured));
     end if;
@@ -162,30 +164,30 @@ begin
       occurred_at := (first_day+day_offset+time '08:00' + make_interval(mins => (order_number-1)*600/orders_today)) at time zone shop_zone;
       update public.pos_sales set created_at=occurred_at where id=sale_id;
       if sequence_number%41=0 then
-        perform public.pos_refund(target_shop,sale_id,'[Demo] Customer returned an incorrect drink');
+        perform public.pos_refund(target_shop,sale_id,'Customer returned an incorrect drink');
         update public.pos_sales set refunded_at=occurred_at+interval '15 minutes' where id=sale_id;
       end if;
     end loop;
 
     for expense_kind, expense_amount in
-      select '[Demo] GCash transaction fees', (25+day_offset%6*5)*100::bigint
-      union all select '[Demo] Shop rent',1000000 where extract(day from first_day+day_offset)=1
-      union all select '[Demo] Staff wages',650000 where first_day+day_offset in (date '2026-10-15',date '2026-10-30')
-      union all select '[Demo] Electricity and water',280000 where first_day+day_offset=date '2026-10-20'
-      union all select '[Demo] Internet',150000 where first_day+day_offset in (date '2026-10-03',date '2026-11-03')
-      union all select '[Demo] Cleaning supplies',45000 where extract(isodow from first_day+day_offset)=1
-      union all select '[Demo] Equipment maintenance',90000 where first_day+day_offset=date '2026-10-23'
-      union all select '[Demo] Permit fee',65000 where first_day+day_offset=date '2026-10-07'
-      union all select '[Demo] Duplicate utility entry (voided)',180000 where first_day+day_offset=date '2026-10-10'
+      select 'GCash transaction fees', (25+day_offset%6*5)*100::bigint
+      union all select 'Shop rent',1000000 where extract(day from first_day+day_offset)=1
+      union all select 'Staff wages',650000 where first_day+day_offset in (date '2026-10-15',date '2026-10-30')
+      union all select 'Electricity and water',280000 where first_day+day_offset=date '2026-10-20'
+      union all select 'Internet',150000 where first_day+day_offset in (date '2026-10-03',date '2026-11-03')
+      union all select 'Cleaning supplies',45000 where extract(isodow from first_day+day_offset)=1
+      union all select 'Equipment maintenance',90000 where first_day+day_offset=date '2026-10-23'
+      union all select 'Permit fee',65000 where first_day+day_offset=date '2026-10-07'
+      union all select 'Duplicate utility entry (voided)',180000 where first_day+day_offset=date '2026-10-10'
     loop
-      expense_id := pg_temp.coffee_demo_id(target_shop,'expense:'||(first_day+day_offset)::text||':'||expense_kind);
+      expense_id := pg_temp.coffee_demo_id(target_shop,'expense:'||(first_day+day_offset)::text||':'||'[Demo] '||expense_kind);
       expense_ids := array_append(expense_ids, expense_id);
       if exists(select 1 from public.pos_expenses where id=expense_id) then continue; end if;
       -- Keep the original expense-kind identifier so renamed display text does not duplicate seeded expenses.
       perform public.pos_add_expense(target_shop,jsonb_build_object('id',expense_id,
-        'spent_on',first_day+day_offset,'description',replace(expense_kind,'[Demo] GCash transaction fees','[Demo] E-wallet transaction fees'),'amount_cents',expense_amount));
+        'spent_on',first_day+day_offset,'description',replace(expense_kind,'GCash transaction fees','E-wallet transaction fees'),'amount_cents',expense_amount));
       update public.pos_expenses set created_at=(first_day+day_offset+time '18:00') at time zone shop_zone where id=expense_id;
-      if expense_kind='[Demo] Duplicate utility entry (voided)' then
+      if expense_kind='Duplicate utility entry (voided)' then
         perform public.pos_void_expense(target_shop,expense_id);
       end if;
     end loop;
@@ -206,5 +208,5 @@ begin
 end;
 $seed$;
 
-select jsonb_pretty(current_setting('coffee_pos.demo_summary')::jsonb) as demo_seed_summary;
+select jsonb_pretty(current_setting('coffee_pos.demo_summary')::jsonb) as sample_seed_summary;
 commit;

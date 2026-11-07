@@ -17,6 +17,9 @@ export function cartIssue(line: CartLine, products: Product[]) {
   const option = product && saleOption(product, line.size_id);
   if (!option)
     return "This product or size is no longer available. Remove it to continue.";
+  const inventory = product!.inventory?.[line.size_id ?? "regular"];
+  if (inventory?.state === "active" && line.quantity > (inventory.max_quantity ?? 0))
+    return "Not enough tracked stock for this quantity. Reduce it or refresh the menu.";
   if (
     option.price_cents !== line.price_cents ||
     option.size_label !== line.size_label
@@ -33,6 +36,8 @@ export function addLine(
   if (!option) throw Error("Choose an available product and size.");
   const key = lineKey(product.id, sizeId);
   const existing = lines.find((line) => line.key === key);
+  const limit = Math.min(100, product.inventory?.[sizeId ?? "regular"]?.max_quantity ?? 100);
+  if (existing && existing.quantity >= limit) throw Error("Not enough tracked stock for another item.");
   if (!existing && lines.length >= 100)
     throw Error("An order can contain up to 100 different items.");
   if (existing && cartIssue(existing, [product]))

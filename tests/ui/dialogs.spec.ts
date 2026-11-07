@@ -133,7 +133,6 @@ test("validation stays above the fields and a pending save locks every dismissal
   const form = page.getByRole("dialog");
   await form.getByLabel("Product name", { exact: true }).fill("New latte");
   await form.getByLabel("Selling price (PHP)", { exact: true }).fill("invalid");
-  await form.getByLabel("Cost per item (PHP)", { exact: true }).fill("40");
   await form.getByRole("button", { name: "Save product", exact: true }).click();
   await expect(form.getByRole("alert")).toBeFocused();
   const error = (await form.getByRole("alert").boundingBox())!;

@@ -4,11 +4,13 @@ const modules = [
   { path: "/dashboard", label: "Dashboard", heading: "Dashboard" },
   { path: "/pos", label: "POS", heading: "Product menu" },
   { path: "/app/menu", label: "Menu", heading: "Menu Management" },
+  { path: "/app/inventory", label: "Inventory", heading: "Inventory" },
   { path: "/app/sales", label: "Sales", heading: "Sales" },
   { path: "/expenses", label: "Expenses", heading: "Expenses Management" },
   { path: "/libraries", label: "Libraries", heading: "Libraries" },
 ];
 async function catalog(page: Page) {
+  await page.route("**/api/inventory*", route => route.fulfill({ json: { data: { items: [], configs: [], movements: [], returnable: [] } } }));
   await page.route("**/api/pos", route => route.fulfill({ json: {
     shop: { id: "00000000-0000-4000-8000-000000000001", name: "Common Ground Coffee" },
     user_id: "00000000-0000-4000-8000-000000000001", founder: true,
@@ -56,10 +58,10 @@ test("desktop keeps its sidebar with a smaller logo aligned to page headers", as
       expect(Math.abs(logo.x - navigationIcon.x)).toBeLessThan(2);
       if (screen.label !== "POS") {
         const title = (await page.getByRole("heading", { name: screen.heading, exact: true }).boundingBox())!;
-        // Dashboard uses its compact 24px content inset; other modules retain 32px.
-        expect(Math.abs(logo.y - title.y - (screen.label === "Dashboard" ? 8 : 0))).toBeLessThan(2);
+        // Dashboard and Inventory use compact 24px insets; other modules retain 32px.
+        expect(Math.abs(logo.y - title.y - (["Dashboard", "Inventory"].includes(screen.label) ? 8 : 0))).toBeLessThan(2);
       }
-      await expect(page.getByRole("navigation", { name: "Shop" }).getByRole("link")).toHaveCount(6);
+      await expect(page.getByRole("navigation", { name: "Shop" }).getByRole("link")).toHaveCount(modules.length);
       await expect(page.getByRole("link", { name: screen.label, exact: true })).toHaveAttribute("aria-current", "page");
       const signOut = (await sidebar.getByRole("button", { name: "Sign out", exact: true }).boundingBox())!;
       expect(signOut.y + signOut.height).toBe(viewport.height - 24);
@@ -87,7 +89,7 @@ for (const viewport of [
       await expect(menu).toBeVisible();
       await expect(menu.getByRole("button", { name: "Close navigation menu" })).toBeFocused();
       const nav = menu.getByRole("navigation", { name: "Shop", exact: true });
-      await expect(nav.getByRole("link")).toHaveCount(6);
+      await expect(nav.getByRole("link")).toHaveCount(modules.length);
       for (const item of modules) {
         const link = nav.getByRole("link", { name: item.label, exact: true });
         await expect(link).toHaveAttribute("href", item.path);

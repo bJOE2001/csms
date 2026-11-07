@@ -19,6 +19,8 @@ import {
 
 export type DataRow = {
   id: string;
+  onActivate?: () => void;
+  label?: string;
   search: string;
   cells: Record<string, ReactNode>;
   sort?: Record<string, string | number>;
@@ -179,7 +181,7 @@ export function DataTable({
           </TableHeader>
           <TableBody>
             {visible.map((row) => (
-              <TableRow key={row.id}>
+              <TableRow key={row.id} tabIndex={row.onActivate ? 0 : undefined} aria-label={row.label} onClick={row.onActivate} onKeyDown={event => { if (row.onActivate && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); row.onActivate(); } }} className={row.onActivate ? "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" : undefined}>
                 {columns.map((column) => (
                   <TableCell
                     key={column.key}

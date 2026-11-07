@@ -61,6 +61,14 @@ export type Database = {
     };
     Views: { [_ in never]: never };
     Functions: {
+      pos_inventory_create_item: { Args: { p_shop_id: string; p_data: Json }; Returns: Json };
+      pos_inventory_read: { Args: { p_shop_id: string; p_from: string; p_to: string }; Returns: Json };
+      pos_inventory_save_item: { Args: { p_shop_id: string; p_data: Json }; Returns: Json };
+      pos_inventory_post: { Args: { p_shop_id: string; p_data: Json }; Returns: Json };
+      pos_inventory_recipe: { Args: { p_shop_id: string; p_data: Json }; Returns: Json };
+      pos_inventory_return: { Args: { p_shop_id: string; p_data: Json }; Returns: Json };
+      pos_inventory_catalog: { Args: { p_shop_id: string }; Returns: Json };
+      pos_inventory_cost_credits: { Args: { p_shop_id: string; p_from: string; p_to: string }; Returns: number };
       read_public_menu: {
         Args: { p_shop_id?: string };
         Returns: Json;

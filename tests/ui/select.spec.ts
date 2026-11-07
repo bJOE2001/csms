@@ -10,9 +10,12 @@ const catalog = {
       { id: uid(5), label: "12 oz", price_cents: 12000, cost_cents: 4000, active: true, is_default: true },
       { id: uid(6), label: "16 oz", price_cents: 14500, cost_cents: 5000, active: true, is_default: false },
       { id: uid(7), label: "22 oz", price_cents: 17000, cost_cents: 6000, active: false, is_default: false },
-    ] },
+    ], inventory: {
+      [uid(5)]: { state: "active", max_quantity: 100, cost_cents: 4000 },
+      [uid(6)]: { state: "active", max_quantity: 100, cost_cents: 5000 },
+    } },
     { id: uid(8), name: "Cookie", price_cents: 6000, cost_cents: 2000, active: false, category_id: uid(3) },
-    { id: uid(9), name: "Water", price_cents: 2000, cost_cents: 500, active: true },
+    { id: uid(9), name: "Water", price_cents: 2000, cost_cents: 500, active: true, inventory: { regular: { state: "active", max_quantity: 100, cost_cents: 500 } } },
   ],
 };
 async function mockCatalog(page: Page) {
@@ -74,7 +77,9 @@ test("Menu category and availability selects keep existing filtering behavior", 
   await expect(page.locator(".menu-products tbody tr")).toContainText("Cookie");
   await chooseOption(page, page.getByRole("combobox", { name: "Availability", exact: true }), "Available");
   await expect(page.locator(".menu-products tbody tr")).toHaveCount(0);
-  await page.getByRole("button", { name: "Reset filters" }).click();
+  await chooseOption(page, page.getByRole("combobox", { name: "Category", exact: true }), "All categories");
+  await chooseOption(page, page.getByRole("combobox", { name: "Availability", exact: true }), "All availability");
+  await expect(page.getByRole("button", { name: /reset filters|clear filters/i })).toHaveCount(0);
   await expect(page.locator(".menu-products tbody tr")).toHaveCount(3);
   await chooseOption(page, page.getByRole("combobox", { name: "Category", exact: true }), "Uncategorized");
   await expect(page.locator(".menu-products tbody tr")).toContainText("Water");
@@ -84,10 +89,11 @@ test("POS inline sizes update prices, disable unavailable sizes and retain separ
   await mockCatalog(page);
   await page.goto("/?pos");
   const sizes = page.getByRole("group", { name: "Size for Latte", exact: true });
-  await page.getByRole("button", { name: /Latte 12 oz.*120.*Add to cart/ }).click();
+  const card = page.getByRole("article", { name: "Latte", exact: true });
+  await card.getByRole("button", { name: /Add to cart/ }).click();
   await expect(sizes.getByRole("radio", { name: "22 oz — Unavailable", exact: true })).toBeDisabled();
   await sizes.getByRole("radio", { name: "16 oz", exact: true }).check();
-  await page.getByRole("button", { name: /Latte 16 oz.*145.*Add to cart/ }).click();
+  await card.getByRole("button", { name: /Add to cart/ }).click();
   await expect(page.locator(".pos-total")).toContainText("₱265.00");
   await expect(page.locator(".order-line")).toHaveCount(2);
 });
@@ -105,7 +111,6 @@ test("category selects inside dialogs preserve drafts on failed saves and empty 
   await page.getByRole("button", { name: "Add product", exact: true }).click();
   await page.getByLabel("Product name", { exact: true }).fill("Oat drink");
   await page.getByLabel("Selling price (PHP)", { exact: true }).fill("120");
-  await page.getByLabel("Cost per item (PHP)", { exact: true }).fill("40");
   const trigger = page.getByRole("dialog").getByRole("combobox", { name: "Category", exact: true });
   await chooseOption(page, trigger, "Coffee");
   await page.getByRole("button", { name: "Save product", exact: true }).click();

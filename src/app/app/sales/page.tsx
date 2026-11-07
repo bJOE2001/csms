@@ -26,8 +26,9 @@ export default async function SalesPage({
 async function SalesReport({ supabase, shop, role, from, to }: Pick<Awaited<ReturnType<typeof requireMember>>, "supabase" | "shop" | "role"> & { from: string; to: string }) {
   const { address, phone } = visitDetails();
   let sales: Sale[] = [], expenses: Expense[] = [], loadError: string | undefined;
+  let stockReturnCredits = 0;
   try {
-    ({ sales, expenses } = await loadSalesReport(supabase, shop.id, from, to));
+    ({ sales, expenses, stockReturnCredits } = await loadSalesReport(supabase, shop.id, from, to));
   } catch {
     loadError = "Sales could not be updated. Your previous results are still shown if available. Check your connection and choose a date again to retry.";
   }
@@ -35,6 +36,7 @@ async function SalesReport({ supabase, shop, role, from, to }: Pick<Awaited<Retu
     <SalesView
       sales={sales}
       expenses={expenses}
+      stockReturnCredits={stockReturnCredits}
       loadError={loadError}
       shopId={shop.id}
       shopName={shop.name}

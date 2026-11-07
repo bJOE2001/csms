@@ -133,7 +133,7 @@ async function fillSize(
   const row = page.getByRole("group", { name: `Size ${number}`, exact: true });
   await row.getByLabel("Size label", { exact: true }).fill(label);
   await row.getByLabel("Price (PHP)", { exact: true }).fill(price);
-  await row.getByLabel("Cost (PHP)", { exact: true }).fill(cost);
+  await row.getByLabel("Manual Estimated Cost (PHP)", { exact: true }).fill(cost);
 }
 
 test("Menu creates a regular product and synchronizes it to POS", async ({
@@ -153,7 +153,7 @@ test("Menu creates a regular product and synchronizes it to POS", async ({
     .getByLabel("Product image URL", { exact: false })
     .fill("/icons/coffee.svg");
   await page.getByLabel("Selling price (PHP)", { exact: true }).fill("45.50");
-  await page.getByLabel("Cost per item (PHP)", { exact: true }).fill("18.25");
+  await page.getByLabel("Manual Estimated Cost (PHP)", { exact: true }).fill("18.25");
   await page.getByRole("button", { name: "Save product", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   expect(
@@ -632,7 +632,7 @@ test("Libraries layout fits responsive viewports", async ({ page, context }, inf
     await page.setViewportSize(viewport);
     await expect(page.getByRole("heading", { name: "Product Categories", exact: true })).toBeVisible();
     if (viewport.width >= 1280) {
-      await expect(page.getByRole("navigation", { name: "Shop" }).getByRole("link")).toHaveCount(6);
+      await expect(page.getByRole("navigation", { name: "Shop" }).getByRole("link")).toHaveCount(7);
       await expect(page.getByRole("link", { name: "Libraries", exact: true })).toBeVisible();
     } else {
       await expect(page.getByRole("navigation", { name: "Shop" })).toHaveCount(0);

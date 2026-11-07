@@ -18,6 +18,7 @@ export function SalesView({
   to,
   loadError,
   business,
+  stockReturnCredits = 0,
 }: {
   sales: Sale[];
   expenses?: Expense[];
@@ -29,13 +30,14 @@ export function SalesView({
   to: string;
   loadError?: string;
   business?: ReceiptBusinessDetails;
+  stockReturnCredits?: number;
 }) {
-  const report = useReportSnapshot(shopId, loadError ? null : { sales: loadedSales, expenses: loadedExpenses, from, to });
+  const report = useReportSnapshot(shopId, loadError ? null : { sales: loadedSales, expenses: loadedExpenses, stockReturnCredits, from, to });
   const sales = report?.sales ?? [];
   const expenses = report?.expenses ?? [];
   const appliedFrom = report?.from ?? from;
   const appliedTo = report?.to ?? to;
-  const summary = summarize(sales, expenses);
+  const summary = summarize(sales, expenses, report?.stockReturnCredits ?? 0);
   return (
     <div className="sales-management grid gap-6">
       <header className="sales-header">
@@ -48,7 +50,7 @@ export function SalesView({
         <div className="sales-header-actions sales-date-range">
           <DateRangeFilter from={appliedFrom} to={appliedTo} loadFailure={loadError ? { from, to, message: loadError } : undefined} />
           {report && <ExportSales
-            report={{ shopName, timezone, from: appliedFrom, to: appliedTo, sales, expenses }}
+            report={{ shopName, timezone, from: appliedFrom, to: appliedTo, sales, expenses, stockReturnCredits: report?.stockReturnCredits ?? 0 }}
           />}
         </div>
         {report && <p className="sales-period">Reporting period: <strong>{periodDates(appliedFrom, appliedTo)}</strong></p>}
@@ -65,6 +67,7 @@ export function SalesView({
           ].map(({ label, value }) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
         </dl>
         <p className="sales-report-notes"><Link href={`/dashboard?from=${appliedFrom}&to=${appliedTo}`}>View business performance on Dashboard</Link></p>
+        {summary.stockReturnCredits > 0 && <p className="hint">Recorded stock returns credit {money(summary.stockReturnCredits)} to product costs in this reporting period. Original receipt costs remain unchanged.</p>}
         {summary.missingCosts > 0 && (
           <p role="status" className="form-message error">
             Profit is incomplete: {summary.missingCosts} sale(s) have no saved

@@ -70,7 +70,7 @@ export function ExpensesView({ expenses: loadedExpenses, shopId, founder, today,
             search: `${expense.description} ${expense.spent_on} ${expense.voided ? "voided" : "active"}`,
             cells: {
               date: new Intl.DateTimeFormat("en-PH", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(`${expense.spent_on}T00:00:00Z`)),
-              description: <strong>{expense.description}</strong>,
+              description: <><strong>{expense.description}</strong>{expense.classification === "inventory_purchase" && <small className="cell-description">Inventory purchase · excluded from operating expenses</small>}</>,
               amount: <span className={expense.voided ? "line-through text-muted-foreground" : "font-semibold"}>{money(expense.amount_cents)}</span>,
               status: <span className={`menu-status ${expense.voided ? "" : "menu-status-available"}`}>{expense.voided ? "Voided" : "Active"}</span>,
               actions: !expense.voided && <div className="table-actions">

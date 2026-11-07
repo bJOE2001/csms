@@ -21,7 +21,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 import { POST } from "@/app/api/pos/route";
 
 const id = "00000000-0000-4000-8000-000000000001";
-const product = { id, name: "Latte", price_cents: 14500, cost_cents: 5000, active: true, image_url: "https://example.com/old.png" };
+const product = { id, name: "Latte", price_cents: 14500, active: true, image_url: "https://example.com/old.png" };
 let png: Buffer;
 beforeAll(async () => { png = await sharp({ create: { width: 8, height: 8, channels: 4, background: "#75442d" } }).png().toBuffer(); });
 beforeEach(() => {

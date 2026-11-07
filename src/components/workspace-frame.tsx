@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
 import { usePathname } from "next/navigation";
 import { WorkspaceHeader } from "./workspace-header";
 import { workspaceModule, type WorkspaceModule } from "@/lib/workspace";
+import { coffeeBrand } from "@/lib/brand";
 
 const WorkspaceFrameContext = createContext<((name: string) => void) | null>(null);
 export const useWorkspaceFrame = () => useContext(WorkspaceFrameContext);
@@ -23,7 +24,7 @@ export function WorkspacePresentation({ active, shopName, children }: {
 /** Root-owned presentation persists across modules; page/API auth boundaries stay intact. */
 export function WorkspaceFrame({ children }: { children: ReactNode }) {
   const active = workspaceModule(usePathname());
-  const [shopName, setShopName] = useState("LOGO Coffee");
+  const [shopName, setShopName] = useState<string>(coffeeBrand.name);
   if (!active) return children;
   return <WorkspaceFrameContext.Provider value={setShopName}>
     <WorkspacePresentation active={active} shopName={shopName}>{children}</WorkspacePresentation>

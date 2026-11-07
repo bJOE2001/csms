@@ -1,3 +1,4 @@
+import { productWriteSchema } from "@/lib/menu/domain";
 import { NextResponse, type NextRequest } from "next/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -5,9 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isSameOrigin } from "@/lib/http";
 import {
   checkoutSchema,
-  productSchema,
   expenseSchema,
-  recordCostSchema,
 } from "@/lib/sales/domain";
 import { categorySchema } from "@/lib/menu/domain";
 import { updateExpenseSchema } from "@/lib/expenses/domain";
@@ -57,6 +56,12 @@ export async function GET() {
         .eq("shop_id", member.shop_id)
         .order("name"),
     ]);
+  // Before the additive migration exists, the entire catalog remains untracked.
+  // Other failures cannot silently bypass an already active stock configuration.
+  const inventory = await db.rpc("pos_inventory_catalog", { p_shop_id: member.shop_id });
+  if (inventory.error && inventory.error.code !== "PGRST202")
+    return NextResponse.json({ error: "Inventory availability could not load. Refresh the menu." }, { status: 503 });
+  const configurations = (inventory.data ?? {}) as Record<string, import("@/lib/menu/domain").Product["inventory"]>;
   return error || categoryError
     ? NextResponse.json(
         {
@@ -70,7 +75,7 @@ export async function GET() {
           shop: member.shops,
           user_id: user.id,
           founder: member.role === "founder",
-          products: data,
+          products: data?.map(product => ({ ...product, inventory: configurations[product.id] })),
           categories,
         },
         { headers: { "Cache-Control": "private, no-store" } },
@@ -154,7 +159,7 @@ export async function POST(request: NextRequest) {
         p_data: checkoutSchema.parse(body.data),
       });
     else if (body.action === "product") {
-      const product = productSchema.parse(body.data);
+      const product = productWriteSchema.parse(body.data);
       result = image ? await saveProductWithImage(db, user.id, body.shop_id, product, image)
         : await db.rpc("pos_save_product", { p_shop_id: body.shop_id, p_data: product });
     }
@@ -186,11 +191,7 @@ export async function POST(request: NextRequest) {
         p_shop_id: body.shop_id,
         p_data: updateExpenseSchema.parse(body.data),
       });
-    else if (body.action === "record_cost")
-      result = await db.rpc("pos_record_cost", {
-        p_shop_id: body.shop_id,
-        p_data: recordCostSchema.parse(body.data),
-      });
+    else if (body.action === "record_cost") return NextResponse.json({error:"Preparation costs are calculated from inventory recipes."},{status:400});
     else if (body.action === "void_expense") {
       const expense = z.object({ id: z.uuid() }).parse(body.data);
       result = await db.rpc("pos_void_expense", {

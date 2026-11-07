@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
   type ReactNode,
+  type Ref,
 } from "react";
 import { AppFormDialog } from "./app-form-dialog";
 import { AppConfirmDialog } from "./app-confirm-dialog";
@@ -25,6 +26,7 @@ type FormDialogState = {
   setPending: (pending: boolean) => void;
   danger: boolean;
   markDirty: () => void;
+  closeThen: (action: () => void) => void;
 };
 export const FormDialogContext = createContext<FormDialogState | null>(null);
 export const useFormDialog = () => useContext(FormDialogContext);
@@ -45,7 +47,9 @@ export function FormDialog({
   size = "md",
   readOnlyActions,
   tableAction,
+  hideTrigger = false,
   onClose,
+  triggerRef,
 }: {
   trigger: ReactNode;
   title: string;
@@ -62,6 +66,8 @@ export function FormDialog({
   size?: DialogSize;
   readOnlyActions?: ReactNode;
   onClose?: () => void;
+  triggerRef?: Ref<HTMLButtonElement>;
+  hideTrigger?: boolean;
   tableAction?: {
     icon: LucideIcon;
     tooltip: string;
@@ -73,6 +79,7 @@ export function FormDialog({
   const [discard, setDiscard] = useState(false);
   const [pending, setPending] = useState(false);
   const openedInitially = useRef(false);
+  const afterClose = useRef<(() => void) | undefined>(undefined);
   useEffect(() => {
     if (
       (initialOpen || (id && window.location.hash === `#${id}`)) &&
@@ -87,6 +94,9 @@ export function FormDialog({
     setDirty(false);
     setDiscard(false);
     onClose?.();
+    const action = afterClose.current;
+    afterClose.current = undefined;
+    action?.();
   }, [onClose]);
   const requestClose = useCallback(() => {
     if (pending) return;
@@ -97,9 +107,14 @@ export function FormDialog({
   }, [pending, discard, dirty, readOnly, close]);
   const complete = close;
   const markDirty = useCallback(() => setDirty(true), []);
+  const closeThen = useCallback((action: () => void) => {
+    if (pending) return;
+    afterClose.current = action;
+    requestClose();
+  }, [pending, requestClose]);
   const context = useMemo(
-    () => ({ cancel: requestClose, complete, setPending, danger, markDirty }),
-    [requestClose, complete, danger, markDirty],
+    () => ({ cancel: requestClose, complete, setPending, danger, markDirty, closeThen }),
+    [requestClose, complete, danger, markDirty, closeThen],
   );
   const triggerProps = {
     id,
@@ -113,13 +128,13 @@ export function FormDialog({
   const Presentation = confirmation ? AppConfirmDialog : AppFormDialog;
   return (
     <>
-      {tableAction ? (
-        <TableActionButton {...triggerProps} {...tableAction} label={triggerLabel ?? title} />
+      {!hideTrigger && (tableAction ? (
+        <TableActionButton ref={triggerRef} {...triggerProps} {...tableAction} label={triggerLabel ?? title} />
       ) : (
-        <Button {...triggerProps} className={triggerClassName} aria-label={triggerLabel}>
+        <Button ref={triggerRef} {...triggerProps} className={triggerClassName} aria-label={triggerLabel}>
           {trigger}
         </Button>
-      )}
+      ))}
       <Presentation
         open={open}
         onClose={requestClose}
@@ -146,11 +161,11 @@ export function FormDialog({
       </Presentation>
       <AppConfirmDialog
         open={open && discard}
-        onClose={() => setDiscard(false)}
+        onClose={() => { afterClose.current = undefined; setDiscard(false); }}
         title="Discard your changes?"
         description="Your unsaved changes will be lost. Keep editing to continue working on this record."
         footer={<>
-          <Button variant="outline" data-dialog-cancel onClick={() => setDiscard(false)}>Keep editing</Button>
+          <Button variant="outline" data-dialog-cancel onClick={() => { afterClose.current = undefined; setDiscard(false); }}>Keep editing</Button>
           <Button className="danger" onClick={close}>Discard changes</Button>
         </>}
       >

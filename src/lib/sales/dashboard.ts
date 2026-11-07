@@ -28,7 +28,7 @@ export function itemNetRevenue(sale: Sale): number[] {
 }
 
 /** Aggregate immutable receipt snapshots on the server; never use current menu prices. */
-export function buildDashboard(sales: Sale[], expenses: Expense[], from: string, to: string, timezone: string, previous: Sale[] | null = null) {
+export function buildDashboard(sales: Sale[], expenses: Expense[], from: string, to: string, timezone: string, previous: Sale[] | null = null, stockReturnCredits = 0) {
   const error = dateRangeError(from, to);
   if (error) throw new Error(error);
   const days = Math.round((stamp(to) - stamp(from)) / dayMs) + 1;
@@ -69,7 +69,7 @@ export function buildDashboard(sales: Sale[], expenses: Expense[], from: string,
     }
   }
   const rank = (map: Map<string, Performance>) => [...map.values()].sort((a, b) => b.quantity - a.quantity || b.revenue - a.revenue || a.name.localeCompare(b.name)).slice(0, 5);
-  const summary = summarize(sales, expenses);
+  const summary = summarize(sales, expenses, stockReturnCredits);
   const before = previous === null ? null : summarize(previous);
   return {
     summary, granularity, series: [...slots.values()], products: rank(products), sizes: rank(sizes),

@@ -8,6 +8,7 @@ import { Menu, X } from "lucide-react";
 import { Icon } from "@/components/ui/icon";
 import { Button } from "./ui/button";
 import { BrandLogo } from "./brand-logo";
+import { coffeeBrand } from "@/lib/brand";
 
 function NavigationLinks({ active, onNavigate, navigationRef }: {
   active: string;
@@ -61,7 +62,7 @@ export function WorkspaceHeader({ active, shopName }: {
   return (
     <>
       <aside className="workspace-sidebar">
-        <Link className="workspace-brand" href="/pos" aria-label={"LOGO Coffee — " + shopName} title={shopName}>
+        <Link className="workspace-brand" href="/pos" aria-label={coffeeBrand.name + " — " + shopName} title={shopName}>
           <BrandLogo />
         </Link>
         <NavigationLinks active={active} navigationRef={desktopNavigation} />
@@ -69,7 +70,7 @@ export function WorkspaceHeader({ active, shopName }: {
       </aside>
       <Dialog.Root open={open} onOpenChange={setOpen}>
         <header className="workspace-mobile-header">
-          <Link className="workspace-mobile-brand" href="/pos" aria-label={"LOGO Coffee — " + shopName} title={shopName}>
+          <Link className="workspace-mobile-brand" href="/pos" aria-label={coffeeBrand.name + " — " + shopName} title={shopName}>
             <BrandLogo />
           </Link>
           <Dialog.Trigger asChild>
@@ -93,7 +94,7 @@ export function WorkspaceHeader({ active, shopName }: {
               }
             }}>
             <Dialog.Title className="sr-only">Navigation menu</Dialog.Title>
-            <Dialog.Description className="sr-only">Choose a workspace or sign out of LOGO Coffee.</Dialog.Description>
+            <Dialog.Description className="sr-only">Choose a workspace or sign out of {coffeeBrand.name}.</Dialog.Description>
             <div className="navigation-drawer-heading">
               <div className="workspace-mobile-brand"><BrandLogo /></div>
               <Dialog.Close asChild>

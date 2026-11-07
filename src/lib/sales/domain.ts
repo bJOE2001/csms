@@ -50,6 +50,8 @@ export type Sale = {
     quantity: number;
     unit_price_cents: number;
     line_total_cents: number;
+    inventory_tracked?: boolean;
+    line_cost_cents?: number | null;
   }[];
 };
 export function cents(value: string): number {
@@ -75,6 +77,7 @@ export const expenseSchema = z.object({
   spent_on: z.iso.date(),
   description: z.string().trim().min(1).max(200),
   amount_cents: z.number().int().min(1).max(100000000),
+  classification: z.enum(["operating_expense", "inventory_purchase"]).optional(),
 });
 export const recordCostSchema = z.object({
   id: z.uuid(),
@@ -82,7 +85,7 @@ export const recordCostSchema = z.object({
   note: z.string().trim().min(1).max(500),
 });
 export type Expense = z.infer<typeof expenseSchema> & { voided: boolean };
-export function summarize(sales: Sale[], expenses: Expense[] = []) {
+export function summarize(sales: Sale[], expenses: Expense[] = [], stockReturnCredits = 0) {
   const completed = sales.filter((s) => s.status === "completed");
   const total = completed.reduce((sum, s) => sum + s.total_cents, 0);
   // Prepared goods still cost money when payment is refunded.
@@ -92,17 +95,19 @@ export function summarize(sales: Sale[], expenses: Expense[] = []) {
   const missingCosts = costedSales.filter(
     (s) => s.total_cost_cents == null,
   ).length;
-  const productCosts = costedSales.reduce(
+  const consumedProductCosts = costedSales.reduce(
     (sum, s) => sum + (s.total_cost_cents ?? 0),
     0,
   );
+  const productCosts = consumedProductCosts - stockReturnCredits;
   const operatingExpenses = expenses
-    .filter((e) => !e.voided)
+    .filter((e) => !e.voided && e.classification !== "inventory_purchase")
     .reduce((sum, e) => sum + e.amount_cents, 0);
   const grossProfit = missingCosts ? null : total - productCosts;
   const netProfit =
     grossProfit === null ? null : grossProfit - operatingExpenses;
   return {
+    stockReturnCredits,
     productCosts,
     missingCosts,
     operatingExpenses,

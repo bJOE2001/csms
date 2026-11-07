@@ -13,6 +13,7 @@ import "./libraries.css";
 import "./sales.css";
 import "./dashboard.css";
 import "./expenses.css";
+import "./inventory.css";
 import "./tables.css";
 import "./receipt.css";
 import "./sign-in.css";

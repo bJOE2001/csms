@@ -6,11 +6,13 @@ const screens = [
   { path: "/dashboard", name: "Dashboard", heading: "Dashboard" },
   { path: "/pos", name: "POS", heading: "Product menu" },
   { path: "/app/menu", name: "Menu", heading: "Menu Management" },
+  { path: "/app/inventory", name: "Inventory", heading: "Inventory" },
   { path: "/app/sales", name: "Sales", heading: "Sales" },
   { path: "/expenses", name: "Expenses", heading: "Expenses Management" },
   { path: "/libraries", name: "Libraries", heading: "Libraries" },
 ];
 async function catalog(page: Page) {
+  await page.route("**/api/inventory*", route => route.fulfill({ json: { data: { items: [], movements: [], configs: [], returnable: [] } } }));
   await page.route("**/api/pos", route => route.fulfill({ json: {
     shop: { id: uid(1), name: "Common Ground Coffee" }, founder: true, user_id: uid(1),
     categories: [{ id: uid(2), name: "Coffee" }],
@@ -83,7 +85,7 @@ for (const viewport of [
         await expect(drawerLogo.locator("img")).toHaveAttribute("src", "/images/Logov1.png");
       }
       const nav = page.getByRole("navigation", { name: "Shop", exact: true });
-      await expect(nav.getByRole("link")).toHaveCount(6);
+      await expect(nav.getByRole("link")).toHaveCount(screens.length);
       const active = nav.getByRole("link", { name: screen.name, exact: true });
       await expect(active).toHaveAttribute("aria-current", "page");
       await expect(active).toHaveCSS("background-color", "rgb(242, 161, 94)");

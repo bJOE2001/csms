@@ -22,7 +22,7 @@ export function AccountShell({
         <Link
           className="brand"
           href="/"
-          aria-label="LOGO Coffee home"
+          aria-label="LOGO home"
         >
           <BrandLogo />
         </Link>

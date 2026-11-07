@@ -28,7 +28,7 @@ Edit `src/lib/site/config.ts` for hero copy, brand description, photo paths, and
 
 ## Publish the live menu
 
-The existing Supabase catalog remains the only product dataset. There is no automatic demo-data fallback. Seeded database products are ordinary records: if available in an explicitly published shop, they also appear publicly, including their existing `[Demo]` names.
+The existing Supabase catalog remains the only product dataset. There is no automatic demo-data fallback. Seeded database products are ordinary records: if available in an explicitly published shop, they also appear publicly under their stored names.
 
 Apply the database expansion before deploying the new reader:
 

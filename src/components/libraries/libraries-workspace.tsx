@@ -10,7 +10,7 @@ import { CategoryDialog } from "./category-dialog";
 
 export function LibrariesWorkspace() {
   const { data, error, refresh, isLoading } = useCatalog();
-  if (!data) return <WorkspaceShell active="libraries" shopName="LOGO Coffee">
+  if (!data) return <WorkspaceShell active="libraries" shopName="LOGO">
     {error ? <section>
       <h1>Libraries</h1>
       <p role="alert" className="form-message error">{error}</p>

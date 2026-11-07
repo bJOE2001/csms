@@ -1,6 +1,10 @@
 "use client";
 import { useState } from "react";
-import { isAvailable, priceRange } from "@/lib/menu/domain";
+import {
+  isAvailable,
+  priceRange,
+  productInventoryStatus,
+} from "@/lib/menu/domain";
 import { useCatalog } from "@/lib/menu/use-catalog";
 import { money } from "@/lib/sales/domain";
 import { WorkspaceSkeleton } from "../ui/workspace-skeleton";
@@ -11,20 +15,33 @@ import { Select } from "../ui/select";
 import { ProductThumbnail } from "../pos/product-thumbnail";
 import { ProductDialog } from "./product-dialog";
 import { DeleteMenuRecord } from "../delete-menu-record";
+import { RecipeDialog } from "../inventory/recipe-dialog";
+import { RecipeStatus } from "./recipe-status";
 
 export function MenuWorkspace() {
   const { data, error, refresh, isLoading } = useCatalog();
   const [categoryId, setCategoryId] = useState("all");
   const [availability, setAvailability] = useState("all");
   const [sort] = useState("name");
-  if (!data) return <WorkspaceShell active="menu" shopName="LOGO Coffee">
-    {error ? <section>
-      <h1>Menu Management</h1>
-      <p role="alert" className="form-message error">{error}</p>
-      <Button onClick={refresh}>Try again</Button>
-      <a className="nav-link" href="/sign-in">Sign in</a>
-    </section> : <WorkspaceSkeleton module="menu" track={false} />}
-  </WorkspaceShell>;
+  if (!data)
+    return (
+      <WorkspaceShell active="menu" shopName="LOGO">
+        {error ? (
+          <section>
+            <h1>Menu Management</h1>
+            <p role="alert" className="form-message error">
+              {error}
+            </p>
+            <Button onClick={refresh}>Try again</Button>
+            <a className="nav-link" href="/sign-in">
+              Sign in
+            </a>
+          </section>
+        ) : (
+          <WorkspaceSkeleton module="menu" track={false} />
+        )}
+      </WorkspaceShell>
+    );
 
   const available = data.products.filter(isAvailable).length;
   const products = data.products
@@ -48,8 +65,7 @@ export function MenuWorkspace() {
           <div>
             <h1 className="m-0">Menu Management</h1>
             <p className="hint mb-0 mt-2">
-              Manage your products, sizes, pricing, and
-              availability.
+              Manage your products, sizes, pricing, recipes, and availability.
             </p>
           </div>
           {data.founder && <ProductDialog data={data} refresh={refresh} />}
@@ -87,7 +103,7 @@ export function MenuWorkspace() {
               <div className="menu-products-heading">
                 <h2>Products</h2>
                 <p className="hint">
-                  Keep your counter menu ready for the next order.
+                  Keep your counter menu ready and connect recipes for automatic stock tracking.
                 </p>
               </div>
             }
@@ -102,7 +118,10 @@ export function MenuWorkspace() {
                     options={[
                       { value: "all", label: "All categories" },
                       { value: "none", label: "Uncategorized" },
-                      ...data.categories.map(category => ({ value: category.id, label: category.name })),
+                      ...data.categories.map((category) => ({
+                        value: category.id,
+                        label: category.name,
+                      })),
                     ]}
                   />
                 </label>
@@ -119,29 +138,6 @@ export function MenuWorkspace() {
                     ]}
                   />
                 </label>
-                {/* <label className="field">
-              Sort products
-              <select
-                value={sort}
-                aria-label="Sort products"
-                onChange={(event) => setSort(event.target.value)}
-              >
-                <option value="name">Name A–Z</option>
-                <option value="price">Price: low to high</option>
-                <option value="price_desc">Price: high to low</option>
-              </select>
-            </label> */}
-                {(categoryId !== "all" || availability !== "all") && (
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      setCategoryId("all");
-                      setAvailability("all");
-                    }}
-                  >
-                    Reset filters
-                  </Button>
-                )}
               </div>
             }
             caption="Menu products"
@@ -161,12 +157,12 @@ export function MenuWorkspace() {
             ]}
             rows={products.map((product) => {
               const range = priceRange(product);
-              const missingCost = product.sizes?.length
-                ? product.sizes.some((size) => size.cost_cents == null)
-                : product.cost_cents == null;
+              const invStatus = productInventoryStatus(product);
+              const missingCost = (product.sizes?.length ? product.sizes.map(size => size.id) : ["regular"])
+                .some(key => product.inventory?.[key]?.state !== "active" || product.inventory[key].cost_cents == null);
               return {
                 id: product.id,
-                search: product.name,
+                search: `${product.name} ${data.founder ? invStatus : ""}`,
                 cells: {
                   product: (
                     <div className="menu-product-identity">
@@ -176,12 +172,17 @@ export function MenuWorkspace() {
                       />
                       <div>
                         <strong>{product.name}</strong>
+                        {data.founder && (
+                          <div className="menu-product-badges">
+                            <RecipeStatus status={invStatus} />
+                          </div>
+                        )}
                         {product.description && (
                           <small>{product.description}</small>
                         )}
                         {data.founder && missingCost && (
                           <small className="menu-cost-missing">
-                            Cost not recorded
+                            {product.sizes?.length ? "Preparation cost unavailable for some sizes" : "Preparation cost unavailable"}
                           </small>
                         )}
                       </div>
@@ -219,6 +220,7 @@ export function MenuWorkspace() {
                   ),
                   actions: data.founder ? (
                     <div className="table-actions">
+                      <RecipeDialog product={product} refresh={refresh} />
                       <ProductDialog
                         product={product}
                         data={data}

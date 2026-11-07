@@ -2,12 +2,14 @@
 import { useId, useRef, useState } from "react";
 import { Pencil } from "lucide-react";
 import {
-  productSchema,
+  productWriteSchema,
+  productInventoryStatus,
   type Product,
   type ProductSize,
   type ShopData,
 } from "@/lib/menu/domain";
-import { cents } from "@/lib/sales/domain";
+import { RecipeDialog } from "../inventory/recipe-dialog";
+import { cents, money } from "@/lib/sales/domain";
 import { saveMenu } from "@/lib/menu/use-catalog";
 import { FormDialog, useFormDialog } from "../ui/form-dialog";
 import { MutationForm } from "../mutation-form";
@@ -17,6 +19,7 @@ import { Select } from "../ui/select";
 import { Icon } from "../ui/icon";
 import { ProductImageUpload } from "./product-image-upload";
 import { productImageFileError } from "@/lib/menu/image-upload";
+import { RecipeStatus } from "./recipe-status";
 
 type Props = {
   product?: Product;
@@ -26,34 +29,68 @@ type Props = {
 type SizeDraft = Omit<
   ProductSize,
   "price_cents" | "cost_cents" | "is_default"
-> & { price: string; cost: string };
+> & { price: string };
+
 const decimal = (value?: number | null) =>
   value == null ? "" : (value / 100).toFixed(2);
-export function ProductDialog(props: Props) {
+
+function RecipeSummary({ product, sizeId, onManage }: {
+  product?: Product;
+  sizeId: string;
+  onManage: () => void;
+}) {
+  const entry = product?.inventory?.[sizeId];
+  const status = product ? productInventoryStatus({ ...product, inventory: entry ? { [sizeId]: entry } : {} }) : "Recipe Not Configured";
   return (
-    <FormDialog
-      trigger={
-        props.product ? (
-          null
-        ) : (
-          <>
-            Add product
-          </>
-        )
-      }
-      triggerLabel={props.product ? `Edit ${props.product.name}` : undefined}
-      tableAction={props.product ? { icon: Pencil, tooltip: "Edit product" } : undefined}
-      triggerClassName={props.product ? "secondary compact" : "accent"}
-      title={props.product ? "Edit product" : "Add product"}
-      description="Menu changes apply to future sales. Completed receipts keep their original details."
-      className="product-dialog"
-      size="lg"
-    >
-      <ProductEditor {...props} />
-    </FormDialog>
+    <div className="product-recipe-summary">
+      <div className="field">
+        <span>Calculated Preparation Cost</span>
+        <output aria-label="Calculated Preparation Cost">
+          {entry?.state === "active" && entry.cost_cents != null ? money(entry.cost_cents) : "Cost unavailable"}
+        </output>
+      </div>
+      <div className="product-recipe-status">
+        <RecipeStatus status={status} />
+        {product && <Button variant="link" onClick={onManage}>View Recipe</Button>}
+      </div>
+    </div>
   );
 }
-function ProductEditor({ product, data, refresh }: Props) {
+
+export function ProductDialog(props: Props) {
+  const [recipeSize, setRecipeSize] = useState<string>();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  return (
+    <>
+      <FormDialog
+        triggerRef={triggerRef}
+        trigger={props.product ? null : <>Add product</>}
+        triggerLabel={props.product ? `Edit ${props.product.name}` : undefined}
+        tableAction={props.product ? { icon: Pencil, tooltip: "Edit product" } : undefined}
+        triggerClassName={props.product ? "secondary compact" : "accent"}
+        title={props.product ? "Edit product" : "Add product"}
+        description="Menu changes apply to future sales. Completed receipts keep their original details."
+        className="product-dialog"
+        size="lg"
+      >
+        <ProductEditor {...props} onManageRecipe={setRecipeSize} />
+      </FormDialog>
+      {props.product && recipeSize && (
+        <RecipeDialog
+          product={props.product}
+          refresh={props.refresh}
+          initialSizeId={recipeSize}
+          initialOpen
+          hideTrigger
+          returnFocusRef={triggerRef}
+          onClose={() => setRecipeSize(undefined)}
+        />
+      )}
+    </>
+  );
+}
+
+function ProductEditor({ product, data, refresh, onManageRecipe }: Props & { onManageRecipe: (sizeId: string) => void }) {
   const id = useId();
   const draftId = useRef(product?.id ?? crypto.randomUUID());
   const dialog = useFormDialog();
@@ -61,7 +98,6 @@ function ProductEditor({ product, data, refresh }: Props) {
     (product?.sizes ?? []).map((size) => ({
       ...size,
       price: decimal(size.price_cents),
-      cost: decimal(size.cost_cents),
     })),
   );
   const [defaultId, setDefaultId] = useState(
@@ -78,7 +114,6 @@ function ProductEditor({ product, data, refresh }: Props) {
           {
             label: "Size label",
             price_cents: "Price (PHP)",
-            cost_cents: "Cost (PHP)",
           } as Record<string, string>
         )[key.split(".").at(-1)!]
       : (
@@ -87,7 +122,6 @@ function ProductEditor({ product, data, refresh }: Props) {
             description: "Description",
             image_url: "Product image URL",
             price_cents: "Selling price (PHP)",
-            cost_cents: "Cost per item (PHP)",
           } as Record<string, string>
         )[key],
     "aria-invalid": !!errors[key] || undefined,
@@ -103,6 +137,10 @@ function ProductEditor({ product, data, refresh }: Props) {
     setSizes((current) =>
       current.map((size, i) => (i === index ? { ...size, ...patch } : size)),
     );
+
+  const regularActive = product?.inventory?.regular?.state === "active";
+  const manageRecipe = (sizeId: string) => dialog?.closeThen(() => onManageRecipe(sizeId));
+
   return (
     <MutationForm
       submitLabel="Save product"
@@ -131,16 +169,12 @@ function ProductEditor({ product, data, refresh }: Props) {
               String(form.get(`size_price_${sizeId}`)),
               `sizes.${index}.price_cents`,
             ),
-            cost_cents: amount(
-              String(form.get(`size_cost_${sizeId}`)),
-              `sizes.${index}.cost_cents`,
-            ),
             active: form.get(`size_active_${sizeId}`) === "on",
             is_default: form.get("default_size") === sizeId,
           };
         });
         const mainSize = configured.find((size) => size.is_default);
-        const parsed = productSchema.safeParse({
+        const parsed = productWriteSchema.safeParse({
           id: draftId.current,
           name: String(form.get("name")),
           category_id: form.get("category_id") || null,
@@ -151,9 +185,7 @@ function ProductEditor({ product, data, refresh }: Props) {
           price_cents:
             mainSize?.price_cents ??
             amount(String(form.get("price")), "price_cents"),
-          cost_cents:
-            mainSize?.cost_cents ??
-            amount(String(form.get("cost")), "cost_cents"),
+
         });
         if (!parsed.success)
           for (const issue of parsed.error.issues) {
@@ -168,9 +200,19 @@ function ProductEditor({ product, data, refresh }: Props) {
             validation: true,
           };
         try {
-          await saveMenu("product", data.shop.id, parsed.data, imageFile ?? undefined);
+          await saveMenu(
+            "product",
+            data.shop.id,
+            parsed.data,
+            imageFile ?? undefined,
+          );
           await refresh();
-          return { status: "success", message: imageFile ? "Product saved and image uploaded." : "Product saved." };
+          return {
+            status: "success",
+            message: imageFile
+              ? "Product saved and image uploaded."
+              : "Product saved.",
+          };
         } catch (error) {
           return {
             status: "error",
@@ -202,7 +244,10 @@ function ProductEditor({ product, data, refresh }: Props) {
             defaultValue={product?.category_id ?? ""}
             options={[
               { value: "", label: "Uncategorized" },
-              ...data.categories.map(category => ({ value: category.id, label: category.name })),
+              ...data.categories.map((category) => ({
+                value: category.id,
+                label: category.name,
+              })),
             ]}
           />
         </label>
@@ -218,29 +263,36 @@ function ProductEditor({ product, data, refresh }: Props) {
         />
         {errorText("description")}
       </label>
-      <ProductImageUpload value={image} file={imageFile} error={errors.image_url}
+      <ProductImageUpload
+        value={image}
+        file={imageFile}
+        error={errors.image_url}
         onChange={(url, file) => {
           setImage(url);
           setImageFile(file);
-          setErrors(current => ({ ...current, image_url: "", image_file: "" }));
-        }} />
+          setErrors((current) => ({
+            ...current,
+            image_url: "",
+            image_file: "",
+          }));
+        }}
+      />
       <section className="size-configuration" aria-label="Product sizes">
         <div className="size-heading">
           <div>
             <h3>Sizes & pricing</h3>
             <p className="hint">
-              Use a regular price, or add custom sizes with their own prices and
-              direct costs.
+              Keep selling prices manually configurable. Preparation costs update automatically once an inventory recipe is activated.
             </p>
           </div>
           <Button
             variant="outline"
-            disabled={sizes.length >= 20}
+            disabled={sizes.length >= 20 || regularActive}
             onClick={() => {
               const newId = crypto.randomUUID();
               setSizes((current) => [
                 ...current,
-                { id: newId, label: "", price: "", cost: "", active: true },
+                { id: newId, label: "", price: "", active: true },
               ]);
               if (!sizes.length) setDefaultId(newId);
               setSizeMessage("");
@@ -253,126 +305,108 @@ function ProductEditor({ product, data, refresh }: Props) {
         </div>
         {errorText("sizes")}
         {!sizes.length && (
-          <div className="product-form-grid">
-            <label className="field">
-              Selling price (PHP)
-              <Input
-                name="price"
-                required
-                inputMode="decimal"
-                defaultValue={decimal(product?.price_cents)}
-                {...errorProps("price_cents")}
-              />
-              {errorText("price_cents")}
-            </label>
-            <label className="field">
-              Cost per item (PHP)
-              <Input
-                name="cost"
-                required
-                inputMode="decimal"
-                defaultValue={decimal(product?.cost_cents)}
-                {...errorProps("cost_cents")}
-              />
-              {errorText("cost_cents")}
-            </label>
-          </div>
-        )}
-        {sizes.map((size, index) => (
-          <fieldset key={size.id} className="size-editor-row">
-            <legend>Size {index + 1}</legend>
-            <input type="hidden" name="size_id" value={size.id} />
-            <label className="field">
-              Size label
-              <Input
-                required
-                maxLength={60}
-                name={`size_label_${size.id}`}
-                value={size.label}
-                onChange={(event) =>
-                  changeSize(index, { label: event.target.value })
-                }
-                {...errorProps(`sizes.${index}.label`)}
-              />
-              {errorText(`sizes.${index}.label`)}
-            </label>
-            <label className="field">
-              Price (PHP)
-              <Input
-                required
-                inputMode="decimal"
-                name={`size_price_${size.id}`}
-                value={size.price}
-                onChange={(event) =>
-                  changeSize(index, { price: event.target.value })
-                }
-                {...errorProps(`sizes.${index}.price_cents`)}
-              />
-              {errorText(`sizes.${index}.price_cents`)}
-            </label>
-            <label className="field">
-              Cost (PHP)
-              <Input
-                required
-                inputMode="decimal"
-                name={`size_cost_${size.id}`}
-                value={size.cost}
-                onChange={(event) =>
-                  changeSize(index, { cost: event.target.value })
-                }
-                {...errorProps(`sizes.${index}.cost_cents`)}
-              />
-              {errorText(`sizes.${index}.cost_cents`)}
-            </label>
-            <div className="size-options">
-              <label>
-                <input
-                  type="radio"
-                  name="default_size"
-                  value={size.id}
-                  checked={defaultId === size.id}
-                  onChange={() => setDefaultId(size.id)}
+          <>
+            <div className="product-form-grid">
+              <label className="field">
+                Selling price (PHP)
+                <Input
+                  name="price"
+                  required
+                  inputMode="decimal"
+                  defaultValue={decimal(product?.price_cents)}
+                  {...errorProps("price_cents")}
                 />
-                Default
+                {errorText("price_cents")}
               </label>
-              <label>
-                <input
-                  type="checkbox"
-                  name={`size_active_${size.id}`}
-                  checked={size.active}
-                  onChange={(event) =>
-                    changeSize(index, { active: event.target.checked })
-                  }
-                />
-                Available
-              </label>
-              <Button
-                variant="ghost"
-                aria-label={`Remove size ${size.label || index + 1}`}
-                onClick={() => {
-                  const remaining = sizes.filter((item) => item.id !== size.id);
-                  setSizes(remaining);
-                  if (defaultId === size.id) setDefaultId(remaining[0]?.id);
-                  setSizeMessage(
-                    "Size removed from this draft. Save to apply; past receipts remain unchanged.",
-                  );
-                  dialog?.markDirty();
-                }}
-              >
-                <Icon name="delete" size={16} />
-                Remove
-              </Button>
+              <RecipeSummary product={product} sizeId="regular" onManage={() => manageRecipe("regular")} />
             </div>
-          </fieldset>
-        ))}
+          </>
+        )}
+        {sizes.map((size, index) => {
+          const sizeActive = product?.inventory?.[size.id]?.state === "active";
+          return (
+            <fieldset key={size.id} className="size-editor-row">
+              <legend>Size {index + 1}</legend>
+              <input type="hidden" name="size_id" value={size.id} />
+              <label className="field">
+                Size label
+                <Input
+                  required
+                  maxLength={60}
+                  name={`size_label_${size.id}`}
+                  value={size.label}
+                  onChange={(event) =>
+                    changeSize(index, { label: event.target.value })
+                  }
+                  {...errorProps(`sizes.${index}.label`)}
+                />
+                {errorText(`sizes.${index}.label`)}
+              </label>
+              <label className="field">
+                Price (PHP)
+                <Input
+                  required
+                  inputMode="decimal"
+                  name={`size_price_${size.id}`}
+                  value={size.price}
+                  onChange={(event) =>
+                    changeSize(index, { price: event.target.value })
+                  }
+                  {...errorProps(`sizes.${index}.price_cents`)}
+                />
+                {errorText(`sizes.${index}.price_cents`)}
+              </label>
+              <RecipeSummary product={product?.sizes?.some(saved => saved.id === size.id) ? product : undefined} sizeId={size.id} onManage={() => manageRecipe(size.id)} />
+              <div className="size-options">
+                <label>
+                  <input
+                    type="radio"
+                    name="default_size"
+                    value={size.id}
+                    checked={defaultId === size.id}
+                    onChange={() => setDefaultId(size.id)}
+                  />
+                  Default
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    name={`size_active_${size.id}`}
+                    checked={size.active}
+                    onChange={(event) =>
+                      changeSize(index, { active: event.target.checked })
+                    }
+                  />
+                  Available
+                </label>
+                <Button
+                  variant="ghost"
+                  disabled={sizeActive}
+                  aria-label={`Remove size ${size.label || index + 1}`}
+                  onClick={() => {
+                    const remaining = sizes.filter((item) => item.id !== size.id);
+                    setSizes(remaining);
+                    if (defaultId === size.id) setDefaultId(remaining[0]?.id);
+                    setSizeMessage(
+                      "Size removed from this draft. Save to apply; past receipts remain unchanged.",
+                    );
+                    dialog?.markDirty();
+                  }}
+                >
+                  <Icon name="delete" size={16} />
+                  Remove
+                </Button>
+              </div>
+            </fieldset>
+          );
+        })}
         {sizeMessage && (
           <p className="hint" role="status">
             {sizeMessage}
           </p>
         )}
         <p className="hint">
-          Direct cost includes ingredients and packaging for one item. Enter 0
-          only when there is no cost. Maximum 20 sizes.
+          Preparation costs come from inventory recipes. Save this product, then use Manage Recipe before selling. Maximum 20 sizes.
         </p>
       </section>
       <label className="menu-checkbox">

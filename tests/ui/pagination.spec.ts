@@ -19,6 +19,7 @@ async function seed(page: Page, count = 53) {
   const products: Product[] = Array.from({ length: count }, (_, i) => ({
     id: uid(i + 200), name: `${i < 23 ? "Coffee" : "Tea"} product ${String(i + 1).padStart(2, "0")}`,
     price_cents: 14500, cost_cents: 5000, active: i < 23,
+    inventory: { regular: { state: "active" as const, max_quantity: 100, cost_cents: 5000 } },
     category_id: categories[0].id,
   }));
   const expenses: Expense[] = Array.from({ length: count }, (_, i) => ({
@@ -136,7 +137,9 @@ test("Menu filters and reporting dates reset page without clearing search or pag
   await menu.getByRole("button", { name: "Last page", exact: true }).click();
   await chooseOption(page, page.getByRole("combobox", { name: "Category", exact: true }), "Tea category 24");
   await expect(menu.locator(".table-count")).toContainText("0–0 of 0");
-  await page.getByRole("button", { name: "Reset filters", exact: true }).click();
+  await chooseOption(page, page.getByRole("combobox", { name: "Category", exact: true }), "All categories");
+  await chooseOption(page, page.getByRole("combobox", { name: "Availability", exact: true }), "All availability");
+  await expect(page.getByRole("button", { name: /reset filters|clear filters/i })).toHaveCount(0);
   await expect(menu.locator(".table-count")).toContainText("1–10 of 53");
   for (const screen of [screens[2], screens[3]]) {
     await page.goto(screen.path + period);
@@ -259,7 +262,6 @@ test("product CRUD preserves active search and clamps after removing the final p
   await page.getByRole("button", { name: "Add product", exact: true }).click();
   await page.getByLabel("Product name", { exact: true }).fill("Coffee new product");
   await page.getByLabel("Selling price (PHP)", { exact: true }).fill("145");
-  await page.getByLabel("Cost per item (PHP)", { exact: true }).fill("50");
   await page.getByRole("button", { name: "Save product", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(nav.locator(".table-count")).toContainText("1–10 of 11");

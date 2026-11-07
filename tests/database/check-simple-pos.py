@@ -1,6 +1,7 @@
 """Disposable PostgreSQL integration test. Never connects to hosted Supabase."""
 from pathlib import Path
-import subprocess, tempfile, sys
+import subprocess, tempfile, sys, json, uuid
+from concurrent.futures import ThreadPoolExecutor
 root=Path(__file__).resolve().parents[2]
 pg=Path(sys.argv[1] if len(sys.argv)>1 else r"C:/Program Files/PostgreSQL/17/bin")
 base=root/".local";base.mkdir(exist_ok=True)
@@ -22,6 +23,7 @@ try:
  run("pg_ctl","-D",str(cluster),"-l",str(cluster/"server.log"),"-o","-h 127.0.0.1 -p 55439","-w","start");started=True
  sql("create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,raw_user_meta_data jsonb default '{}');create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated;grant execute on function auth.uid() to authenticated;")
  for migration in sorted((root/"supabase/migrations").glob("*.sql")):
+  if migration.name=="202611070006_recipe_only_costing.sql":continue # Legacy compatibility gates precede the intentional selling-policy upgrade.
   if migration.name=="202611020001_simple_pos.sql":sql((root/"tests/database/pre-upgrade.sql").read_text(encoding="utf-8"))
   sql(migration.read_text(encoding="utf-8"))
  publication_setup=(root/"supabase/publication/publish-public-menu.sql").read_text(encoding="utf-8")
@@ -36,6 +38,27 @@ try:
  print(sql((root/"tests/database/expenses-management.sql").read_text(encoding="utf-8")))
  sql((root/"supabase/migrations/202611060001_public_menu.sql").read_text(encoding="utf-8")) # Idempotent reapplication.
  print(sql((root/"tests/database/public-menu.sql").read_text(encoding="utf-8")))
+ print(sql((root/"tests/database/inventory.sql").read_text(encoding="utf-8")))
+ print(sql((root/"tests/database/inventory-checkout.sql").read_text(encoding="utf-8")))
+ print(sql((root/"tests/database/inventory-integrity.sql").read_text(encoding="utf-8")))
+ sql((root/"tests/database/inventory-concurrency.sql").read_text(encoding="utf-8"))
+ race_shop="(select shop_id from public.ingredients where id='00000000-0000-4000-8000-000000009201')"
+ race_access="select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000009200',false);set role authenticated;"
+ def checkout_race(payload):
+  try:
+   sql(race_access+"begin;select pg_sleep(0.1);select public.pos_checkout("+race_shop+",'"+json.dumps(payload)+"'::jsonb);commit;")
+   return True
+  except RuntimeError as error:
+   if 'Insufficient stock' not in str(error):raise
+   return False
+ race_payload=lambda:{'id':str(uuid.uuid4()),'method':'cash','items':[{'product_id':'00000000-0000-4000-8000-000000009202','quantity':1,'price_cents':500}]}
+ with ThreadPoolExecutor(max_workers=2) as pool: assert sum(pool.map(checkout_race,[race_payload(),race_payload()]))==1,'Concurrent checkout oversold stock'
+ sql("do $$begin assert (select quantity from public.inventory_balances where ingredient_id='00000000-0000-4000-8000-000000009201')=0;assert (select count(*) from public.stock_movements where ingredient_id='00000000-0000-4000-8000-000000009201' and kind='sale')=1;end $$;")
+ sql(race_access+"select public.pos_inventory_post("+race_shop+",jsonb_build_object('operation_id',gen_random_uuid(),'ingredient_id','00000000-0000-4000-8000-000000009201','kind','receipt','quantity','1','purchase_unit','each','total_cost_cents',100,'occurred_on',current_date,'reason','Retry fixture'));")
+ same_sale=race_payload()
+ with ThreadPoolExecutor(max_workers=2) as pool: assert all(pool.map(checkout_race,[same_sale,same_sale])),'Concurrent identical retry failed'
+ sql("do $$begin assert (select quantity from public.inventory_balances where ingredient_id='00000000-0000-4000-8000-000000009201')=0;assert (select count(*) from public.stock_movements where ingredient_id='00000000-0000-4000-8000-000000009201' and kind='sale')=2;end $$;")
+ print('Concurrent stock protection and identical-sale retry assertions passed.')
  try:
   sql(publication_setup)
  except RuntimeError as error:
@@ -51,7 +74,13 @@ try:
  print(sql((root/"tests/database/product-image-storage.sql").read_text(encoding="utf-8")))
  seed=(root/"supabase/seeds/demo_october_2026.sql").read_text(encoding="utf-8")
  seed_checks=(root/"tests/database/demo-seed.sql").read_text(encoding="utf-8")
+ try:
+  sql(seed)
+ except RuntimeError as error:
+  if 'Sample data is opt-in' not in str(error):raise
+ else:raise RuntimeError('Sample seed ran without explicit opt-in')
  seed_setup="""
+ select set_config('coffee_pos.allow_sample_data','on',false);
  insert into auth.users(id,email) values('00000000-0000-4000-8000-000000000777','demo-owner@test.invalid');
  select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000777',false);
  select set_config('coffee_pos.demo_shop_id',public.create_shop('Demo seed test shop','Asia/Manila')::text,false);
@@ -90,7 +119,7 @@ try:
  """
  print(sql(seed_setup+seed+seed_checks+first_checks+seed+seed_checks+repeat_checks+cleanup_setup+cleanup+cleanup_checks+cleanup+cleanup_checks))
  try:
-  sql("select set_config('coffee_pos.demo_shop_id','',false);"+seed)
+  sql("select set_config('coffee_pos.allow_sample_data','on',false);select set_config('coffee_pos.demo_shop_id','',false);"+seed)
  except RuntimeError as error:
   if 'Select a shop with coffee_pos.demo_shop_id' not in str(error):raise
  else:raise RuntimeError("Demo seed accepted an ambiguous target shop")
@@ -100,7 +129,8 @@ try:
   if 'Select a shop with coffee_pos.demo_shop_id' not in str(error):raise
  else:raise RuntimeError("Demo cleanup accepted an ambiguous target shop")
  print("Demo seed date range, snapshots, permissions, preservation and idempotence passed.")
- print("All migrations and simple POS database assertions passed.")
+ sql((root/"supabase/migrations/202611070006_recipe_only_costing.sql").read_text(encoding="utf-8"))
+ print("All migrations and legacy compatibility assertions passed; recipe-only policy applied. Run reset-development.py for new-policy integration gates.")
 finally:
  if started:run("pg_ctl","-D",str(cluster),"-m","fast","-w","stop")
  # Preserve this unique, stopped test cluster for inspection. Never delete another cluster.

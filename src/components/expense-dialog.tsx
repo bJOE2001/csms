@@ -9,6 +9,7 @@ import { MutationForm } from "./mutation-form";
 import { Input } from "./ui/primitives/input";
 import { Pencil, Trash2 } from "lucide-react";
 import { DatePicker } from "./ui/date-picker";
+import { Select } from "./ui/select";
 
 async function saveExpense(
   action: "expense" | "update_expense" | "void_expense",
@@ -71,9 +72,10 @@ export function ExpenseDialog({ expense, shopId, today }: {
               spent_on: String(form.get("spent_on")),
               description,
               amount_cents: amount,
+              classification: String(form.get("classification")),
               ...(expense && {
                 operation_id: (operationId.current ??= crypto.randomUUID()),
-                expected: { spent_on: expense.spent_on, description: expense.description, amount_cents: expense.amount_cents },
+                expected: { spent_on: expense.spent_on, description: expense.description, amount_cents: expense.amount_cents, ...(expense.classification ? { classification: expense.classification } : {}) },
               }),
             };
             const result = await saveExpense(expense ? "update_expense" : "expense", shopId, data);
@@ -100,7 +102,10 @@ export function ExpenseDialog({ expense, shopId, today }: {
           Amount (PHP)
           <Input name="amount" inputMode="decimal" defaultValue={expense ? (expense.amount_cents / 100).toFixed(2) : undefined} required />
         </label>
-        <p className="hint">Use the date the expense belongs to. It appears in both reports when that date is included.</p>
+        <label className="field">Accounting classification
+          <Select name="classification" defaultValue={expense?.classification ?? "operating_expense"} options={[{ value: "operating_expense", label: "Operating expense — deducted from profit" }, { value: "inventory_purchase", label: "Inventory purchase — excluded from operating expenses" }]} />
+        </label>
+        <p className="hint">Stock purchases belong in Inventory Stock In. A purchase recorded here does not receive stock and is excluded from profit when classified as Inventory purchase. Existing entries change only when you explicitly save a new classification.</p>
       </MutationForm>
     </FormDialog>
   );

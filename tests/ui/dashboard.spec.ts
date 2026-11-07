@@ -46,7 +46,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 800
 test("Dashboard preserves accessible chart values, payments and navigation", async ({ page }) => {
   await page.goto(reportUrl);
   const nav = page.getByRole("navigation", { name: "Shop", exact: true });
-  expect(await nav.getByRole("link").allTextContents()).toEqual(["Dashboard", "POS", "Menu", "Sales", "Expenses", "Libraries"]);
+  expect(await nav.getByRole("link").allTextContents()).toEqual(["Dashboard", "POS", "Menu", "Inventory", "Sales", "Expenses", "Libraries"]);
   await expect(nav.getByRole("link", { name: "Dashboard", exact: true })).toHaveAttribute("aria-current", "page");
   const chart = page.getByRole("img", { name: /Net Sales performance in PHP/ });
   await chart.focus();

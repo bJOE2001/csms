@@ -40,6 +40,7 @@ export function DashboardView({ report: loaded, shopId, timezone, from, to, load
         ].map(item => <div className="dashboard-kpi" key={item.label}><dt>{item.label}</dt><dd>{item.value}</dd><p>{item.detail}</p></div>)}
       </dl>
       {summary.missingCosts > 0 && <p className="form-message error" role="status">Profit is incomplete: {summary.missingCosts} sale(s) have no saved product cost. <Link href={salesHref}>Review affected receipts in Sales</Link>.</p>}
+      {summary.stockReturnCredits > 0 && <p className="dashboard-accounting-note">Product costs include a {money(summary.stockReturnCredits)} credit for explicitly returned finished goods in this period. Original receipt costs remain unchanged.</p>}
       {report.unattributedSales > 0 && <p className="dashboard-accounting-note">{report.unattributedSales} completed receipt(s) lack item revenue details. Their revenue is included in totals, but cannot be attributed to products or sizes.</p>}
       <dl className="dashboard-metrics" aria-label="Business metrics" tabIndex={0}>{[
         ["Completed Sales", summary.orders],

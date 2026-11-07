@@ -38,7 +38,7 @@ async function DashboardReport({ member: { supabase, shop }, from, to }: {
       supabase.rpc("pos_sales", { p_shop_id: shop.id, p_from: prior.from, p_to: prior.to })
         .then(({ data, error }) => !error && Array.isArray(data) ? data as unknown as Sale[] : null, () => null),
     ]);
-    report = buildDashboard(current.sales, current.expenses, from, to, shop.timezone, previous);
+    report = buildDashboard(current.sales, current.expenses, from, to, shop.timezone, previous, current.stockReturnCredits);
   } catch {
     loadError = "Dashboard could not be updated. Previous results remain shown if available. Check your connection and choose a date again to retry.";
   }

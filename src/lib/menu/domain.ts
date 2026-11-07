@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Component } from "@/lib/inventory/domain";
 
 const amount = z.number().int().min(0).max(100000000);
 export const imageUrlSchema = z
@@ -58,9 +59,18 @@ export const categorySchema = z.object({
   name: z.string().trim().min(1).max(60),
 });
 export type ProductSize = z.infer<typeof sizeSchema>;
+export type ProductInventoryVariant = {
+  state: "active" | "draft" | "not_configured";
+  mode?: string;
+  max_quantity: number | null;
+  cost_cents?: number | null;
+  has_draft?: boolean;
+  components?: Component[];
+};
 export type Product = Omit<z.infer<typeof productSchema>, "id"> & {
   id: string;
   archived_at?: string | null;
+  inventory?: Record<string, ProductInventoryVariant>;
 };
 export type Category = { id: string; name: string };
 export type ShopData = {
@@ -70,6 +80,32 @@ export type ShopData = {
   products: Product[];
   categories: Category[];
 };
+export type ProductInventoryStatus =
+  | "Recipe Not Configured"
+  | "Draft"
+  | "Active"
+  | "Needs Attention";
+
+export function productInventoryStatus(product: Product): ProductInventoryStatus {
+  const entries = Object.values(product.inventory ?? {});
+  if (
+    entries.some(
+      (entry) =>
+        entry.state === "active" &&
+        (entry.cost_cents === null || (entry.max_quantity ?? 0) <= 0),
+    )
+  ) {
+    return "Needs Attention";
+  }
+  if (entries.some((entry) => entry.state === "active")) {
+    return "Active";
+  }
+  if (entries.some((entry) => entry.state === "draft" || entry.has_draft)) {
+    return "Draft";
+  }
+  return "Recipe Not Configured";
+}
+
 export function defaultSizeId(product: Product) {
   const sizes = product.sizes ?? [];
   return (
@@ -81,11 +117,20 @@ export function isAvailable(product: Product) {
   return (
     product.active &&
     !product.archived_at &&
-    (!product.sizes?.length || product.sizes.some((size) => size.active))
+    (product.sizes?.length
+      ? product.sizes.some(
+          (size) => size.active && inventoryAvailable(product, size.id),
+        )
+      : inventoryAvailable(product))
   );
 }
+export function inventoryAvailable(product: Product, sizeId?: string) {
+  const inventory = product.inventory?.[sizeId ?? "regular"];
+  return inventory?.state === "active" && (inventory.max_quantity ?? 0) > 0;
+}
 export function saleOption(product: Product, sizeId?: string) {
-  if (!isAvailable(product)) return undefined;
+  if (!isAvailable(product) || !inventoryAvailable(product, sizeId))
+    return undefined;
   if (product.sizes?.length) {
     const size = product.sizes.find(
       (size) => size.id === sizeId && size.active,
@@ -109,3 +154,5 @@ export function priceRange(product: Product) {
     : [product.price_cents];
   return { min: Math.min(...prices), max: Math.max(...prices) };
 }
+
+export const productWriteSchema = productSchema.omit({cost_cents:true, sizes:true}).extend({sizes: sizesSchema.element.omit({cost_cents:true}).strict().array().max(20).superRefine((sizes,ctx)=>{const result=sizesSchema.safeParse(sizes.map(size=>({...size,cost_cents:null})));if(!result.success) for(const issue of result.error.issues) ctx.addIssue({...issue,code:"custom",message:issue.message});}).optional()}).strict();

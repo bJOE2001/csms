@@ -7,12 +7,12 @@ export const updateExpenseSchema = expenseSchema.extend({
 });
 
 export function summarizeExpenses(expenses: Expense[]) {
-  const active = expenses.filter((expense) => !expense.voided);
+  const active = expenses.filter((expense) => !expense.voided && expense.classification !== "inventory_purchase");
   const total = active.reduce((sum, expense) => sum + expense.amount_cents, 0);
   return {
     total,
     records: expenses.length,
-    voided: expenses.length - active.length,
+    voided: expenses.filter(expense => expense.voided).length,
     largest: active.reduce((largest, expense) => Math.max(largest, expense.amount_cents), 0),
     average: active.length ? Math.round(total / active.length) : 0,
   };

@@ -83,7 +83,7 @@ export function PosWorkspace() {
     setCart((current) =>
       current
         .map((line) =>
-          line.key === key && !(delta > 0 && cartIssue(line, data?.products ?? []))
+          line.key === key && !(delta > 0 && cartIssue({ ...line, quantity: line.quantity + 1 }, data?.products ?? []))
             ? { ...line, quantity: Math.min(100, line.quantity + delta) }
             : line,
         )
@@ -159,7 +159,7 @@ export function PosWorkspace() {
       setBusy(false);
     }
   }
-  if (!data) return <WorkspaceShell active="pos" shopName="LOGO Coffee">
+  if (!data) return <WorkspaceShell active="pos" shopName="LOGO">
     {error || loadError ? <section className="workspace-load-error">
       <h1>POS unavailable</h1>
       <p role="alert" className="form-message error">{error || loadError}</p>
@@ -257,7 +257,7 @@ export function PosWorkspace() {
                       variant="outline"
                       size="icon"
                       aria-label={`Increase ${p.name}${p.size_label ? ` ${p.size_label}` : ""}`}
-                      disabled={p.quantity >= 100 || !!issues[index]}
+                      disabled={p.quantity >= 100 || !!issues[index] || !!cartIssue({ ...p, quantity: p.quantity + 1 }, data.products)}
                       onClick={() => changeQuantity(p.key, 1)}
                     >
                       +
@@ -486,8 +486,8 @@ export function PosWorkspace() {
                   <Button
                     variant="outline"
                     onClick={() => {
-                      setQuery("");
-                      setCategoryId("all");
+                      if (query) setQuery("");
+                      else setCategoryId("all");
                     }}
                   >
                     {query ? "Clear search" : "Show all products"}

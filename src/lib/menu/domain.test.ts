@@ -12,6 +12,7 @@ const id = "00000000-0000-4000-8000-000000000001";
 const small = "00000000-0000-4000-8000-000000000002";
 const large = "00000000-0000-4000-8000-000000000003";
 const product = {
+  inventory: { [small]: {state:"active" as const,max_quantity:100,cost_cents:4000}, [large]: {state:"active" as const,max_quantity:100,cost_cents:5000} },
   id,
   name: "Latte",
   price_cents: 12000,

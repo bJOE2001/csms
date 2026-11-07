@@ -16,7 +16,7 @@ export function DateRangeFilter({
 }: {
   from: string;
   to: string;
-  action?: "/app/sales" | "/expenses" | "/dashboard";
+  action?: "/app/sales" | "/expenses" | "/dashboard" | "/app/inventory";
   label?: string;
   loadFailure?: LoadFailure;
 }) {

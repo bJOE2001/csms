@@ -9,7 +9,6 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/primitives/input";
 import { Icon } from "./ui/icon";
 import { MutationForm } from "./mutation-form";
-import { RecordSaleCost } from "./record-sale-cost";
 import { SaleReceipt } from "./sale-receipt";
 import { Select } from "./ui/select";
 import { customerReceipt, type CustomerReceipt, type ReceiptBusinessDetails, type ReceiptPaperWidth } from "@/lib/sales/receipt";
@@ -25,6 +24,8 @@ export function ReceiptDialog({
   printing = false,
   onCancelPrint,
   business,
+  initialOpen = false,
+  hideTrigger = false,
 }: {
   sale: Sale;
   shopId: string;
@@ -36,6 +37,8 @@ export function ReceiptDialog({
   printing?: boolean;
   onCancelPrint?: () => void;
   business?: ReceiptBusinessDetails;
+  initialOpen?: boolean;
+  hideTrigger?: boolean;
 }) {
   const router = useRouter();
   const startRefresh = useLoadingTransition();
@@ -47,6 +50,8 @@ export function ReceiptDialog({
       triggerLabel={`View receipt ${s.id.slice(0, 8).toUpperCase()}`}
       tableAction={tableAction ? { icon: Eye, tooltip: "View receipt" } : undefined}
       title="Sale receipt"
+      initialOpen={initialOpen}
+      hideTrigger={hideTrigger}
       readOnly
       className="receipt-dialog"
       onClose={onCancelPrint}
@@ -89,13 +94,6 @@ export function ReceiptDialog({
             }).format(new Date(s.cost_recorded_at))}
           </p>
         )}
-        {founder &&
-          s.total_cost_cents == null &&
-          (s.status === "completed" || s.status === "refunded") && (
-            <div className="mt-3">
-              <RecordSaleCost saleId={s.id} shopId={shopId} />
-            </div>
-          )}
         {s.refund_reason && (
           <p className="hint mt-3 break-words">
             Refund reason: {s.refund_reason}

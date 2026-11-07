@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import type { Sale } from "@/lib/sales/domain";
 import { money, paymentMethodLabel } from "@/lib/sales/domain";
 import { DataTable } from "./ui/data-table";
@@ -15,7 +15,26 @@ export function SalesRecords({ sales, shopId, shopName, timezone, founder, from,
 }) {
   const [print, setPrint] = useState<{ receipt: CustomerReceipt; paperWidth: ReceiptPaperWidth }>();
   const closePrint = useCallback(() => setPrint(undefined), []);
+  const [linkedReceipt, setLinkedReceipt] = useState<string>();
+  useEffect(() => {
+    const readLink = () => {
+      const match = /^#receipt-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i.exec(window.location.hash);
+      setLinkedReceipt(!recent && match ? match[1].toLowerCase() : undefined);
+    };
+    readLink();
+    window.addEventListener("hashchange", readLink);
+    return () => window.removeEventListener("hashchange", readLink);
+  }, [from, to, recent]);
+  // Resolve only against the existing, authorized reporting response. Pagination
+  // does not prevent opening a linked receipt and no additional reader is added.
+  const linkedSale = linkedReceipt ? sales.find(sale => sale.id.toLowerCase() === linkedReceipt) : undefined;
+  const closeLinkedReceipt = () => {
+    setLinkedReceipt(undefined);
+    closePrint();
+    window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search);
+  };
   return <>
+      {linkedReceipt && !linkedSale && <p role="status" className="hint">This receipt is unavailable in the selected reporting period or for your current access.</p>}
       <Card className="sales-section sales-history">
         <DataTable
           searchable={!recent}
@@ -85,6 +104,9 @@ export function SalesRecords({ sales, shopId, shopName, timezone, founder, from,
           }))}
         />
       </Card>
+      {linkedSale && <ReceiptDialog key={linkedSale.id} sale={linkedSale} shopId={shopId} shopName={shopName} timezone={timezone} founder={founder}
+        initialOpen hideTrigger onPrint={(receipt, paperWidth) => setPrint({ receipt, paperWidth })}
+        printing={print?.receipt.reference === linkedSale.id} onCancelPrint={closeLinkedReceipt} business={business} />}
       {print && (
         <ReceiptPrint
           receipt={print.receipt}

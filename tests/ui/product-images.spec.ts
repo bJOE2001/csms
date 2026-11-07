@@ -44,7 +44,7 @@ async function add(page: Page) {
   await page.getByRole("button", { name: "Add product", exact: true }).click();
   await dialog(page).getByLabel("Product name", { exact: true }).fill("Mocha");
   await dialog(page).getByLabel("Selling price (PHP)", { exact: true }).fill("160");
-  await dialog(page).getByLabel("Cost per item (PHP)", { exact: true }).fill("50");
+  await dialog(page).getByLabel("Manual Estimated Cost (PHP)", { exact: true }).fill("50");
 }
 async function edit(page: Page, name = "Latte") {
   await page.getByRole("button", { name: `Edit ${name}`, exact: true }).click();

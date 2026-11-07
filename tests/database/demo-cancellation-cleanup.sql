@@ -15,6 +15,9 @@ from numbered where sequence_number % 97 = 0;
 update public.pos_sales set status='cancelled',payment_status='cancelled',
   refund_reason='[Demo] Order cancelled before preparation'
 where id in(select id from old_demo_cancellations);
+-- The current sample seed uses clean names; recreate the old markers only in this isolated fixture.
+update public.pos_sales s set items=(select jsonb_agg(item||jsonb_build_object('name','[Demo] '||(item->>'name'))) from jsonb_array_elements(s.items) item)
+where id in(select id from old_demo_cancellations);
 -- Changed reasons and non-demo items must survive even when identifiers match the old seed.
 update public.pos_sales set refund_reason='Owner-maintained historical cancellation'
 where id=(select id from old_demo_cancellations where fixture_number=1);
