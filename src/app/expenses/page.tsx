@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { requireMember } from "@/lib/auth/require-member";
 import { shopDate, salesRange } from "@/lib/sales/period";
 import type { Expense } from "@/lib/sales/domain";
@@ -33,3 +34,5 @@ async function ExpensesReport({ supabase, shop, role, today, from, to }: Pick<Aw
   return <ExpensesView expenses={expenses} loadError={loadError} shopId={shop.id}
     founder={role === "founder"} today={today} from={from} to={to} />;
 }
+
+export const metadata: Metadata = { title: "Expenses", robots: { index: false, follow: false } };

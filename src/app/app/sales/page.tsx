@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { loadSalesReport } from "@/lib/sales/load-report";
 import { requireMember } from "@/lib/auth/require-member";
 import { WorkspaceShell } from "@/components/workspace-shell";
@@ -48,3 +49,5 @@ async function SalesReport({ supabase, shop, role, from, to }: Pick<Awaited<Retu
     />
   );
 }
+
+export const metadata: Metadata = { title: "Sales", robots: { index: false, follow: false } };

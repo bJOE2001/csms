@@ -7,7 +7,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 800
     await page.evaluate(() => document.fonts.ready);
     await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
     await expect(page.locator(".topbar, nav, .workspace-sidebar")).toHaveCount(0);
-    await expect(page.getByRole("img", { name: "LOGO", exact: true })).toHaveAttribute("src", "/images/Logov1.png");
+    await expect(page.getByRole("img", { name: "Sip & Snap", exact: true })).toHaveAttribute("src", "/images/Logo.png");
     await expect(page.getByRole("link", { name: "Forgot password?", exact: true })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Back to website", exact: true })).toHaveAttribute("href", "/");
     const card = (await page.locator(".sign-in-card").boundingBox())!;

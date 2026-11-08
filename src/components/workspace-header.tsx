@@ -8,7 +8,7 @@ import { Menu, X } from "lucide-react";
 import { Icon } from "@/components/ui/icon";
 import { Button } from "./ui/button";
 import { BrandLogo } from "./brand-logo";
-import { coffeeBrand } from "@/lib/brand";
+import { coffeeBrand, displayShopName } from "@/lib/brand";
 
 function NavigationLinks({ active, onNavigate, navigationRef }: {
   active: string;
@@ -48,6 +48,7 @@ export function WorkspaceHeader({ active, shopName }: {
   shopName: string;
   role?: string;
 }) {
+  const label = displayShopName(shopName);
   const [open, setOpen] = useState(false);
   const closeButton = useRef<HTMLButtonElement>(null);
   const desktopNavigation = useRef<HTMLElement>(null);
@@ -62,7 +63,7 @@ export function WorkspaceHeader({ active, shopName }: {
   return (
     <>
       <aside className="workspace-sidebar">
-        <Link className="workspace-brand" href="/pos" aria-label={coffeeBrand.name + " — " + shopName} title={shopName}>
+        <Link className="workspace-brand" href="/pos" aria-label={label === coffeeBrand.name ? coffeeBrand.name : coffeeBrand.name + " — " + label} title={label}>
           <BrandLogo />
         </Link>
         <NavigationLinks active={active} navigationRef={desktopNavigation} />
@@ -70,7 +71,7 @@ export function WorkspaceHeader({ active, shopName }: {
       </aside>
       <Dialog.Root open={open} onOpenChange={setOpen}>
         <header className="workspace-mobile-header">
-          <Link className="workspace-mobile-brand" href="/pos" aria-label={coffeeBrand.name + " — " + shopName} title={shopName}>
+          <Link className="workspace-mobile-brand" href="/pos" aria-label={label === coffeeBrand.name ? coffeeBrand.name : coffeeBrand.name + " — " + label} title={label}>
             <BrandLogo />
           </Link>
           <Dialog.Trigger asChild>

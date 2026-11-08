@@ -1,4 +1,5 @@
 "use client";
+import { coffeeBrand } from "@/lib/brand";
 import { useActionState, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
@@ -43,7 +44,7 @@ export function SignInForm({ action, initialError }: {
     <div className="sign-in-stack">
       <div className="sign-in-logo"><BrandLogo /></div>
       <section className="sign-in-card" aria-labelledby={`${id}-title`}>
-        <header><h1 id={`${id}-title`}>Welcome back</h1><p>Sign in to access LOGO POS.</p></header>
+        <header><h1 id={`${id}-title`}>Welcome back</h1><p>Sign in to access {coffeeBrand.name} POS.</p></header>
         <form action={formAction} noValidate aria-busy={pending || undefined} onSubmit={event => {
           if (pending) { event.preventDefault(); return; }
           const next = credentialErrors(email, password);

@@ -1,3 +1,4 @@
+import { coffeeBrand } from "@/lib/brand";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { BrandLogo } from "../brand-logo";
@@ -22,7 +23,7 @@ export function AccountShell({
         <Link
           className="brand"
           href="/"
-          aria-label="LOGO home"
+          aria-label={`${coffeeBrand.name} home`}
         >
           <BrandLogo />
         </Link>

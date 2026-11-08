@@ -48,7 +48,7 @@ describe("public storefront data boundary", () => {
     expect(coffeeShopSchema()).not.toHaveProperty("openingHours");
     expect(coffeeShopSchema()).not.toHaveProperty("aggregateRating");
     expect(coffeeShopSchema()).not.toHaveProperty("geo");
-    expect(coffeeShopSchema().name).toBe("LOGO");
+    expect(coffeeShopSchema().name).toBe("Sip & Snap");
     expect(coffeeShopSchema().hasMap).toBe(visit.directions);
   });
   it("uses only configured public origins for canonical and social URLs", () => {
@@ -56,7 +56,7 @@ describe("public storefront data boundary", () => {
     expect(publicMetadata("Menu", "Our menu", "/menu").alternates).toBeUndefined();
     vi.stubEnv("SITE_URL", "https://coffee.example");
     expect(publicMetadata("Menu", "Our menu", "/menu").alternates).toEqual({ canonical: "https://coffee.example/menu" });
-    expect(publicMetadata("Menu", "Our menu", "/menu").openGraph).toMatchObject({ siteName: "LOGO", images: [{ url: "https://coffee.example/images/Logov1.png", width: 1774, height: 887 }] });
+    expect(publicMetadata("Menu", "Our menu", "/menu").openGraph).toMatchObject({ siteName: "Sip & Snap", images: [{ url: "https://coffee.example/images/Logo.png", width: 1254, height: 1254 }] });
     expect(sitemap().map(entry => entry.url)).toEqual(["https://coffee.example/", "https://coffee.example/menu", "https://coffee.example/visit"]);
     expect(robots().sitemap).toBe("https://coffee.example/sitemap.xml");
     expect(robots().rules).toMatchObject({ allow: expect.arrayContaining(["/menu"]), disallow: expect.arrayContaining(["/app"]) });

@@ -11,14 +11,15 @@ const screens = [
   { path: "/expenses", name: "Expenses", heading: "Expenses Management" },
   { path: "/libraries", name: "Libraries", heading: "Libraries" },
 ];
-async function catalog(page: Page) {
+async function catalog(page: Page, shopName = "Common Ground Coffee") {
   await page.route("**/api/inventory*", route => route.fulfill({ json: { data: { items: [], movements: [], configs: [], returnable: [] } } }));
   await page.route("**/api/pos", route => route.fulfill({ json: {
-    shop: { id: uid(1), name: "Common Ground Coffee" }, founder: true, user_id: uid(1),
+    shop: { id: uid(1), name: shopName }, founder: true, user_id: uid(1),
     categories: [{ id: uid(2), name: "Coffee" }],
     products: Array.from({ length: 12 }, (_, i) => ({
       id: uid(10 + i), name: i ? `Coffee ${i}` : "Latte", category_id: uid(2),
       description: "Freshly prepared coffee.", price_cents: 14500, cost_cents: 5000, active: true,
+      inventory: i ? { regular: { state: "active", max_quantity: 100, cost_cents: 5000 } } : { [uid(30)]: { state: "active", max_quantity: 100, cost_cents: 5000 }, [uid(31)]: { state: "active", max_quantity: 100, cost_cents: 6000 } },
       sizes: i ? [] : [
         { id: uid(30), label: "12 oz", price_cents: 14500, cost_cents: 5000, active: true, is_default: true },
         { id: uid(31), label: "16 oz", price_cents: 16500, cost_cents: 6000, active: true, is_default: false },
@@ -58,14 +59,14 @@ for (const viewport of [
       const currentHeaderHeight = (await sidebar.boundingBox())!.height;
       if (headerHeight === undefined) headerHeight = currentHeaderHeight;
       expect(currentHeaderHeight).toBe(headerHeight);
-      const logo = sidebar.getByRole("img", { name: "LOGO", exact: true });
-      await expect(logo).toHaveAttribute("src", "/images/Logov1.png");
-      await expect.poll(() => logo.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth === 1774 && image.naturalHeight === 887)).toBe(true);
+      const logo = sidebar.getByRole("img", { name: "Sip & Snap", exact: true });
+      await expect(logo).toHaveAttribute("src", "/images/Logo.png");
+      await expect.poll(() => logo.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth === 1254 && image.naturalHeight === 1254)).toBe(true);
       await expect(logo).toHaveCSS("object-fit", "contain");
       await expect(logo).toHaveCSS("filter", "none");
       await expect(logo).toHaveCSS("transform", "none");
       const imageBox = (await logo.boundingBox())!;
-      expect(Math.abs(imageBox.width / imageBox.height - 2)).toBeLessThan(0.01);
+      expect(Math.abs(imageBox.width / imageBox.height - 1)).toBeLessThan(0.01);
       const artwork = sidebar.locator(".brand-artwork");
       await expect(artwork).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
       await expect(artwork).toHaveCSS("background-image", "none");
@@ -82,7 +83,7 @@ for (const viewport of [
         const drawerLogo = page.getByRole("dialog", { name: "Navigation menu", exact: true }).locator(".brand-artwork");
         await expect(drawerLogo).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
         await expect(drawerLogo).toHaveCSS("box-shadow", "none");
-        await expect(drawerLogo.locator("img")).toHaveAttribute("src", "/images/Logov1.png");
+        await expect(drawerLogo.locator("img")).toHaveAttribute("src", "/images/Logo.png");
       }
       const nav = page.getByRole("navigation", { name: "Shop", exact: true });
       await expect(nav.getByRole("link")).toHaveCount(screens.length);
@@ -167,3 +168,33 @@ test("brand buttons, controls, statuses and focus retain readable contrast", asy
   expect(destructiveColors.background).not.toBe("rgb(242, 161, 94)");
   expect(contrast(destructiveColors.foreground, destructiveColors.background)).toBeGreaterThanOrEqual(4.5);
 });
+
+
+for (const [method, width, size, price] of [["Cash", 1440, "12 oz", 14500], ["E-wallet", 1032, "16 oz", 16500]] as const) {
+  test(`rebranded ${method} checkout preserves size prices, quantities and legacy payment identifiers`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await catalog(page, "LOGO Coffee");
+    const calls: { data: { id: string; method: string; items: { price_cents: number; quantity: number; size_id: string }[] } }[] = [];
+    await page.route("**/api/pos", async route => {
+      if (route.request().method() === "GET") return route.fallback();
+      const body = route.request().postDataJSON();
+      calls.push(body);
+      return route.fulfill({ json: { data: { id: body.data.id, total_cents: price * 2 } } });
+    });
+    await page.goto("/pos");
+    const brand = page.locator(width >= 1280 ? ".workspace-brand" : ".workspace-mobile-brand").first();
+    await expect(brand).toHaveAttribute("title", "Sip & Snap");
+    if (size === "16 oz") await page.getByRole("group", { name: "Size for Latte", exact: true }).getByRole("radio", { name: size, exact: true }).check();
+    await page.getByRole("button", { name: new RegExp(`Latte ${size}.*Add to cart`) }).click();
+    if (width < 1280) await page.getByRole("button", { name: /^Open cart/ }).click();
+    await page.getByRole("button", { name: `Increase Latte ${size}`, exact: true }).click();
+    if (method === "Cash") {
+      await page.getByLabel("Cash received", { exact: true }).fill("300");
+      await expect(page.locator(".cart-change")).toHaveText("Change ₱10.00");
+    } else await page.getByRole("button", { name: "E-wallet", exact: true }).click();
+    await page.getByRole("button", { name: "Place an order", exact: true }).click();
+    await expect(page.locator("[data-sonner-toast][data-type=success]")).toContainText("Sale completed successfully");
+    expect(calls).toHaveLength(1);
+    expect(calls[0].data).toMatchObject({ method: method === "Cash" ? "cash" : "gcash", items: [{ size_id: size === "12 oz" ? uid(30) : uid(31), price_cents: price, quantity: 2 }] });
+  });
+}

@@ -14,7 +14,9 @@
 }
 .receipt-paper p { margin: 0; }
 .receipt-brand { text-align: center; padding-bottom: 20px; }
-.receipt-logo { display: block; width: 144px; height: auto; max-width: 100%; margin: 0 auto 6px; object-fit: contain; }
+.receipt-brand-artwork { display: flex; justify-content: center; margin-bottom: 10px; padding: 8px; background: var(--sidebar-bg); }
+.receipt-logo { display: block; width: 104px; height: auto; max-width: 100%; object-fit: contain; }
+.receipt-brand .receipt-business-name { margin-bottom: 6px; color: var(--ink); font-size: 22px; font-weight: 700; line-height: 1.25; }
 .receipt-brand .receipt-kind { color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; }
 .receipt-store-details { display: grid; gap: 3px; max-width: 35ch; margin: 10px auto 0; color: var(--muted); font-size: 12px; font-style: normal; overflow-wrap: anywhere; }
 .receipt-reference { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -73,7 +75,6 @@
   .print-receipt { display: block; width: 72mm; max-width: 100%; margin: 0 auto; background: white; }
   .print-receipt[data-paper-width="58"] { width: 50mm; }
   .print-receipt .receipt-paper { padding: 0; border: 0; border-radius: 0; background: white; color: black; font: 11px/1.4 Arial, sans-serif; --line: #777; --muted: #222; --ink: #000; --brand: #000; --danger: #000; }
-  .print-receipt .receipt-logo { width: 30mm; margin-bottom: 2mm; }
   .print-receipt .receipt-brand { padding-bottom: 12px; break-inside: avoid; }
   .print-receipt .receipt-store-details { font-size: 10px; margin-top: 6px; }
   .print-receipt .receipt-date { margin: 8px 0 12px; font-size: 10px; }
@@ -92,7 +93,6 @@
   .print-receipt[data-paper-width="58"] .receipt-items th:first-child { width: 30px; }
   .print-receipt[data-paper-width="58"] .receipt-items th:last-child { width: 56px; }
   .print-receipt[data-paper-width="58"] .receipt-items td:nth-child(2) { padding-right: 6px; }
-  .print-receipt[data-paper-width="58"] .receipt-logo { width: 26mm; }
   .print-receipt[data-paper-width="58"] .receipt-brand { padding-bottom: 8px; }
   .print-receipt[data-paper-width="58"] .receipt-items td { padding-block: 6px; }
   .print-receipt[data-paper-width="58"] .receipt-totals > div { margin-top: 4px; }

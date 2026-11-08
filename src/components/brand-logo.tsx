@@ -6,7 +6,7 @@ export function BrandLogo({ alt = coffeeBrand.name }: { alt?: string }) {
     <span className="brand-artwork">
       {/* Serve the original transparent PNG without optimizer transformations. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/images/Logov1.png" alt={alt} width={1774} height={887}
+      <img src={coffeeBrand.logo.src} alt={alt} width={coffeeBrand.logo.width} height={coffeeBrand.logo.height}
         className="brand-logo" decoding="async" />
     </span>
   );

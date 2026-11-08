@@ -84,7 +84,7 @@ test("a pending save prevents dismissal and duplicate submissions", async ({
   await dialog.getByRole("button", { name: "Save product" }).click();
   await expect(
     dialog.getByRole("button", { name: "Close dialog" }),
-  ).toBeDisabled();
+  ).toHaveCount(0);
   await expect(
     dialog.getByRole("button", { name: "Cancel", exact: true }),
   ).toBeDisabled();
@@ -143,14 +143,14 @@ test("mobile dialogs trap focus and respect reduced motion", async ({
   await page.getByRole("button", { name: "Add product", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Add product" });
   await expect(dialog).toHaveCSS("animation-name", "none");
-  await dialog.getByRole("button", { name: "Close dialog" }).focus();
+  await dialog.getByLabel("Product name", { exact: true }).focus();
   await page.keyboard.press("Shift+Tab");
   await expect(
     dialog.getByRole("button", { name: "Save product" }),
   ).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(
-    dialog.getByRole("button", { name: "Close dialog" }),
+    dialog.getByLabel("Product name", { exact: true }),
   ).toBeFocused();
   const bounds = await dialog.boundingBox();
   expect(bounds!.x).toBeGreaterThanOrEqual(15);

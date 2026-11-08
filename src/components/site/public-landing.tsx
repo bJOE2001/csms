@@ -19,9 +19,9 @@ export function PublicLanding({ menu, visit }: { menu: ReactNode; visit: VisitDe
     <div id="featured">{menu}</div>
     <section className="site-story site-section" id="our-story" aria-labelledby="our-story-title">
       <SitePhoto photo={siteContent.storyImage} sizes="(max-width: 700px) calc(100vw - 40px), 48vw" />
-      <div className="site-story-copy"><p className="site-kicker">THE LOGO EXPERIENCE</p><h2 id="our-story-title">More than<br /><em>just coffee.</em></h2><p>{siteContent.story}</p><Link className="site-text-link" href="/visit">Make time for a visit<ArrowUpRight size={18} aria-hidden="true" /></Link><p className="site-story-signature">Your cup. Your people. Your moment.</p></div>
+      <div className="site-story-copy"><p className="site-kicker">THE {siteContent.name} EXPERIENCE</p><h2 id="our-story-title">More than<br /><em>just coffee.</em></h2><p>{siteContent.story}</p><Link className="site-text-link" href="/visit">Make time for a visit<ArrowUpRight size={18} aria-hidden="true" /></Link><p className="site-story-announcement">Photo booth experience coming soon.</p><p className="site-story-signature">Your cup. Your people. Your moment.</p></div>
     </section>
     <VisitSection visit={visit} />
-    <section className="site-final-cta" aria-labelledby="final-cta-title"><p className="site-kicker">MAKE IT A LOGO MOMENT</p><h2 id="final-cta-title">Your next favorite<br /><em>cup is calling.</em></h2><p>See what&apos;s on the menu and find your way to LOGO.</p><div><Link prefetch={false} className="site-button" href="/menu">Explore Menu<ArrowUpRight size={18} aria-hidden="true" /></Link><Link className="site-button site-button-outline" href="/visit">Visit LOGO<ArrowUpRight size={18} aria-hidden="true" /></Link></div></section>
+    <section className="site-final-cta" aria-labelledby="final-cta-title"><p className="site-kicker">MAKE IT A {siteContent.name} MOMENT</p><h2 id="final-cta-title">Your next favorite<br /><em>cup is calling.</em></h2><p>See what&apos;s on the menu and find your way to {siteContent.name}.</p><div><Link prefetch={false} className="site-button" href="/menu">Explore Menu<ArrowUpRight size={18} aria-hidden="true" /></Link><Link className="site-button site-button-outline" href="/visit">Visit {siteContent.name}<ArrowUpRight size={18} aria-hidden="true" /></Link></div></section>
   </>;
 }

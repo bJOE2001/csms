@@ -3,8 +3,7 @@
 import { displayQuantity, formatUnitCost, itemTypes, stockStatus, type InventoryItem } from "@/lib/inventory/domain";
 import { money } from "@/lib/sales/domain";
 import { AppFormDialog } from "../ui/app-form-dialog";
-import { Button } from "../ui/button";
-import { DialogBody, DialogFooter } from "../ui/dialog-layout";
+import { DialogBody } from "../ui/dialog-layout";
 
 export function InventoryStatus({ item }: { item: InventoryItem }) {
   const status = stockStatus(item);
@@ -17,7 +16,7 @@ export function ItemDetails({ item, onClose }: {
   onClose: () => void;
 }) {
   return (
-    <AppFormDialog open title={item.name} description={itemTypes.find(type => type.value === item.item_type)?.label} onClose={onClose} size="sm">
+    <AppFormDialog open showCloseButton title={item.name} description={itemTypes.find(type => type.value === item.item_type)?.label} onClose={onClose} size="sm">
       <DialogBody className="inventory-item-details">
         <dl className="inventory-detail-overview">
           <div><dt>Available Stock</dt><dd>{displayQuantity(item.quantity, item.base_unit)}</dd></div>
@@ -30,9 +29,6 @@ export function ItemDetails({ item, onClose }: {
         </dl>
         {item.notes && <p className="hint inventory-item-notes">{item.notes}</p>}
       </DialogBody>
-      <DialogFooter>
-        <Button variant="outline" data-dialog-cancel onClick={onClose}>Close</Button>
-      </DialogFooter>
     </AppFormDialog>
   );
 }

@@ -1,4 +1,4 @@
-# LOGO public storefront
+# Sip & Snap public storefront
 
 ## Routes and design
 
@@ -50,7 +50,7 @@ The homepage chooses up to four available products alphabetically and displays a
 
 ## Photography and images
 
-The official business name is LOGO. Public copy, accessible names, page metadata and structured data use that name. The exact black-and-white `/images/Logov1.png` remains unchanged; shared BrandLogo accepts a public alt label without changing private workspace usage. Social sharing uses the same official artwork rather than a concept photograph presented as an actual product.
+The official business name is Sip & Snap. Public copy, accessible names, page metadata and structured data use that name. The exact full-color square `/images/Logo.png` is used unchanged; shared BrandLogo accepts a public alt label without changing private workspace usage. Social sharing uses the same official artwork rather than a concept photograph presented as an actual product.
 
 Two generated, unbranded takeaway-cup concepts replace the glass-cup photographs. SitePhoto positions the exact original PNG as a separate, aspect-preserving sticker layer on the nearly front-facing cup surface. The generator never receives or redraws the wordmark. Visible captions and config mark both images as concepts; cup material, lids, packaging and premises are not verified business claims. `docs/PUBLIC_PHOTOGRAPHY.md` records prompts, assets and replacement instructions. Retired stock licensing records remain in `public/site/CREDITS.md`.
 
@@ -101,7 +101,7 @@ The redesign checks above predate the restricted-catalog migration. The local en
 ### Components and files
 
 - `src/components/site/public-landing.tsx`, `featured-products.tsx`, `public-product-card.tsx` and new `site-photo.tsx`: five-section content, actual featured records, sizes, image fallbacks and exact-artwork composition.
-- `src/components/site/site-header.tsx`, `public-shell.tsx`, `visit-section.tsx` and `menu-gallery.tsx`: public navigation, footer, location content and consistent LOGO naming.
+- `src/components/site/site-header.tsx`, `public-shell.tsx`, `visit-section.tsx` and `menu-gallery.tsx`: public navigation, footer, location content and consistent Sip & Snap naming.
 - `src/app/landing.css`: scoped editorial layout, responsive grids, compact navigation, readable controls and motion preferences.
 - `src/lib/site/config.ts`, `public-menu.ts`, `seo.ts`, public page files and root metadata: content, four-product selection, correct business name and social imagery. `src/components/brand-logo.tsx` adds an optional alt label while preserving its private-workspace default and original asset.
 - `public/site/*-concept.webp`, photography/credits documentation and public unit/browser tests: optimized temporary images, provenance, replacement instructions and regression coverage. No database, private API, accounting or checkout code changed.

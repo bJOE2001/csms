@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { requireMember } from "@/lib/auth/require-member";
@@ -44,3 +45,5 @@ async function DashboardReport({ member: { supabase, shop }, from, to }: {
   }
   return <DashboardView report={report} shopId={shop.id} shopName={shop.name} timezone={shop.timezone} from={from} to={to} loadError={loadError} />;
 }
+
+export const metadata: Metadata = { title: "Dashboard", robots: { index: false, follow: false } };

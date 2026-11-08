@@ -18,7 +18,7 @@ test("receipt shows branded items, original payment and change across screen siz
     });
     const receipt = dialog.getByRole("article", { name: "Customer receipt" });
     await expect(
-      receipt.getByRole("img", { name: "LOGO", exact: true }),
+      receipt.getByRole("img", { name: "Sip & Snap", exact: true }),
     ).toBeVisible();
     await expect(receipt).toContainText("Nov 2, 2026");
     await expect(receipt).toContainText("5:18 PM");
@@ -38,9 +38,9 @@ test("receipt shows branded items, original payment and change across screen siz
       dialog.getByRole("button", { name: "Print receipt", exact: true }),
     ).toBeInViewport();
     await expect(
-      dialog.getByRole("button", { name: "Close", exact: true }),
+      dialog.getByRole("button", { name: "Close dialog", exact: true }),
     ).toBeInViewport();
-    await dialog.getByRole("button", { name: "Close", exact: true }).click();
+    await dialog.getByRole("button", { name: "Close dialog", exact: true }).click();
     await expect(
       page.getByRole("button", { name: "View receipt" }),
     ).toBeFocused();

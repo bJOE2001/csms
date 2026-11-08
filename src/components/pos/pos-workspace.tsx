@@ -1,4 +1,5 @@
 "use client";
+import { coffeeBrand } from "@/lib/brand";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { WorkspaceSkeleton } from "../ui/workspace-skeleton";
@@ -159,7 +160,7 @@ export function PosWorkspace() {
       setBusy(false);
     }
   }
-  if (!data) return <WorkspaceShell active="pos" shopName="LOGO">
+  if (!data) return <WorkspaceShell active="pos" shopName={coffeeBrand.name}>
     {error || loadError ? <section className="workspace-load-error">
       <h1>POS unavailable</h1>
       <p role="alert" className="form-message error">{error || loadError}</p>

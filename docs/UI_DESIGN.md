@@ -1,6 +1,6 @@
-# LOGO Coffee visual direction
+# Sip & Snap visual direction
 
-The **LOGO Coffee — Warm Espresso & Caramel** design system uses the approved transparent logo directly on a dark Espresso sidebar, Warm Canvas workspace, white panels and Caramel highlights. The application has five business screens: POS, Menu, Sales, Expenses and Libraries. Expenses reuses Menu's compact overview cards, integrated table toolbar and dialog controls. Artwork rules, full palette and contrast treatments are documented in [BRANDING.md](BRANDING.md).
+The **Sip & Snap — Warm Espresso & Caramel** design system uses the approved transparent logo directly on a dark Espresso sidebar, Warm Canvas workspace, white panels and Caramel highlights. The application has five business screens: POS, Menu, Sales, Expenses and Libraries. Expenses reuses Menu's compact overview cards, integrated table toolbar and dialog controls. Artwork rules, full palette and contrast treatments are documented in [BRANDING.md](BRANDING.md).
 
 ## Shared styling
 

@@ -1,7 +1,7 @@
-.sign-in-page { display: grid; place-items: center; min-height: 100dvh; padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)); background: var(--paper); }
+.sign-in-page { display: grid; place-items: center; min-height: 100dvh; padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)); background: var(--sidebar-bg); }
 .sign-in-stack { width: min(100%, 440px); display: grid; gap: 20px; }
 .sign-in-logo { display: flex; justify-content: center; }
-.sign-in-logo .brand-artwork { width: 144px; height: 72px; }
+.sign-in-logo .brand-artwork { width: 128px; }
 .sign-in-card { padding: 28px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
 .sign-in-card header { margin-bottom: 24px; }
 .sign-in-card h1 { margin: 0 0 6px; font-size: 28px; line-height: 1.25; }
@@ -18,7 +18,8 @@
 .sign-in-card .sign-in-submit { width: 100%; min-height: 46px; }
 .sign-in-error { margin: 0; font-size: 13px; }
 .sign-in-field-error { margin: 0; color: var(--danger); font-size: 12px; }
-.sign-in-return { justify-self: center; display: inline-flex; align-items: center; min-height: 44px; padding-inline: 12px; color: var(--muted); font-size: 13px; }
-.sign-in-return:hover { color: var(--brand); text-decoration: underline; text-underline-offset: 3px; }
-@media (max-width: 480px) { .sign-in-card { padding: 24px; } .sign-in-logo .brand-artwork { width: 128px; height: 64px; } }
+.sign-in-return { justify-self: center; display: inline-flex; align-items: center; min-height: 44px; padding-inline: 12px; color: var(--sidebar-text); font-size: 13px; }
+.sign-in-return:hover { color: var(--sidebar-focus); text-decoration: underline; text-underline-offset: 3px; }
+.sign-in-return:focus-visible { outline-color: var(--sidebar-focus); }
+@media (max-width: 480px) { .sign-in-card { padding: 24px; } .sign-in-logo .brand-artwork { width: 112px; } }
 @media (max-height: 600px) { .sign-in-page { place-items: start center; } .sign-in-stack { gap: 12px; } }

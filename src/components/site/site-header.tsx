@@ -1,4 +1,5 @@
 "use client";
+import { coffeeBrand } from "@/lib/brand";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -21,7 +22,7 @@ export function SiteHeader({ ordering }: { ordering?: string }) {
   const navigation = <>{links.map(([label, href]) => <Link prefetch={false} href={href} key={href} aria-current={pathname === href ? "page" : undefined} onClick={() => setOpen(false)}>{label}</Link>)}</>;
   return <Dialog.Root open={open} onOpenChange={setOpen}>
     <header className="site-header"><div className="site-header-inner">
-      <Link href="/" className="site-logo" aria-label="LOGO home"><BrandLogo alt="LOGO" /></Link>
+      <Link href="/" className="site-logo" aria-label={`${coffeeBrand.name} home`}><BrandLogo /></Link>
       <nav ref={desktopNav} className="site-desktop-nav" aria-label="Customer navigation">{navigation}</nav>
       {ordering && <a className="site-button site-header-cta" href={ordering} target="_blank" rel="noopener noreferrer">Order Now<ArrowUpRight size={17} aria-hidden="true" /><span className="sr-only"> (opens a new tab)</span></a>}
       <Dialog.Trigger asChild><button className="site-menu-toggle" aria-label="Open customer navigation"><Menu size={24} aria-hidden="true" /></button></Dialog.Trigger>
@@ -29,9 +30,9 @@ export function SiteHeader({ ordering }: { ordering?: string }) {
     <Dialog.Portal><Dialog.Overlay className="site-nav-overlay" /><Dialog.Content className="site-nav-drawer" onOpenAutoFocus={event => { event.preventDefault(); closeButton.current?.focus(); }} onCloseAutoFocus={event => {
       if (window.matchMedia("(min-width: 900px)").matches) { event.preventDefault(); desktopNav.current?.querySelector<HTMLAnchorElement>('a[aria-current="page"]')?.focus(); }
     }}>
-      <div className="site-nav-drawer-heading"><BrandLogo alt="LOGO" /><Dialog.Close asChild><button ref={closeButton} className="site-menu-toggle" aria-label="Close customer navigation"><X size={24} aria-hidden="true" /></button></Dialog.Close></div>
-      <Dialog.Title className="sr-only">Customer navigation</Dialog.Title><Dialog.Description className="sr-only">Explore LOGO, our menu, story, and visit information.</Dialog.Description>
-      <nav aria-label="Customer navigation">{navigation}</nav><p>Streetwear attitude. Coffeehouse warmth.</p>
+      <div className="site-nav-drawer-heading"><BrandLogo /><Dialog.Close asChild><button ref={closeButton} className="site-menu-toggle" aria-label="Close customer navigation"><X size={24} aria-hidden="true" /></button></Dialog.Close></div>
+      <Dialog.Title className="sr-only">Customer navigation</Dialog.Title><Dialog.Description className="sr-only">Explore {coffeeBrand.name}, our menu, story, and visit information.</Dialog.Description>
+      <nav aria-label="Customer navigation">{navigation}</nav><p>Coffee, food, and moments worth sharing.</p>
     </Dialog.Content></Dialog.Portal>
   </Dialog.Root>;
 }

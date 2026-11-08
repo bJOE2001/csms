@@ -26,6 +26,7 @@ export type DialogProps = {
   initialFocus?: "field" | "cancel";
   dismissible?: boolean;
   dismissOnOutside?: boolean;
+  showCloseButton?: boolean;
   returnFocusRef?: RefObject<HTMLElement | null>;
 };
 
@@ -43,6 +44,7 @@ export function Dialog({
   initialFocus = "field",
   dismissible = true,
   dismissOnOutside = true,
+  showCloseButton = true,
   returnFocusRef,
 }: DialogProps) {
   const trigger = useRef<HTMLElement | null>(null);
@@ -99,14 +101,14 @@ export function Dialog({
           if (dismissible && dismissOnOutside && !isNotificationTarget(event.target)) onClose();
         }}
       >
-        <div className="dialog-heading">
+        <div className="dialog-heading" data-has-close={showCloseButton || undefined}>
           <div>
             <DialogTitle>{title}</DialogTitle>
             {description && (
               <DialogDescription>{description}</DialogDescription>
             )}
           </div>
-          <button
+          {showCloseButton && <button
             className="icon-button"
             type="button"
             aria-label="Close dialog"
@@ -114,7 +116,7 @@ export function Dialog({
             onClick={onClose}
           >
             <Icon name="close" />
-          </button>
+          </button>}
         </div>
         {children}
         {footer && <DialogFooter>{footer}</DialogFooter>}

@@ -145,7 +145,7 @@ h2 {
   height: auto;
   object-fit: contain;
 }
-.brand .brand-artwork { width: 128px; }
+.brand .brand-artwork { width: 64px; }
 .topbar .top-link { color: var(--sidebar-text); }
 .topbar .top-link:hover { background: var(--sidebar-hover); text-decoration: none; }
 .topbar .nav-link { background: var(--sidebar-active); color: var(--sidebar-active-text); }

@@ -1,10 +1,10 @@
-# LOGO Coffee POS System
+# Sip & Snap POS System
 
 A small online POS with five screens: **POS**, **Menu**, **Sales**, **Expenses** and **Libraries**. Manage product categories in Libraries and products, images, sizes, prices and direct costs in Menu, take cash or GCash payments, manage operating expenses in Expenses, then review date-filtered revenue, gross profit, net profit, expenses, receipts and full refunds in Sales.
 
 Stack: Next.js 15, React 19, Tailwind 3, shadcn/ui and Supabase Auth/PostgreSQL. There is no inventory, recipe, purchasing, budgeting, funding, staff administration, device pairing, cash shift or offline checkout module.
 
-The **LOGO Coffee — Warm Espresso & Caramel** theme shares the approved transparent artwork at `public/images/Logov1.png`, centralized colors and accessible controls across all five modules and account screens. See [brand tokens, artwork rules and accessibility treatments](docs/BRANDING.md).
+The **Sip & Snap — Warm Espresso & Caramel** theme shares the approved transparent artwork at `public/images/Logo.png`, centralized colors and accessible controls across all five modules and account screens. See [brand tokens, artwork rules and accessibility treatments](docs/BRANDING.md).
 
 ## Run
 

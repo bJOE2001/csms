@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test("public routes render without authentication and preserve internal route boundaries", async ({ page, request }) => {
-  for (const [route, title] of [["/", "LOGO — Good Coffee. Better Moments."], ["/menu", "Our Menu — LOGO"], ["/visit", "Visit Us — LOGO, Carmen"]]) {
+  for (const [route, title] of [["/", "Sip & Snap | Coffee & Memories"], ["/menu", "Menu | Sip & Snap"], ["/visit", "Visit Us | Sip & Snap"]]) {
     await page.goto(route);
     await expect(page).toHaveTitle(title);
     expect((await request.get(route)).headers()["x-robots-tag"]).toBeUndefined();
@@ -36,7 +36,7 @@ test("legacy public menu bookmarks redirect permanently and retain query strings
   expect(response.headers().location).toBe("/menu?source=bookmark");
   await page.goto("/coffee-menu?source=bookmark#product-existing");
   await expect(page).toHaveURL(/\/menu\?source=bookmark#product-existing$/);
-  await expect(page).toHaveTitle("Our Menu — LOGO");
+  await expect(page).toHaveTitle("Menu | Sip & Snap");
   await expect(page.locator(".workspace-sidebar")).toHaveCount(0);
 });
 
@@ -66,7 +66,11 @@ test("public product images optimize without cropping and details hydrate as a r
   await page.route("**/api/public-menu", route => route.fulfill({ json: { status: "published", products: [product] } }));
   await page.setViewportSize({ width: 393, height: 852 });
   await page.goto("/menu");
+  // Wait for an interactive filter before requesting a refresh through its focus listener.
+  await page.getByRole("button", { name: "All selections", exact: true }).click();
+  const refreshed = page.waitForResponse(response => response.url().endsWith("/api/public-menu"));
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await refreshed;
   const card = page.locator(`#product-${product.id}`);
   await expect(card.getByRole("heading")).toHaveText(product.name);
   const image = card.getByRole("img", { name: product.name, exact: true });
@@ -91,6 +95,7 @@ test("SEO includes honest local data, excludes private URLs, and leaves unknown 
   await page.goto("/");
   const schema = JSON.parse((await page.locator('script[type="application/ld+json"]').textContent())!);
   expect(schema["@type"]).toBe("CafeOrCoffeeShop");
+  expect(schema.name).toBe("Sip & Snap");
   expect(schema.address).toBe("Purok 6, Ising, Carmen, Davao del Norte");
   expect(schema.aggregateRating).toBeUndefined();
   expect(schema.telephone).toBeUndefined();
@@ -104,4 +109,26 @@ test("SEO includes honest local data, excludes private URLs, and leaves unknown 
   const sitemap = await (await request.get("/sitemap.xml")).text();
   expect(sitemap).not.toMatch(/\/dashboard|\/pos|\/app\/|\/coffee-menu/);
   await expect(page.getByRole("navigation", { name: "Customer navigation", exact: true }).getByRole("link", { name: "Menu", exact: true })).toHaveAttribute("href", "/menu");
+});
+
+
+test("brand metadata, browser icons and account pages use Sip & Snap", async ({ page, request }) => {
+  await page.goto("/");
+  await expect(page.locator('meta[property="og:site_name"]')).toHaveAttribute("content", "Sip & Snap");
+  await expect(page.locator('meta[name="application-name"]')).toHaveAttribute("content", "Sip & Snap");
+  const icon = page.locator('link[rel="icon"]').first();
+  await expect(icon).toHaveAttribute("href", "/brand/favicon.ico");
+  expect((await request.get("/brand/favicon.ico")).status()).toBe(200);
+  expect((await request.get("/brand/apple-touch-icon.png")).status()).toBe(200);
+  await expect(page.locator('img[src*="Logov1"], img[src*="LogoWithWhite"]')).toHaveCount(0);
+  await expect(page.locator("body")).not.toContainText(/\bLOGO(?: Coffee)?\b/);
+  await expect(page.getByText("Photo booth experience coming soon.", { exact: true })).toBeVisible();
+  for (const [path, title] of [["/sign-in", "Sign In"], ["/forgot-password", "Reset Password"], ["/reset-password", "Choose a Password"], ["/pos", "POS"], ["/app/menu", "Menu Management"], ["/libraries", "Libraries"]]) {
+    await page.goto(path);
+    await expect(page).toHaveTitle(`${title} | Sip & Snap`);
+    const logo = page.locator(".brand-logo").first();
+    await expect(logo).toHaveAttribute("src", "/images/Logo.png");
+    await expect.poll(() => logo.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth === 1254 && image.naturalHeight === 1254)).toBe(true);
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", "noindex, nofollow");
+  }
 });

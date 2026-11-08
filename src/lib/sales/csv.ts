@@ -1,3 +1,4 @@
+import { displayShopName } from "../brand";
 import { paymentMethodLabel, summarize, type Sale, type Expense } from "./domain";
 
 export type ExportKind = "summary" | "sales" | "expenses";
@@ -40,7 +41,7 @@ export function salesCsv(kind: ExportKind, report: SalesReport): string {
         : "All sale costs recorded";
     rows = [
       ["Metric", "Value", "Unit", "Notes"],
-      ["Shop", report.shopName, "", ""],
+      ["Shop", displayShopName(report.shopName), "", ""],
       ["From", report.from, "", "Inclusive shop date"],
       ["To", report.to, "", "Inclusive shop date"],
       ["Timezone", report.timezone, "", ""],
@@ -141,7 +142,7 @@ export function salesCsv(kind: ExportKind, report: SalesReport): string {
       ...report.sales.map((sale) => {
         const totals = summarize([sale]);
         return [
-          report.shopName,
+          displayShopName(report.shopName),
           report.from,
           report.to,
           report.timezone,
@@ -187,7 +188,7 @@ export function salesCsv(kind: ExportKind, report: SalesReport): string {
         ...(report.expenses.some(expense => expense.classification === "inventory_purchase") ? ["Accounting classification"] : []),
       ],
       ...report.expenses.map((expense) => [
-        report.shopName,
+        displayShopName(report.shopName),
         report.from,
         report.to,
         report.timezone,

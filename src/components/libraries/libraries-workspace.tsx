@@ -1,4 +1,5 @@
 "use client";
+import { coffeeBrand } from "@/lib/brand";
 
 import { useCatalog } from "@/lib/menu/use-catalog";
 import { WorkspaceSkeleton } from "../ui/workspace-skeleton";
@@ -10,7 +11,7 @@ import { CategoryDialog } from "./category-dialog";
 
 export function LibrariesWorkspace() {
   const { data, error, refresh, isLoading } = useCatalog();
-  if (!data) return <WorkspaceShell active="libraries" shopName="LOGO">
+  if (!data) return <WorkspaceShell active="libraries" shopName={coffeeBrand.name}>
     {error ? <section>
       <h1>Libraries</h1>
       <p role="alert" className="form-message error">{error}</p>

@@ -1,4 +1,5 @@
 "use client";
+import { coffeeBrand } from "@/lib/brand";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { publicMenuSchema, type PublicMenu } from "@/lib/site/public-menu";
 import { PublicProductCard } from "./public-product-card";
@@ -37,7 +38,7 @@ export function MenuGallery({ initialMenu }: { initialMenu: PublicMenu }) {
     {menu.status === "unavailable" && menu.products.length > 0 && <p className="site-menu-notice" role="status">We couldn&apos;t refresh availability. Showing the last loaded menu. <button onClick={() => void refresh()} disabled={pending}>Try again</button></p>}
     {products.length ? <div className="site-product-grid">{products.map(product => <PublicProductCard key={`${product.id}:${product.image}`} product={product} />)}</div> : <div className="site-menu-empty">
       <h2>{menu.status === "unavailable" ? "Our online menu is taking a short break." : "Our online menu is being prepared."}</h2>
-      <p>{menu.status === "unavailable" ? "Please try again, or ask about our current selections when you visit." : "Visit LOGO to see our current selections. We look forward to your next coffee moment."}</p>
+      <p>{menu.status === "unavailable" ? "Please try again, or ask about our current selections when you visit." : `Visit ${coffeeBrand.name} to see our current selections. We look forward to your next coffee moment.`}</p>
       {menu.status === "unavailable" && <button className="site-button site-button-dark" onClick={() => void refresh()} disabled={pending}>{pending ? "Refreshing menu…" : "Try again"}</button>}
     </div>}
   </div>;

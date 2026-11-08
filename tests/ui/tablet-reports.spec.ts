@@ -111,11 +111,11 @@ for (const viewport of [
           await page.getByRole("button", { name: /^View receipt / }).first().click();
           const receipt = page.getByRole("dialog", { name: "Sale receipt", exact: true });
           await expect(receipt).toContainText("E-wallet");
-          await receipt.getByRole("button", { name: "Close", exact: true }).click();
+          await receipt.getByRole("button", { name: "Close dialog", exact: true }).click();
           await page.getByRole("button", { name: "Export CSV", exact: true }).click();
           const download = page.waitForEvent("download");
           await page.getByRole("button", { name: "Download CSV", exact: true }).click();
-          expect((await download).suggestedFilename()).toBe("summary-2026-11-01_2026-11-03.csv");
+          expect((await download).suggestedFilename()).toBe("sip-and-snap-summary-2026-11-01_2026-11-03.csv");
         }
         if (screen.name === "expenses") {
           await page.getByRole("searchbox").fill("Operating");

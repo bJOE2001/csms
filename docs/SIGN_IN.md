@@ -1,6 +1,6 @@
 # Focused sign-in
 
-`/sign-in` now renders SignInForm directly, without AccountShell’s navbar. The public website header, authenticated sidebar and existing password-recovery pages retain their layouts. The sign-in experience uses a centered 440px maximum card, the shared original LOGO artwork, existing Espresso tokens, a Welcome back heading and a minimal Back to website link.
+`/sign-in` now renders SignInForm directly, without AccountShell’s navbar. The public website header, authenticated sidebar and existing password-recovery pages retain their layouts. The sign-in experience uses a centered 440px maximum card, the shared original Sip & Snap artwork, existing Espresso tokens, a Welcome back heading and a minimal Back to website link.
 
 Email and password retain the existing autocomplete semantics. Both are controlled only in component memory, preserving entered values after recoverable failures; passwords are not added to URLs, storage, returned action state or logs. The password starts masked. Eye/EyeOff buttons have accessible names, keyboard focus, pressed state, and preserve selection and pointer focus without delayed focus changes. The surrounding input group and focused eye button each use a single indicator according to which element has focus.
 

@@ -16,7 +16,7 @@ export function ReceiptPrint({ receipt, shopName, business, paperWidth = "80", o
       try {
         await document.fonts.ready;
         await Promise.all([...content.current!.querySelectorAll("img")].map(image => image.decode().catch(() => undefined)));
-        // Let the logo's error fallback and final font metrics commit before invoking native print.
+        // Let final receipt content and font metrics commit before invoking native print.
         await new Promise<void>(resolve => { frame = requestAnimationFrame(() => resolve()); });
         if (active) window.print();
       } catch {
@@ -35,6 +35,6 @@ export function ReceiptPrint({ receipt, shopName, business, paperWidth = "80", o
   }, [onClose]);
   // A body-level portal lets print CSS remove the entire app, including modal overlays.
   return createPortal(<div ref={content} className="print-receipt" data-paper-width={paperWidth} aria-hidden="true">
-    <SaleReceipt receipt={receipt} shopName={shopName} business={business} />
+    <SaleReceipt receipt={receipt} shopName={shopName} business={business} printable />
   </div>, document.body);
 }

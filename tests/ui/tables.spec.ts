@@ -168,7 +168,7 @@ test("table action tooltips support hover, keyboard, dialogs and safe cancellati
     if (scenario.path === "/libraries") {
       await expect(confirmation).toContainText("Products use this category");
       await expect(confirmation.getByRole("button", { name: "Delete category", exact: true })).toHaveCount(0);
-      await confirmation.getByRole("button", { name: "Close", exact: true }).click();
+      await confirmation.getByRole("button", { name: "Cancel", exact: true }).click();
     } else await confirmation.getByRole("button", { name: "Cancel", exact: true }).click();
   }
   expect(writes).toEqual([]);

@@ -1,4 +1,5 @@
 "use client";
+import { coffeeBrand } from "@/lib/brand";
 import { useState } from "react";
 import {
   isAvailable,
@@ -26,7 +27,7 @@ export function MenuWorkspace() {
   const [sort] = useState("name");
   if (!data)
     return (
-      <WorkspaceShell active="menu" shopName="LOGO">
+      <WorkspaceShell active="menu" shopName={coffeeBrand.name}>
         {error ? (
           <section>
             <h1>Menu Management</h1>

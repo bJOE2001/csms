@@ -1,4 +1,5 @@
 "use client";
+import { coffeeBrand } from "@/lib/brand";
 import { useState } from "react";
 import { salesCsv, type ExportKind, type SalesReport } from "@/lib/sales/csv";
 import { summarize } from "@/lib/sales/domain";
@@ -39,7 +40,7 @@ export function ExportSales({ report }: { report: SalesReport }) {
         new Blob([salesCsv(kind, report)], { type: "text/csv;charset=utf-8" }),
       );
       anchor.href = url;
-      anchor.download = `${kind}-${report.from}_${report.to}.csv`;
+      anchor.download = `${coffeeBrand.slug}-${kind}-${report.from}_${report.to}.csv`;
       document.body.appendChild(anchor);
       anchor.click();
       setOpen(false);

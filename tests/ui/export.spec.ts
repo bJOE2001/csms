@@ -30,7 +30,7 @@ test("exports automatically applied dates while invalid drafts and search leave 
     );
     const download = await downloadEvent;
     expect(download.suggestedFilename()).toMatch(
-      /^(summary|sales|expenses)-2026-10-01_2026-11-02.csv$/,
+      /^sip-and-snap-(summary|sales|expenses)-2026-10-01_2026-11-02.csv$/,
     );
     const csv = await readFile((await download.path())!, "utf8");
     expect(csv).toContain("Common Ground Coffee");

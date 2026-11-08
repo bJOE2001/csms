@@ -17,11 +17,11 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 800
     await expect(hero).toHaveAttribute("src", "/site/takeaway-latte-concept.webp");
     await expect(page.locator(".site-cup-sticker img")).toHaveCount(2);
     for (const image of await page.locator(".site-cup-sticker img").all()) {
-      await expect(image).toHaveAttribute("src", "/images/Logov1.png");
+      await expect(image).toHaveAttribute("src", "/images/Logo.png");
       expect(await image.evaluate((el: HTMLImageElement) => Math.abs(el.clientWidth / el.clientHeight - el.naturalWidth / el.naturalHeight))).toBeLessThan(0.05);
     }
     await expect(page.locator(".coffee-site")).not.toContainText("LOGO Coffee");
-    await expect(page.getByRole("img", { name: "LOGO", exact: true })).toHaveCount(2);
+    await expect(page.getByRole("img", { name: "Sip & Snap", exact: true })).toHaveCount(2);
     await expect(page.locator(".site-gallery, .site-location-ribbon")).toHaveCount(0);
     await expect(page.locator("main section")).toHaveCount(5);
     await expect(page.locator(".site-featured .site-product")).toHaveCount(4);
@@ -35,6 +35,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 800
     }
     await page.locator(".site-featured").screenshot({ path: `.local/ui-review/storefront/featured-${viewport.width}.png` });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({ path: `.local/ui-review/storefront/home-${viewport.width}.png` });
     await page.screenshot({ path: `.local/ui-review/storefront/full-${viewport.width}.png`, fullPage: true });
     await page.getByRole("heading", { name: "Your next coffee stop." }).scrollIntoViewIfNeeded();

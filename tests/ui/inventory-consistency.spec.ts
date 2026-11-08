@@ -64,10 +64,10 @@ for (const viewport of viewports) {
     await expect(detail).toContainText("2,000 g");
     await expect(detail.getByRole("button", { name: "View History", exact: true })).toHaveCount(0);
     await expect(detail.getByRole("button", { name: "Count Stock", exact: true })).toHaveCount(0);
-    await expect(detail.locator(".dialog-footer").getByRole("button")).toHaveCount(1);
-    await expect(detail.locator(".dialog-footer").getByRole("button")).toHaveAccessibleName("Close");
+    await expect(detail.locator(".dialog-footer")).toHaveCount(0);
+    await expect(detail.getByRole("button", { name: "Close", exact: true })).toHaveCount(0);
     await page.screenshot({ path: `.local/ui-review/inventory/refined-details-${viewport.width}.png`, animations: "disabled" });
-    await detail.getByRole("button", { name: "Close", exact: true }).click();
+    await detail.getByRole("button", { name: "Close dialog", exact: true }).click();
     const more = row.getByRole("button", { name: "More actions for Ground Coffee", exact: true });
     await expect(row.getByRole("group", { name: "Actions for Ground Coffee", exact: true }).getByRole("button")).toHaveCount(2);
     await expect(row.getByRole("button", { name: "Count Stock for Ground Coffee", exact: true })).toHaveCount(0);
@@ -166,10 +166,10 @@ for (const viewport of viewports) {
     await expect(movement.getByText(uid(201), { exact: true })).not.toBeVisible();
     await movement.getByText("Advanced Details", { exact: true }).click();
     await expect(movement.getByText(uid(201), { exact: true })).toBeVisible();
-    await expect(movement.getByRole("button", { name: "Close", exact: true })).toBeInViewport();
+    await expect(movement.getByRole("button", { name: "Close dialog", exact: true })).toBeInViewport();
     expect(await movement.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
     await page.screenshot({ path: `.local/ui-review/inventory/movement-details-${viewport.width}.png`, animations: "disabled" });
-    await movement.getByRole("button", { name: "Close", exact: true }).click();
+    await movement.getByRole("button", { name: "Close dialog", exact: true }).click();
     await expect(viewDetails).toBeFocused();
     expect(await history.locator("tbody tr").first().evaluate(el => el.getBoundingClientRect().height)).toBe(originalHeight);
     for (const label of ["From Date", "To Date"]) {
@@ -269,7 +269,7 @@ test("selected non-first item stays contextual through stock actions and refresh
   await page.getByRole("row", { name: "Open 12 oz Cup details", exact: true }).click();
   const detail = page.getByRole("dialog", { name: "12 oz Cup", exact: true });
   await expect(detail).toContainText("20 pcs");
-  await detail.getByRole("button", { name: "Close", exact: true }).click();
+  await detail.getByRole("button", { name: "Close dialog", exact: true }).click();
   const row = page.getByRole("row", { name: "Open 12 oz Cup details", exact: true });
   await row.getByRole("button", { name: "Stock In for 12 oz Cup", exact: true }).click();
   const stock = page.getByRole("dialog", { name: "Stock In", exact: true });
@@ -335,7 +335,7 @@ test("selected non-first item stays contextual through stock actions and refresh
   await expect(page.getByRole("searchbox", { name: "Search inventory items", exact: true })).toHaveValue("12 oz Cup");
   await expect(page.getByLabel("Current inventory overview")).toContainText("₱1,450.00");
   await page.getByRole("row", { name: "Open 12 oz Cup details", exact: true }).click();
-  await detail.getByRole("button", { name: "Close", exact: true }).click();
+  await detail.getByRole("button", { name: "Close dialog", exact: true }).click();
   await page.getByRole("button", { name: "History", exact: true }).click();
   await chooseOption(page, page.getByRole("combobox", { name: "Inventory item", exact: true }), "12 oz Cup");
   await expect(page.getByRole("combobox", { name: "Inventory item", exact: true })).toHaveText("12 oz Cup");
@@ -458,7 +458,7 @@ test("sale movements navigate to the existing authorized receipt viewer", async 
   const receipt = page.getByRole("dialog", { name: "Sale receipt", exact: true });
   await expect(receipt).toContainText("Latte");
   await expect(page.locator(".app-dialog")).toHaveCount(1);
-  await receipt.getByRole("button", { name: "Close", exact: true }).click();
+  await receipt.getByRole("button", { name: "Close dialog", exact: true }).click();
   await expect(receipt).toHaveCount(0);
   await expect(page).not.toHaveURL(/#receipt-/);
   await page.goto(`/app/sales?from=2026-11-02&to=2026-11-02#receipt-${uid(999)}`);
@@ -470,6 +470,6 @@ test("linked receipts resolve beyond the visible page without changing table pag
   await page.goto(`/app/sales?from=2026-11-02&to=2026-11-02&many#receipt-${uid(130)}`);
   const receipt = page.getByRole("dialog", { name: "Sale receipt", exact: true });
   await expect(receipt).toBeVisible();
-  await receipt.getByRole("button", { name: "Close", exact: true }).click();
+  await receipt.getByRole("button", { name: "Close dialog", exact: true }).click();
   await expect(page.getByRole("navigation", { name: "Sales history pagination" }).locator(".table-count")).toContainText("1–10 of 40");
 });

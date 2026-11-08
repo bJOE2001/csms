@@ -24,7 +24,7 @@ export function MovementDetails({ movement, onClose }: { movement: Movement; onC
   const recorded = new Intl.DateTimeFormat("en-PH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Manila" }).format(new Date(movement.created_at));
   const receiptHref = movement.kind === "sale" && uuid.test(movement.source_id)
     ? `/app/sales?from=${movement.occurred_on}&to=${movement.occurred_on}#receipt-${movement.source_id}` : undefined;
-  return <AppFormDialog open title="Stock Movement Details" description={`${kind} · ${date}`} onClose={onClose}>
+  return <AppFormDialog open showCloseButton title="Stock Movement Details" description={`${kind} · ${date}`} onClose={onClose}>
     <DialogBody className="inventory-movement-details">
       <dl className="inventory-detail-list">
         <div><dt>Inventory Item</dt><dd>{movement.name}</dd></div>
@@ -53,9 +53,8 @@ export function MovementDetails({ movement, onClose }: { movement: Movement; onC
         </dl>
       </details>
     </DialogBody>
-    <DialogFooter>
-      <Button variant="outline" data-dialog-cancel onClick={onClose}>Close</Button>
-      {receiptHref && <Button asChild><LoadingLink href={receiptHref}>View Receipt</LoadingLink></Button>}
-    </DialogFooter>
+    {receiptHref && <DialogFooter>
+      <Button asChild><LoadingLink href={receiptHref}>View Receipt</LoadingLink></Button>
+    </DialogFooter>}
   </AppFormDialog>;
 }

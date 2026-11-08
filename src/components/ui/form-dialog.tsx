@@ -147,10 +147,11 @@ export function FormDialog({
         dismissible={!pending}
         className={`crud-dialog ${className}`}
         returnFocusRef={returnFocusRef}
-        footer={readOnly ? <>
+        {...(!confirmation ? { showCloseButton: readOnly } : {})}
+        footer={readOnly ? confirmation ? <>
           {readOnlyActions}
-          <Button className="secondary" data-dialog-cancel onClick={close}>Close</Button>
-        </> : undefined}
+          <Button variant="outline" data-dialog-cancel onClick={requestClose}>Cancel</Button>
+        </> : readOnlyActions : undefined}
       >
         <div
           className="dialog-content"

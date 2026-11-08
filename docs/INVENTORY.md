@@ -1,6 +1,6 @@
 > Current policy: manual fallback selling and the setup wizard are retired. See [Recipe-only inventory and local reset](RECIPE_ONLY_DEVELOPMENT.md). Earlier rollout descriptions below document the preceding compatibility phase.
 
-# LOGO Inventory: implementation and owner setup
+# Sip & Snap Inventory: implementation and owner setup
 
 ## Architecture
 
@@ -43,7 +43,7 @@ The **Inventory Setup** guide tracks dynamic 5-step progress (`Not Started`, `In
 If an existing shop contains historical `ingredients` records (for example `Butter Croissant`, `Cold Cup - 16 oz`, `Cup Lid`, `Chocolate Sauce`, or `Espresso Beans`), verify each record with the owner before editing:
 
 - Reclassify packaging (`Cold Cup - 16 oz`, `Cup Lid`) to `Packaging / Supply` and ready-to-sell pastries (`Butter Croissant`) to `Finished Good` via **Edit Item**.
-- Rename `Espresso Beans` to `Ground Coffee` via **Edit Item** only after confirming with the owner that the record represents LOGO's purchased pre-ground coffee in grams.
+- Rename `Espresso Beans` to `Ground Coffee` via **Edit Item** only after confirming with the owner that the record represents Sip & Snap's purchased pre-ground coffee in grams.
 - Deactivate unused legacy items rather than deleting historical records. Every item update records a `before` snapshot in `audit_logs`.
 
 ## Security, seeds and validation

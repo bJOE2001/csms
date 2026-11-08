@@ -112,6 +112,7 @@ function RecipeLoader({
       returnFocusRef={returnFocusRef}
     >
       {!data ? (
+        <>
         <DialogBody>
           {error ? (
             <p className="form-message error" role="alert">
@@ -121,6 +122,10 @@ function RecipeLoader({
             <p role="status">Loading inventory configuration…</p>
           )}
         </DialogBody>
+        <DialogFooter>
+          <Button variant="outline" data-dialog-cancel onClick={onClose}>Cancel</Button>
+        </DialogFooter>
+        </>
       ) : (
         <RecipeEditor product={product} data={data} refresh={refresh} onClose={onClose} sizeId={sizeId} setSizeId={setSizeId} pending={pending} setPending={setPending} />
       )}

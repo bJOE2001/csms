@@ -1,18 +1,19 @@
 "use client";
 import { useState } from "react";
-import { coffeeBrand } from "@/lib/brand";
+import { coffeeBrand, displayShopName } from "@/lib/brand";
 import { money } from "@/lib/sales/domain";
 import type { CustomerReceipt, ReceiptBusinessDetails } from "@/lib/sales/receipt";
 
-function ReceiptHeader({ shopName, business }: { shopName: string; business: ReceiptBusinessDetails }) {
+function ReceiptHeader({ shopName, business, printable }: { shopName: string; business: ReceiptBusinessDetails; printable: boolean }) {
   const [failed, setFailed] = useState(false);
-  const branch = shopName.trim() && ![coffeeBrand.name.toLowerCase(), "logo coffee", "coffee logo"].includes(shopName.trim().toLowerCase()) ? shopName : undefined;
+  const label = displayShopName(shopName);
+  const branch = label.toLowerCase() !== coffeeBrand.name.toLowerCase() ? label : undefined;
   return <header className="receipt-brand">
-    {!failed && <>
-      {/* Use the unchanged official artwork for both preview and printing. */}
+    {!printable && !failed ? <div className="receipt-brand-artwork">
+      {/* Preview uses the unchanged color artwork; thermal printing uses the business-name fallback. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={coffeeBrand.logo.src} alt={coffeeBrand.name} width={coffeeBrand.logo.width} height={coffeeBrand.logo.height} onError={() => setFailed(true)} className="receipt-logo" />
-    </>}
+    </div> : <p className="receipt-business-name">{coffeeBrand.name}</p>}
     <p className="receipt-kind">Sales receipt</p>
     {(branch || business.address || business.phone) && <address className="receipt-store-details">
       {branch && <span>{branch}</span>}
@@ -23,11 +24,11 @@ function ReceiptHeader({ shopName, business }: { shopName: string; business: Rec
 }
 
 /** Customer-facing receipt, shared by the dialog and printout. */
-export function SaleReceipt({ receipt, shopName, business = { address: coffeeBrand.address } }: {
-  receipt: CustomerReceipt; shopName: string; business?: ReceiptBusinessDetails;
+export function SaleReceipt({ receipt, shopName, business = { address: coffeeBrand.address }, printable = false }: {
+  receipt: CustomerReceipt; shopName: string; business?: ReceiptBusinessDetails; printable?: boolean;
 }) {
   return <article className="receipt-paper" aria-label="Customer receipt">
-    <ReceiptHeader shopName={shopName} business={business} />
+    <ReceiptHeader shopName={shopName} business={business} printable={printable} />
     <div className="receipt-reference">
       <div><span className="receipt-label">Receipt no.</span><p className="font-mono font-semibold">#{receipt.number}</p></div>
       <span className={`receipt-status ${receipt.reversed ? "receipt-status-reversed" : ""}`}>{receipt.status}</span>

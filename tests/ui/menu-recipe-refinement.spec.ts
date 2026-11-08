@@ -98,7 +98,7 @@ for (const viewport of [
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   const save = dialog.getByRole("button", { name: "Save draft", exact: true });
   expect((await save.boundingBox())!.y + (await save.boundingBox())!.height).toBeLessThan(viewport.height);
-  await dialog.getByRole("button", { name: "Close dialog", exact: true }).click();
+  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   expect(fixture.calls).toHaveLength(0);
 });
@@ -127,7 +127,7 @@ test("View Recipe respects unsaved product edits and uses the selected saved siz
   const recipe = page.getByRole("dialog", { name: "Recipe · Cafe Latte", exact: true });
   await expect(page.getByRole("dialog")).toHaveCount(1);
   await expect(recipe.getByRole("combobox", { name: "Product size", exact: true })).toHaveText("16 oz");
-  await recipe.getByRole("button", { name: "Close dialog", exact: true }).click();
+  await recipe.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(edit).toBeFocused();
   expect(fixture.calls).toHaveLength(0);
 });
@@ -159,4 +159,32 @@ test("missing costs remain visible and failed draft saves retain inputs and revi
   expect(calls[0].data).toMatchObject({ size_id: id(22), expected_revision: 7, action: "draft" });
   expect((calls[0].data.components as { quantity: string }[])[0].quantity).toBe("2");
   expect(calls).toHaveLength(1);
+});
+
+
+test("recipe loading and load failure retain an explicit Cancel action without a header close button", async ({ page }) => {
+  await setup(page);
+  let release!: () => void;
+  let loading = true;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  await page.route("**/api/inventory*", async route => {
+    if (loading) await gate;
+    await route.fulfill({ status: 503, json: { error: "Inventory is temporarily unavailable." } });
+  });
+  await page.goto("/app/menu");
+  const trigger = page.getByRole("button", { name: "Manage Recipe for Cafe Latte", exact: true });
+  await trigger.click();
+  const recipe = page.getByRole("dialog", { name: "Recipe · Cafe Latte", exact: true });
+  await expect(recipe.getByRole("status")).toContainText("Loading inventory configuration");
+  await expect(recipe.getByRole("button", { name: "Close dialog", exact: true })).toHaveCount(0);
+  await recipe.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(recipe).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  loading = false;
+  release();
+  await trigger.click();
+  await expect(recipe.getByRole("alert")).toContainText("Inventory is temporarily unavailable");
+  await recipe.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(recipe).toHaveCount(0);
+  await expect(trigger).toBeFocused();
 });

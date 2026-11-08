@@ -19,12 +19,13 @@
 .app-dialog[data-size="lg"] { --dialog-width: var(--dialog-size-lg); }
 .dialog-heading {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 44px;
+  grid-template-columns: minmax(0, 1fr);
   flex: none;
   align-items: start;
   gap: 16px;
   padding: var(--dialog-padding) var(--dialog-padding) 16px;
 }
+.dialog-heading[data-has-close] { grid-template-columns: minmax(0, 1fr) 44px; }
 .dialog-heading > div { min-width: 0; padding-top: 6px; }
 .dialog-heading h2 { margin: 0; font-size: 20px; font-weight: 650; line-height: 1.4; overflow-wrap: anywhere; }
 .dialog-heading p { margin: 6px 0 0; color: var(--muted); font-size: 13px; line-height: 1.55; overflow-wrap: anywhere; }

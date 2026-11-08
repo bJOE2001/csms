@@ -15,7 +15,7 @@ async function catalog(page: Page) {
     shop: { id: "00000000-0000-4000-8000-000000000001", name: "Common Ground Coffee" },
     user_id: "00000000-0000-4000-8000-000000000001", founder: true,
     categories: [{ id: "00000000-0000-4000-8000-000000000002", name: "Coffee" }],
-    products: [{ id: "00000000-0000-4000-8000-000000000003", name: "Latte", price_cents: 14500, cost_cents: 5000, active: true,
+    products: [{ id: "00000000-0000-4000-8000-000000000003", name: "Latte", price_cents: 14500, cost_cents: 5000, active: true, inventory: { regular: { state: "active", max_quantity: 100, cost_cents: 5000 } },
       category_id: "00000000-0000-4000-8000-000000000002" }],
   } }));
 }
@@ -28,7 +28,7 @@ async function compactHeader(page: Page) {
   await expect(page.locator(".workspace-sidebar")).toBeHidden();
   await expect(page.getByRole("navigation", { name: "Shop", exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Sign out", exact: true })).toHaveCount(0);
-  await expect(header.getByRole("img", { name: "LOGO", exact: true })).toBeVisible();
+  await expect(header.getByRole("img", { name: "Sip & Snap", exact: true })).toBeVisible();
   await expect(header.locator(":scope > *")).toHaveCount(2);
   const logo = (await header.locator(".brand-artwork").boundingBox())!;
   const button = (await trigger(page).boundingBox())!;
@@ -53,13 +53,13 @@ test("desktop keeps its sidebar with a smaller logo aligned to page headers", as
       await expect(trigger(page)).toHaveCount(0);
       const logo = (await sidebar.locator(".brand-artwork").boundingBox())!;
       expect(logo.width).toBe(128);
-      expect(logo.height).toBe(64);
+      expect(logo.height).toBe(128);
       const navigationIcon = (await sidebar.locator(".workspace-nav .nav-link > svg").first().boundingBox())!;
       expect(Math.abs(logo.x - navigationIcon.x)).toBeLessThan(2);
       if (screen.label !== "POS") {
         const title = (await page.getByRole("heading", { name: screen.heading, exact: true }).boundingBox())!;
-        // Dashboard and Inventory use compact 24px insets; other modules retain 32px.
-        expect(Math.abs(logo.y - title.y - (["Dashboard", "Inventory"].includes(screen.label) ? 8 : 0))).toBeLessThan(2);
+        // Dashboard uses compact 24px insets; the other modules retain 32px.
+        expect(Math.abs(logo.y - title.y - (screen.label === "Dashboard" ? 8 : 0))).toBeLessThan(2);
       }
       await expect(page.getByRole("navigation", { name: "Shop" }).getByRole("link")).toHaveCount(modules.length);
       await expect(page.getByRole("link", { name: screen.label, exact: true })).toHaveAttribute("aria-current", "page");

@@ -4,7 +4,7 @@
 
 ## Branding and business information
 
-`src/lib/brand.ts` centralizes LOGO Coffee’s approved identity, the original `/images/Logov1.png` artwork, its 1774 × 887 aspect ratio, and the owner-confirmed address. The sidebar, sign-in page, public defaults and receipts use that same source. Artwork is not recolored, cropped or regenerated. Receipts display the artwork without a separate LOGO Coffee text heading. A failed receipt image is removed while the Sales receipt label remains.
+`src/lib/brand.ts` centralizes Sip & Snap’s approved identity, the original `/images/Logo.png` artwork, its 1254 × 1254 aspect ratio, and the owner-confirmed address. The sidebar, sign-in page, public defaults and receipts use that same source. Artwork is not recolored, cropped or regenerated. Receipt previews show the official color artwork; failed previews fall back to the business name. Thermal receipts use the business name as a clean monochrome fallback and contain no color-logo bitmap.
 
 Sales passes the existing verified `SITE_ADDRESS` and optional validated `SITE_CONTACT_PHONE` configuration through to both preview and print. Missing optional details are omitted; no phone number is fabricated. A distinct shop name can appear as a branch label; the old Coffee Logo placeholder is omitted.
 

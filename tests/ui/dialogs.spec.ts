@@ -40,6 +40,7 @@ for (const viewport of [
       expect(box.x + box.width).toBeLessThanOrEqual(viewport.width - 15);
       expect(box.y + box.height).toBeLessThanOrEqual(viewport.height - 15);
       const header = dialog.locator(".dialog-heading");
+      await expect(header.getByRole("button")).toHaveCount(0);
       await expect(header).toHaveCSS("border-bottom-width", "0px");
       const body = dialog.locator(".dialog-body").first();
       const footer = dialog.locator(".dialog-footer").first();
@@ -87,6 +88,7 @@ test("dirty confirmations preserve the original form and focus the safe action a
     await form.getByLabel("Product name", { exact: true }).focus();
     await page.keyboard.press("Escape");
     const prompt = page.getByRole("alertdialog", { name: "Discard your changes?" });
+    await expect(prompt.getByRole("button", { name: "Close dialog", exact: true })).toHaveCount(0);
     await expect(prompt.getByRole("button", { name: "Keep editing", exact: true })).toBeFocused();
     await page.mouse.click(4, 4);
     await expect(prompt).toBeVisible();
@@ -109,6 +111,7 @@ test("destructive confirmations initially focus Cancel and do not submit on outs
   const trigger = page.getByRole("button", { name: "Delete product Latte", exact: true });
   await trigger.click();
   const confirmation = page.getByRole("alertdialog", { name: "Delete Latte?", exact: true });
+  await expect(confirmation.getByRole("button", { name: "Close dialog", exact: true })).toHaveCount(0);
   await expect(confirmation.getByRole("button", { name: "Cancel", exact: true })).toBeFocused();
   await page.mouse.click(4, 4);
   await expect(confirmation).toBeVisible();
@@ -140,8 +143,9 @@ test("validation stays above the fields and a pending save locks every dismissal
   expect(error.y).toBeGreaterThanOrEqual(header.y + header.height);
   await form.getByLabel("Selling price (PHP)", { exact: true }).fill("130");
   await form.getByRole("button", { name: "Save product", exact: true }).click();
-  await expect(form.getByRole("button", { name: "Close dialog", exact: true })).toBeDisabled();
+  await expect(form.getByRole("button", { name: "Close dialog", exact: true })).toHaveCount(0);
   await expect(form.getByRole("button", { name: "Cancel", exact: true })).toBeDisabled();
+  await expect(form).toHaveAttribute("aria-busy", "true");
   await page.keyboard.press("Escape");
   await page.mouse.click(4, 4);
   await expect(form).toBeVisible();

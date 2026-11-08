@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
@@ -69,3 +70,5 @@ export default async function SetupPage({
     </main>
   );
 }
+
+export const metadata: Metadata = { title: "Shop Setup", robots: { index: false, follow: false } };

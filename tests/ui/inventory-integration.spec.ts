@@ -439,7 +439,8 @@ test("Save & Activate respects validation, keyboard submit, and pending submissi
   await quantity.fill("18");
   await quantity.press("Enter");
   await expect(dialog.getByRole("button", { name: "Saving…", exact: true })).toBeDisabled();
-  await expect(dialog.getByRole("button", { name: "Close dialog", exact: true })).toBeDisabled();
+  await expect(dialog.getByRole("button", { name: "Close dialog", exact: true })).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Cancel", exact: true })).toBeDisabled();
   await dialog.locator("form").dispatchEvent("submit");
   expect(writes).toBe(1);
   release();

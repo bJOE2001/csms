@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Input } from "@/components/ui/primitives/input";
 import Link from "next/link";
 import { MutationForm } from "@/components/mutation-form";
@@ -43,3 +44,5 @@ export default function ResetPassword() {
     </AccountShell>
   );
 }
+
+export const metadata: Metadata = { title: "Choose a Password", robots: { index: false, follow: false } };

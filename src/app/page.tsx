@@ -1,3 +1,4 @@
+import { coffeeBrand } from "@/lib/brand";
 import "./landing.css";
 import { PublicShell } from "@/components/site/public-shell";
 import { Suspense } from "react";
@@ -8,7 +9,7 @@ import { visitDetails } from "@/lib/site/config";
 import { coffeeShopSchema, publicMetadata } from "@/lib/site/seo";
 
 export const dynamic = "force-dynamic";
-export const metadata = publicMetadata("LOGO — Good Coffee. Better Moments.", `Discover LOGO at ${visitDetails().address}. Explore our coffee menu and plan your next coffee moment. Hours: ${visitDetails().hours}.`, "/");
+export const metadata = publicMetadata(`${coffeeBrand.name} | Coffee & Memories`, `Discover ${coffeeBrand.name} at ${visitDetails().address}. Explore our coffee menu and plan your next coffee moment. Hours: ${visitDetails().hours}.`, "/");
 async function MenuPreview() { return <FeaturedProducts menu={await readPublicMenu()} ids={process.env.SITE_FEATURED_PRODUCT_IDS?.split(",").map(id => id.trim())} />; }
 export default function Home() {
   return <PublicShell visit={visitDetails()}>
