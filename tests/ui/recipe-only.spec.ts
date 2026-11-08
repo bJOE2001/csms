@@ -23,7 +23,7 @@ for(const viewport of [{width:1440,height:900},{width:1280,height:800},{width:10
   await expect(page.getByText('Stock actions',{exact:true})).toHaveCount(0);
   const row=page.getByRole('row',{name:'Open Ground Coffee details'});await row.focus();await page.keyboard.press('Enter');
   const dialog=page.getByRole('dialog',{name:'Ground Coffee',exact:true});await expect(dialog).toContainText('2,000 g');
-  await expect(dialog.getByRole('button',{name:'Count Stock',exact:true})).toBeVisible();
+  await expect(dialog.getByRole('button',{name:'Count Stock',exact:true})).toHaveCount(0);
   await page.keyboard.press('Escape');await expect(dialog).toHaveCount(0);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.screenshot({path:`.local/ui-review/inventory/final-${viewport.width}.png`,animations:'disabled'});
@@ -42,7 +42,7 @@ test('product creation omits manual costs and unconfigured POS products cannot s
  await page.getByLabel('Product name',{exact:true}).fill('Cappuccino');await page.getByLabel('Selling price (PHP)',{exact:true}).fill('120');
  await page.getByRole('button',{name:'Save product',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0);
  expect(calls.find(call=>call.action==='product')?.data).not.toHaveProperty('cost_cents');
- await page.goto('/pos');await expect(page.getByRole('article',{name:'Cafe Latte',exact:true})).toContainText('Inventory recipe required');
+ await page.goto('/pos');await expect(page.getByRole('article',{name:'Cafe Latte',exact:true})).toContainText('Recipe missing');
  await expect(page.getByRole('button',{name:/Add to cart/})).toBeDisabled();
 });
 

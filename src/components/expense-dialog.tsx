@@ -54,7 +54,6 @@ export function ExpenseDialog({ expense, shopId, today }: {
       triggerLabel={expense ? `Edit expense ${expense.description}` : undefined}
       triggerClassName={expense ? "secondary compact" : "accent"}
       title={expense ? "Edit expense" : "Add expense"}
-      description="Record overhead such as rent, wages and utilities. Product costs are already deducted in Sales; do not enter them again here."
     >
       <MutationForm
         successTitle={expense ? "Expense updated" : "Expense created"}
@@ -96,7 +95,7 @@ export function ExpenseDialog({ expense, shopId, today }: {
         </div>
         <label className="field">
           Description
-          <Input name="description" defaultValue={expense?.description} maxLength={200} required placeholder="For example, electricity" />
+          <Input name="description" defaultValue={expense?.description} maxLength={200} required />
         </label>
         <label className="field">
           Amount (PHP)
@@ -105,7 +104,7 @@ export function ExpenseDialog({ expense, shopId, today }: {
         <label className="field">Accounting classification
           <Select name="classification" defaultValue={expense?.classification ?? "operating_expense"} options={[{ value: "operating_expense", label: "Operating expense — deducted from profit" }, { value: "inventory_purchase", label: "Inventory purchase — excluded from operating expenses" }]} />
         </label>
-        <p className="hint">Stock purchases belong in Inventory Stock In. A purchase recorded here does not receive stock and is excluded from profit when classified as Inventory purchase. Existing entries change only when you explicitly save a new classification.</p>
+        <p className="hint">Do not re-enter product costs. Receive inventory through Stock In.</p>
       </MutationForm>
     </FormDialog>
   );

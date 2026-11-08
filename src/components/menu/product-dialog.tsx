@@ -1,6 +1,6 @@
 "use client";
 import { useId, useRef, useState } from "react";
-import { Pencil } from "lucide-react";
+import { BookOpenCheck, Pencil } from "lucide-react";
 import {
   productWriteSchema,
   productInventoryStatus,
@@ -14,6 +14,7 @@ import { saveMenu } from "@/lib/menu/use-catalog";
 import { FormDialog, useFormDialog } from "../ui/form-dialog";
 import { MutationForm } from "../mutation-form";
 import { Button } from "../ui/button";
+import { TableActionButton } from "../ui/table-action-button";
 import { Input } from "../ui/primitives/input";
 import { Select } from "../ui/select";
 import { Icon } from "../ui/icon";
@@ -40,18 +41,19 @@ function RecipeSummary({ product, sizeId, onManage }: {
   onManage: () => void;
 }) {
   const entry = product?.inventory?.[sizeId];
+  const hasCost = entry?.state === "active" && entry.cost_cents != null;
   const status = product ? productInventoryStatus({ ...product, inventory: entry ? { [sizeId]: entry } : {} }) : "Recipe Not Configured";
   return (
     <div className="product-recipe-summary">
-      <div className="field">
-        <span>Calculated Preparation Cost</span>
-        <output aria-label="Calculated Preparation Cost">
-          {entry?.state === "active" && entry.cost_cents != null ? money(entry.cost_cents) : "Cost unavailable"}
-        </output>
-      </div>
-      <div className="product-recipe-status">
-        <RecipeStatus status={status} />
-        {product && <Button variant="link" onClick={onManage}>View Recipe</Button>}
+      <span className="product-recipe-label">Calculated Preparation Cost</span>
+      <div className="product-recipe-content">
+        <div className={`product-recipe-value${hasCost ? "" : " product-recipe-value-unavailable"}`}>
+          <output aria-label="Calculated Preparation Cost">
+            {hasCost ? money(entry.cost_cents!) : "Cost unavailable"}
+          </output>
+          <RecipeStatus status={status} />
+        </div>
+        {product && <TableActionButton icon={BookOpenCheck} label="View Recipe" tooltip="View Recipe" onClick={onManage} />}
       </div>
     </div>
   );
@@ -69,7 +71,6 @@ export function ProductDialog(props: Props) {
         tableAction={props.product ? { icon: Pencil, tooltip: "Edit product" } : undefined}
         triggerClassName={props.product ? "secondary compact" : "accent"}
         title={props.product ? "Edit product" : "Add product"}
-        description="Menu changes apply to future sales. Completed receipts keep their original details."
         className="product-dialog"
         size="lg"
       >
@@ -281,9 +282,6 @@ function ProductEditor({ product, data, refresh, onManageRecipe }: Props & { onM
         <div className="size-heading">
           <div>
             <h3>Sizes & pricing</h3>
-            <p className="hint">
-              Keep selling prices manually configurable. Preparation costs update automatically once an inventory recipe is activated.
-            </p>
           </div>
           <Button
             variant="outline"
@@ -377,7 +375,7 @@ function ProductEditor({ product, data, refresh, onManageRecipe }: Props & { onM
                       changeSize(index, { active: event.target.checked })
                     }
                   />
-                  Available
+                  Size available
                 </label>
                 <Button
                   variant="ghost"
@@ -405,9 +403,6 @@ function ProductEditor({ product, data, refresh, onManageRecipe }: Props & { onM
             {sizeMessage}
           </p>
         )}
-        <p className="hint">
-          Preparation costs come from inventory recipes. Save this product, then use Manage Recipe before selling. Maximum 20 sizes.
-        </p>
       </section>
       <label className="menu-checkbox">
         <input

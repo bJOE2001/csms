@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type RefObject } from "react";
 import { PackagePlus } from "lucide-react";
 import { Button } from "../ui/button";
 import { TableActionButton } from "../ui/table-action-button";
@@ -48,6 +48,7 @@ export function StockDialog({
   onOpenChange,
   hideTrigger = false,
   refresh,
+  returnFocusRef,
 }: {
   items: InventoryItem[];
   item?: InventoryItem;
@@ -59,6 +60,7 @@ export function StockDialog({
   onOpenChange?: (open: boolean) => void;
   hideTrigger?: boolean;
   refresh: () => Promise<unknown>;
+  returnFocusRef?: RefObject<HTMLElement | null>;
 }) {
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const isOpen = controlledOpen ?? uncontrolledOpen;
@@ -109,6 +111,7 @@ export function StockDialog({
           workflow={workflow}
           refresh={refresh}
           onClose={() => setOpen(false)}
+          returnFocusRef={returnFocusRef}
         />
       )}
     </>
@@ -122,6 +125,7 @@ function StockEditor({
   workflow,
   refresh,
   onClose,
+  returnFocusRef,
 }: {
   items: InventoryItem[];
   initial: InventoryItem;
@@ -129,6 +133,7 @@ function StockEditor({
   workflow: StockWorkflow;
   refresh: () => Promise<unknown>;
   onClose: () => void;
+  returnFocusRef?: RefObject<HTMLElement | null>;
 }) {
   const [selected, setSelected] = useState<InventoryItem>(initial);
   const [unit, setUnit] = useState<string>(initial.base_unit);
@@ -204,15 +209,6 @@ function StockEditor({
           ? "Adjust Stock"
           : "Stock In";
 
-  const dialogDescription =
-    workflow === "opening"
-      ? "Record the quantity and value already available when starting inventory tracking."
-      : workflow === "count"
-        ? "Enter the actual physical quantity on hand. The system calculates the adjustment automatically."
-        : workflow === "correction"
-          ? "Record wastage, spillage, spoilage, damaged supplies, or manual stock corrections."
-          : "Record a new delivery or purchase to increase available inventory.";
-
   let previewUnitCost: string | undefined;
   try {
     if (convertedBase !== null && convertedBase > 0n && costInput.trim()) {
@@ -223,7 +219,7 @@ function StockEditor({
   }
 
   return (
-    <AppFormDialog open onClose={onClose} title={dialogTitle} description={dialogDescription} size={workflow === "receipt" || workflow === "opening" ? "lg" : "md"}>
+    <AppFormDialog open onClose={onClose} title={dialogTitle} size={workflow === "receipt" || workflow === "opening" ? "lg" : "md"} returnFocusRef={returnFocusRef}>
       <form
         className="dialog-form"
         onSubmit={event => {
@@ -364,7 +360,6 @@ function StockEditor({
                       value={quantity}
                       onChange={event => setQuantity(event.target.value)}
                       inputMode="decimal"
-                      placeholder={selected.base_unit === "g" ? "e.g., 1000 or 2" : "e.g., 12"}
                       required
                     />
                   </label>
@@ -385,12 +380,8 @@ function StockEditor({
                     onChange={event => setCostInput(event.target.value)}
                     inputMode="decimal"
                     required
-                    placeholder="e.g., 950.00 (enter 0 only if free)"
                   />
                 </label>
-                <p className="hint">
-                  Total cost for the entire quantity. Average inventory cost updates automatically.
-                </p>
                 {convertedBase !== null && convertedBase > 0n && <dl className="inventory-stock-preview" role="status" aria-label="Stock receipt preview">
                   <div><dt>Quantity added</dt><dd>{signedQuantity(decimal(convertedBase), selected.base_unit)}</dd></div>
                   <div><dt>Purchase unit cost</dt><dd>{previewUnitCost ? `${previewUnitCost} / ${unitLabel(selected.base_unit)}` : "—"}</dd></div>
@@ -412,12 +403,12 @@ function StockEditor({
                 </label>
                   <label className="field">
                     Supplier (optional)
-                    <Input name="supplier" maxLength={120} placeholder="Supplier or store name" />
+                    <Input name="supplier" maxLength={120} />
                   </label>
                 </div>
                   <label className="field">
                     Reference (optional)
-                    <Input name="reference" maxLength={120} placeholder="Receipt or invoice number" />
+                    <Input name="reference" maxLength={120} />
                   </label>
                 <label className="field">
                   Notes (optional)
@@ -425,11 +416,6 @@ function StockEditor({
                     name="notes"
                     maxLength={1000}
                     rows={2}
-                    placeholder={
-                      workflow === "opening"
-                        ? "Optional note about this initial stock count"
-                        : "Optional delivery or batch note"
-                    }
                   />
                 </label>
               </fieldset>
@@ -445,7 +431,6 @@ function StockEditor({
                       value={quantity}
                       onChange={event => setQuantity(event.target.value)}
                       inputMode="decimal"
-                      placeholder={`Counted ${unitLabel(selected.base_unit)}`}
                       required
                     />
                   </label>
@@ -469,10 +454,6 @@ function StockEditor({
                   </div>
                 </dl>
                 {deltaScaled === 0n && <p className="hint inventory-quantity-increase">Stock matches the system balance.</p>}
-                <details className="inventory-count-help">
-                  <summary>How counts stay accurate</summary>
-                  <p className="hint">Stock is checked again before posting. If it changes, refresh and recount.</p>
-                </details>
               </fieldset>
 
               <fieldset className="inventory-form-section">
@@ -489,7 +470,6 @@ function StockEditor({
                     onChange={event => setReason(event.target.value)}
                     required
                     maxLength={500}
-                    placeholder="e.g., End-of-day shelf count or unrecorded spillage"
                   />
                 </label>
                 <label className="field">
@@ -505,11 +485,10 @@ function StockEditor({
                       value={costInput}
                       onChange={event => setCostInput(event.target.value)}
                       inputMode="decimal"
-                      placeholder="Leave blank to keep weighted-average cost"
                     />
                   </label>
                   <p className="hint">
-                    Leave blank for normal counts. Fill this in only when setting a verified total PHP value for uncosted legacy stock.
+                    Entering a value overrides the counted stock valuation.
                   </p>
                 </details>
               </fieldset>
@@ -562,11 +541,6 @@ function StockEditor({
                       onChange={event => setCostInput(event.target.value)}
                       inputMode="decimal"
                       required={needsIncreaseCost}
-                      placeholder={
-                        needsIncreaseCost
-                          ? "Required because this item has no recorded unit cost"
-                          : "Leave blank to value using current average unit cost"
-                      }
                     />
                   </label>
                 )}
@@ -586,7 +560,6 @@ function StockEditor({
                     onChange={event => setReason(event.target.value)}
                     required
                     maxLength={500}
-                    placeholder="Describe why stock is being adjusted"
                   />
                 </label>
                 <label className="field">

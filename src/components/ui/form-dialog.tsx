@@ -10,6 +10,7 @@ import {
   useState,
   type ReactNode,
   type Ref,
+  type RefObject,
 } from "react";
 import { AppFormDialog } from "./app-form-dialog";
 import { AppConfirmDialog } from "./app-confirm-dialog";
@@ -50,6 +51,7 @@ export function FormDialog({
   hideTrigger = false,
   onClose,
   triggerRef,
+  returnFocusRef,
 }: {
   trigger: ReactNode;
   title: string;
@@ -67,6 +69,7 @@ export function FormDialog({
   readOnlyActions?: ReactNode;
   onClose?: () => void;
   triggerRef?: Ref<HTMLButtonElement>;
+  returnFocusRef?: RefObject<HTMLElement | null>;
   hideTrigger?: boolean;
   tableAction?: {
     icon: LucideIcon;
@@ -143,6 +146,7 @@ export function FormDialog({
         size={confirmation ? "sm" : size}
         dismissible={!pending}
         className={`crud-dialog ${className}`}
+        returnFocusRef={returnFocusRef}
         footer={readOnly ? <>
           {readOnlyActions}
           <Button className="secondary" data-dialog-cancel onClick={close}>Close</Button>

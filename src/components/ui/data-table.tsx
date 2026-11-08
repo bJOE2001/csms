@@ -181,7 +181,15 @@ export function DataTable({
           </TableHeader>
           <TableBody>
             {visible.map((row) => (
-              <TableRow key={row.id} tabIndex={row.onActivate ? 0 : undefined} aria-label={row.label} onClick={row.onActivate} onKeyDown={event => { if (row.onActivate && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); row.onActivate(); } }} className={row.onActivate ? "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" : undefined}>
+              <TableRow key={row.id} tabIndex={row.onActivate ? 0 : undefined} aria-label={row.label}
+                onClick={event => {
+                  // Row activation excludes nested controls and portaled action panels.
+                  if (!event.currentTarget.contains(event.target as Node)) return;
+                  if (event.target instanceof Element && event.target.closest("a,button,input,select,textarea,[role=button],[role=combobox],[data-row-action]")) return;
+                  row.onActivate?.();
+                }}
+                onKeyDown={event => { if (event.target === event.currentTarget && row.onActivate && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); row.onActivate(); } }}
+                className={row.onActivate ? "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" : undefined}>
                 {columns.map((column) => (
                   <TableCell
                     key={column.key}

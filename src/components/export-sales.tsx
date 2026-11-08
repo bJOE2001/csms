@@ -80,7 +80,6 @@ export function ExportSales({ report }: { report: SalesReport }) {
         onClose={() => setOpen(false)}
         title="Export sales data"
         className="export-dialog"
-        description="Choose a CSV file to keep your own records or open in a spreadsheet."
       >
         <form
           className="dialog-form"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useId, useRef, useState, type RefObject } from "react";
 import { Pencil } from "lucide-react";
 import { FormDialog } from "../ui/form-dialog";
 import { MutationForm } from "../mutation-form";
@@ -19,6 +19,7 @@ export function InventoryItemDialog({
   initialOpen = false,
   hideTrigger = false,
   onClose,
+  returnFocusRef,
 }: {
   item?: InventoryItem;
   refresh: () => Promise<unknown>;
@@ -27,12 +28,12 @@ export function InventoryItemDialog({
   initialOpen?: boolean;
   hideTrigger?: boolean;
   onClose?: () => void;
+  returnFocusRef?: RefObject<HTMLElement | null>;
 }) {
   const id = useRef(item?.id ?? crypto.randomUUID());
-  const helpId = useId();
+  const activeHelpId = useId();
   const [selectedType, setSelectedType] = useState<InventoryItem["item_type"]>(item?.item_type ?? "ingredient");
   const unitLocked = isBaseUnitLocked(item);
-  const activeTypeInfo = itemTypes.find(entry => entry.value === selectedType);
 
   return (
     <FormDialog
@@ -43,8 +44,8 @@ export function InventoryItemDialog({
       initialOpen={initialOpen}
       hideTrigger={hideTrigger}
       onClose={onClose}
+      returnFocusRef={returnFocusRef}
       title={item ? "Edit Inventory Item" : "Add Inventory Item"}
-      description={item ? "Update item details while preserving its stock history." : "Add an ingredient, packaging supply, or finished good."}
       className="inventory-item-dialog"
     >
       <MutationForm
@@ -82,7 +83,6 @@ export function InventoryItemDialog({
             <Input
               name="name"
               defaultValue={item?.name}
-              placeholder="e.g., Ground Coffee, Fresh Milk, 16 oz Cold Cup"
               required
               maxLength={120}
             />
@@ -96,7 +96,6 @@ export function InventoryItemDialog({
               options={itemTypes.map(({ value, label }) => ({ value, label }))}
             />
           </label>
-          {activeTypeInfo && <p className="hint">{activeTypeInfo.description}</p>}
         </fieldset>
 
         <fieldset className="inventory-form-section">
@@ -114,7 +113,6 @@ export function InventoryItemDialog({
             <label className="field">
               Low-stock threshold
               <Input
-                aria-describedby={`${helpId}-threshold`}
                 name="minimum_stock"
                 inputMode="decimal"
                 defaultValue={item ? decimal(scaled(String(item.minimum_stock))) : "0"}
@@ -122,17 +120,9 @@ export function InventoryItemDialog({
               />
             </label>
           </div>
-          <p className="hint">
-            {unitLocked
-              ? "Base unit is locked because stock movements or product recipes already reference this item."
-              : "Use the base unit you track. Stock In converts kilograms and liters automatically."}
-          </p>
-          <p id={`${helpId}-threshold`} className="hint">
-            Show a warning when available quantity reaches this amount.
-          </p>
         </fieldset>
 
-        {!item && <details className="inventory-advanced-details"><summary>Initial Stock</summary><p className="hint">Optional: enter the stock you already have.</p><div className="inventory-form-grid"><label className="field">Initial Quantity<Input name="initial_quantity" inputMode="decimal"/></label><label className="field">Total Initial Stock Value (PHP)<Input name="initial_value" inputMode="decimal"/></label></div></details>}
+        {!item && <details className="inventory-advanced-details"><summary>Initial Stock</summary><div className="inventory-form-grid"><label className="field">Initial Quantity<Input name="initial_quantity" inputMode="decimal"/></label><label className="field">Total Initial Stock Value (PHP)<Input name="initial_value" inputMode="decimal"/></label></div></details>}
         <fieldset className="inventory-form-section">
           <legend>Additional Details</legend>
           <label className="field">
@@ -140,20 +130,16 @@ export function InventoryItemDialog({
             <textarea
               name="notes"
               defaultValue={item?.notes}
-              placeholder="Optional storage note, brand, or supplier specification"
               maxLength={1000}
               rows={2}
             />
           </label>
           <label className="menu-checkbox">
-            <input type="checkbox" name="active" defaultChecked={item?.active ?? true} />
+            <input type="checkbox" name="active" defaultChecked={item?.active ?? true}
+              aria-describedby={activeHelpId} />
             Active inventory item
           </label>
-          {item && (
-            <p className="hint">
-              Uncheck to retire an unused item while keeping its historical records intact. Products with active recipes using an inactive item pause until updated.
-            </p>
-          )}
+          <span id={activeHelpId} className="sr-only">Inactive items block sales of products that use them.</span>
         </fieldset>
       </MutationForm>
     </FormDialog>

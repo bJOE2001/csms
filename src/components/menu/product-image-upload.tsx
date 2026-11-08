@@ -99,9 +99,8 @@ export function ProductImageUpload({ value, file, onChange, error }: {
       {mode === "url" && <div className="field product-image-url">
         <label htmlFor={`${id}-url`}>Product image URL</label>
         <Input id={`${id}-url`} name="image_url" value={value} maxLength={2048} placeholder="https://… or /images/…"
-          aria-invalid={!!error || undefined} aria-describedby={`${id}-url-help${error ? ` ${id}-url-error` : ""}`}
+          aria-invalid={!!error || undefined} aria-describedby={error ? `${id}-url-error` : undefined}
           onChange={event => change(event.target.value, null)} />
-        <small id={`${id}-url-help`} className="hint">Use an existing HTTPS image URL or local image path. Leave blank for a neutral placeholder.</small>
         {value && <Button variant="outline" onClick={() => change("", null)}>Remove Image</Button>}
       </div>}
       {mode === "upload" && <input name="image_url" type="hidden" value={value} />}

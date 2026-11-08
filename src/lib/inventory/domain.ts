@@ -175,6 +175,7 @@ export type Movement = {
 
 export type Returnable = {
   id: string;
+  sale_id?: string;
   ingredient_name: string;
   remaining_quantity: string | number;
   base_unit: string;

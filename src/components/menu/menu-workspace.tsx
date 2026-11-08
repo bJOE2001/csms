@@ -6,6 +6,7 @@ import {
   productInventoryStatus,
 } from "@/lib/menu/domain";
 import { useCatalog } from "@/lib/menu/use-catalog";
+import { optionUnavailableReason, productUnavailableReason } from "@/lib/menu/availability";
 import { money } from "@/lib/sales/domain";
 import { WorkspaceSkeleton } from "../ui/workspace-skeleton";
 import { WorkspaceShell } from "../workspace-shell";
@@ -152,12 +153,14 @@ export function MenuWorkspace() {
               { key: "category", label: "Category" },
               { key: "sizes", label: "Size" },
               { key: "price", label: "Price", numeric: true },
+              ...(data.founder ? [{ key: "recipe", label: "Recipe Status", kind: "status" as const }] : []),
               { key: "active", label: "Availability", kind: "status" },
               { key: "actions", label: "Actions", kind: "actions" },
             ]}
             rows={products.map((product) => {
               const range = priceRange(product);
               const invStatus = productInventoryStatus(product);
+              const unavailableReason = productUnavailableReason(product);
               const missingCost = (product.sizes?.length ? product.sizes.map(size => size.id) : ["regular"])
                 .some(key => product.inventory?.[key]?.state !== "active" || product.inventory[key].cost_cents == null);
               return {
@@ -172,11 +175,6 @@ export function MenuWorkspace() {
                       />
                       <div>
                         <strong>{product.name}</strong>
-                        {data.founder && (
-                          <div className="menu-product-badges">
-                            <RecipeStatus status={invStatus} />
-                          </div>
-                        )}
                         {product.description && (
                           <small>{product.description}</small>
                         )}
@@ -195,13 +193,16 @@ export function MenuWorkspace() {
                   sizes: (
                     <span className="menu-size-list">
                       {product.sizes?.length
-                        ? product.sizes.map((size) => (
+                        ? product.sizes.map((size) => {
+                          const reason = !size.active ? "Size disabled by owner" : product.active ? optionUnavailableReason(product, size.id) : undefined;
+                          return (
                             <span key={size.id}>
                               {size.label}
                               {size.is_default ? " · Default" : ""}
-                              {!size.active ? " · Unavailable" : ""}
+                              {reason ? ` · ${reason}` : ""}
                             </span>
-                          ))
+                          );
+                        })
                         : "Regular"}
                     </span>
                   ),
@@ -211,12 +212,14 @@ export function MenuWorkspace() {
                       {range.max !== range.min ? ` – ${money(range.max)}` : ""}
                     </strong>
                   ),
+                  ...(data.founder ? { recipe: <div className="menu-recipe-status"><RecipeStatus status={invStatus} /></div> } : {}),
                   active: (
-                    <span
-                      className={`menu-status ${isAvailable(product) ? "menu-status-available" : ""}`}
-                    >
-                      {isAvailable(product) ? "Available" : "Unavailable"}
-                    </span>
+                    <div className="menu-availability">
+                      <span className={`menu-status ${isAvailable(product) ? "menu-status-available" : ""}`}>
+                        {isAvailable(product) ? "Available" : "Unavailable"}
+                      </span>
+                      {unavailableReason && unavailableReason !== "Recipe missing" && unavailableReason !== "Recipe not activated" && <small className="menu-availability-reason">{unavailableReason}</small>}
+                    </div>
                   ),
                   actions: data.founder ? (
                     <div className="table-actions">

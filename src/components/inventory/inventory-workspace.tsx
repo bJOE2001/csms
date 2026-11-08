@@ -1,20 +1,23 @@
 "use client";
 import {useCallback,useEffect,useRef,useState} from "react";
+import {Eye} from "lucide-react";
 import {readInventory} from "@/lib/inventory/client";
-import {displayQuantity,signedQuantity,formatUnitCost,itemTypes,stockStatus,type InventoryData,type InventoryItem,type Movement} from "@/lib/inventory/domain";
+import {displayQuantity,signedQuantity,formatUnitCost,itemTypes,stockStatus,scaled,type InventoryData,type InventoryItem,type Movement,type Returnable} from "@/lib/inventory/domain";
 import {money} from "@/lib/sales/domain";
 import {useBeginLoading} from "../ui/global-loading-bar";
 import {WorkspaceSkeleton} from "../ui/workspace-skeleton";
 import {Button} from "../ui/button";
 import {Card} from "../ui/card";
 import {DataTable} from "../ui/data-table";
+import {TableActionButton} from "../ui/table-action-button";
 import {Select} from "../ui/select";
 import {ItemDetails, InventoryStatus} from "./item-details";
+import {ItemRowActions} from "./item-row-actions";
 import {DateRangeFilter} from "../date-range-filter";
 import {InventoryItemDialog} from "./item-dialog";
 import {StockDialog,type StockWorkflow} from "./stock-dialog";
 import {ReturnStockDialog} from "./return-dialog";
-import {MovementDetails, movementLabels as labels, movementReference} from "./movement-details";
+import {MovementDetails, movementLabels as labels} from "./movement-details";
 const views=[{key:"items",label:"Stock Items"},{key:"history",label:"History"}] as const;
 export function InventoryWorkspace({from,to,today}:{from:string;to:string;today:string}) {
   const [snapshot, setSnapshot] = useState<{ data: InventoryData; from: string; to: string }>();
@@ -28,7 +31,15 @@ export function InventoryWorkspace({from,to,today}:{from:string;to:string;today:
   const [selected, setSelected] = useState<InventoryItem>();
   const [selectedMovement, setSelectedMovement] = useState<Movement>();
   const [editingItem, setEditingItem] = useState<InventoryItem>();
+  const [returnEntries, setReturnEntries] = useState<Returnable[]>();
+  const returnTrigger = useRef<HTMLButtonElement>(null);
+  const viewTrigger = useRef<HTMLButtonElement>(null);
   const detailsTrigger = useRef<HTMLElement | null>(null);
+  const actionTrigger = useRef<HTMLButtonElement | null>(null);
+  // A filtered-out row cannot receive focus after its stock or item refresh.
+  const rowReturnFocus = {
+    get current() { return actionTrigger.current?.isConnected ? actionTrigger.current : viewTrigger.current; },
+  };
 
 
 
@@ -99,6 +110,8 @@ export function InventoryWorkspace({from,to,today}:{from:string;to:string;today:
   }
 
   const active=data.items.filter(item=>item.active);
+  const returnable=data.returnable.filter(entry=>scaled(String(entry.remaining_quantity))>0n);
+  const canReturn=!loading && !error && returnable.length>0;
   const value=data.items.reduce((sum,item)=>sum+(item.value_cents??0),0);
   const items=data.items.filter(item=>(typeFilter==="all"||item.item_type===typeFilter)&&(statusFilter==="all"||stockStatus(item)===statusFilter));
   const history=data.movements.filter(row=>(itemFilter==="all"||row.ingredient_id===itemFilter)&&(movementFilter==="all"||row.kind===movementFilter));
@@ -109,14 +122,16 @@ export function InventoryWorkspace({from,to,today}:{from:string;to:string;today:
       <div><h1 className="m-0">Inventory</h1><p className="hint mb-0 mt-2">Manage ingredients, packaging, and finished goods.</p></div>
       <div className="inventory-header-actions">
         <InventoryItemDialog refresh={refresh} triggerLabelText="Add Item" triggerClassName="secondary" />
-        <Button className="accent" disabled={!active.length} onClick={() => setActiveStockModal({workflow:"receipt"})}>Stock In</Button>
+        <Button variant="outline" ref={returnTrigger} disabled={!canReturn}
+          title={!returnable.length ? "No refunded finished goods are eligible to return to stock." : "Restore eligible finished goods from a refunded receipt."}
+          onClick={()=>setReturnEntries(returnable)}>Return to Stock</Button>
       </div>
     </header>
     {error && <p role="alert" className="form-message error">{error} Previous results remain visible. <Button variant="outline" onClick={refresh}>Retry</Button></p>}
     <dl className="menu-overview inventory-overview" aria-label="Current inventory overview">
       {[["Total Items",active.length],["Low Stock",active.filter(i=>stockStatus(i)==="Low Stock").length],["Out of Stock",active.filter(i=>stockStatus(i)==="Out of Stock").length],["Inventory Value",data.items.some(i=>i.value_cents===null)||!Number.isSafeInteger(value)?"Incomplete":money(value)]].map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
     </dl>
-    <nav className="inventory-views" aria-label="Inventory views">{views.map(tab=><Button key={tab.key} variant={view===tab.key ? "default" : "outline"} aria-pressed={view===tab.key} onClick={()=>setView(tab.key)}>{tab.label}</Button>)}</nav>
+    <nav className="inventory-views" aria-label="Inventory views">{views.map(tab=><Button key={tab.key} ref={view===tab.key ? viewTrigger : undefined} variant={view===tab.key ? "default" : "outline"} aria-pressed={view===tab.key} onClick={()=>setView(tab.key)}>{tab.label}</Button>)}</nav>
     {view === "items" ? <Card className="menu-products inventory-section inventory-stock-section">
       <DataTable caption="Inventory items" searchPlaceholder="Search inventory items"
         emptyMessage={itemFiltersActive ? "No items match these filters. Choose All types or All statuses to broaden the results." : "No inventory items yet. Add an ingredient, packaging supply, or finished good to start tracking stock."}
@@ -126,16 +141,15 @@ export function InventoryWorkspace({from,to,today}:{from:string;to:string;today:
           <label className="field"><span className="sr-only">Stock status</span><Select aria-label="Stock status" value={statusFilter} onValueChange={setStatusFilter} options={["all","In Stock","Low Stock","Out of Stock","Inactive"].map(value=>({value,label:value==="all"?"All statuses":value}))} /></label>
         </div>}
         paginationResetKey={typeFilter+statusFilter}
-        columns={[{key:"name",label:"Item",kind:"primary"},{key:"quantity",label:"On Hand",numeric:true},{key:"cost",label:"Average Unit Cost",numeric:true},{key:"value",label:"Stock Value",numeric:true},{key:"status",label:"Status",kind:"status"}]}
+        columns={[{key:"name",label:"Item",kind:"primary"},{key:"quantity",label:"On Hand",numeric:true},{key:"cost",label:"Average Unit Cost",numeric:true},{key:"value",label:"Stock Value",numeric:true},{key:"status",label:"Status",kind:"status"},{key:"actions",label:"Actions",kind:"actions"}]}
         rows={items.map(item=>({id:item.id,label:`Open ${item.name} details`,onActivate:()=>{detailsTrigger.current=document.querySelector<HTMLElement>(`[aria-label="${CSS.escape(`Open ${item.name} details`)}"]`);setSelected(item);},search:item.name,cells:{
           name:<><strong>{item.name}</strong><small className="cell-description">{itemTypes.find(t=>t.value===item.item_type)?.label}</small></>,
           quantity:displayQuantity(item.quantity,item.base_unit),cost:formatUnitCost(item.unit_cost_cents),value:item.value_cents===null?"Incomplete":money(item.value_cents),status:<InventoryStatus item={item} />,
+          actions:<ItemRowActions item={item} onStock={(workflow,trigger)=>{actionTrigger.current=trigger;setActiveStockModal({item,workflow});}} onEdit={trigger=>{actionTrigger.current=trigger;setEditingItem(item);}} />,
         }}))} />
     </Card> : <Card className="menu-products inventory-section inventory-history-section">
-      <header className="inventory-history-heading">
-        <h2>History</h2>
-      </header>
       <DataTable caption="Inventory movement history" searchPlaceholder="Search history"
+        toolbarLeading={<header className="inventory-history-heading"><h2>History</h2></header>}
         actions={<div className="inventory-history-filters">
           <label className="field"><span className="sr-only">Inventory item</span><Select aria-label="Inventory item" value={itemFilter} onValueChange={setItemFilter} options={[{value:"all",label:"All items"},...data.items.map(i=>({value:i.id,label:i.name}))]} /></label>
           <label className="field"><span className="sr-only">Movement type</span><Select aria-label="Movement type" value={movementFilter} onValueChange={setMovementFilter} options={[{value:"all",label:"All movements"},...Object.entries(labels).map(([value,label])=>({value,label}))]} /></label>
@@ -143,26 +157,22 @@ export function InventoryWorkspace({from,to,today}:{from:string;to:string;today:
         </div>}
         paginationResetKey={itemFilter+movementFilter+snapshot.from+snapshot.to}
         emptyMessage={historyFiltersActive ? "No movements match these filters. Choose All items, All movements, or another date range." : "No stock movements in this reporting period."}
-        columns={[{key:"date",label:"Date / Time",kind:"compact"},{key:"item",label:"Item",kind:"primary"},{key:"kind",label:"Movement"},{key:"quantity",label:"Quantity Change",numeric:true},{key:"balance",label:"Balance After",numeric:true},{key:"value",label:"Cost Change",numeric:true},{key:"details",label:"Reference / Details"}]}
+        columns={[{key:"date",label:"Date / Time",kind:"compact"},{key:"item",label:"Item",kind:"primary"},{key:"kind",label:"Movement"},{key:"quantity",label:"Quantity Change",numeric:true},{key:"balance",label:"Balance After",numeric:true},{key:"value",label:"Cost Change",numeric:true},{key:"actions",label:"Actions",kind:"actions"}]}
         rows={history.map(row=>({id:row.id,search:row.name+" "+row.reason+" "+(row.reference??"")+" "+row.source_id,cells:{
           date:<>{new Intl.DateTimeFormat("en-PH",{dateStyle:"medium",timeZone:"UTC"}).format(new Date(`${row.occurred_on}T00:00:00Z`))}<small className="cell-description">{new Date(row.created_at).toLocaleTimeString("en-PH",{timeZone:"Asia/Manila",hour:"numeric",minute:"2-digit"})}</small></>,
           item:<strong>{row.name}</strong>,kind:labels[row.kind]??row.kind,
           quantity:<span className={Number(row.quantity_delta)<0 ? "inventory-quantity-decrease" : "inventory-quantity-increase"}>{signedQuantity(row.quantity_delta,row.base_unit)}</span>,
           balance:row.resulting_quantity===null?"Not recorded":displayQuantity(row.resulting_quantity,row.base_unit),
           value:row.value_delta_cents===null?"Not recorded":money(row.value_delta_cents),
-          details:<div className="inventory-movement-reference">
-            <span className="inventory-reference-label">{movementReference(row)}</span>
-            <Button variant="link" size="sm" aria-label={`View details for ${row.name}`} onClick={()=>setSelectedMovement(row)}>View Details</Button>
+          actions:<div className="table-actions">
+            <TableActionButton icon={Eye} label={`View details for ${row.name}`} tooltip="View Details" onClick={()=>setSelectedMovement(row)} />
           </div>,
         }}))} />
-      {data.returnable.length > 0 && <aside className="inventory-return-context" aria-label="Eligible refunded items">
-        <div><h3>Refunded finished goods</h3><p className="hint">{data.returnable.length} refunded receipt item(s) may be returned after checking they are unopened and reusable.</p></div>
-        <ReturnStockDialog entries={data.returnable} refresh={refresh} />
-      </aside>}
     </Card>}
     {selectedMovement && <MovementDetails movement={selectedMovement} onClose={()=>setSelectedMovement(undefined)} />}
-    {selected && !editingItem && !activeStockModal && <ItemDetails item={selected} onClose={()=>{setSelected(undefined);requestAnimationFrame(()=>detailsTrigger.current?.focus());}} onStock={workflow=>setActiveStockModal({item:selected,workflow})} onEdit={()=>setEditingItem(selected)} onHistory={()=>{setItemFilter(selected.id);setView("history");setSelected(undefined);}} />}
-    {editingItem && <InventoryItemDialog item={editingItem} initialOpen hideTrigger onClose={()=>setEditingItem(undefined)} refresh={refresh} />}
-    {activeStockModal && <StockDialog items={data.items} item={activeStockModal.item} today={today} workflow={activeStockModal.workflow} open hideTrigger onOpenChange={open=>{if(!open)setActiveStockModal(null);}} refresh={refresh} />}
+    {returnEntries && <ReturnStockDialog entries={returnEntries} refresh={refresh} returnFocusRef={canReturn ? returnTrigger : viewTrigger} onClose={()=>setReturnEntries(undefined)} />}
+    {selected && <ItemDetails item={selected} onClose={()=>{setSelected(undefined);requestAnimationFrame(()=>detailsTrigger.current?.focus());}} />}
+    {editingItem && <InventoryItemDialog item={editingItem} initialOpen hideTrigger onClose={()=>setEditingItem(undefined)} refresh={refresh} returnFocusRef={rowReturnFocus} />}
+    {activeStockModal && <StockDialog items={data.items} item={activeStockModal.item} today={today} workflow={activeStockModal.workflow} open hideTrigger onOpenChange={open=>{if(!open)setActiveStockModal(null);}} refresh={refresh} returnFocusRef={activeStockModal.item ? rowReturnFocus : undefined} />}
   </div>;
 }

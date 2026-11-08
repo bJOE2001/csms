@@ -98,9 +98,10 @@
 .inventory-section .table-search { min-width: 0; }
 .inventory-section .section-actions { min-width: 0; }
 .inventory-section .inventory-filter-bar .field { width: 160px; }
-.inventory-history-heading { margin-bottom: var(--space-4); }
+.inventory-history-heading { display: flex; align-items: center; min-height: 44px; }
+.inventory-history-section .data-toolbar-leading { flex: 0 0 auto; }
 .inventory-history-section .data-toolbar { align-items: end; justify-content: start; gap: var(--space-3); }
-.inventory-history-section .data-toolbar .table-search { flex: 1 1 240px; max-width: none; width: auto; }
+.inventory-history-section .data-toolbar .table-search { flex: 1 1 180px; max-width: none; width: auto; }
 .inventory-history-section .data-toolbar > .section-actions { flex: 1 1 660px; align-self: end; margin: 0; min-width: 0; }
 .inventory-history-filters { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(144px, 1fr) minmax(348px, 2fr); align-items: end; gap: var(--space-3); width: 100%; min-width: 0; }
 .inventory-history-filters .field { margin: 0; min-width: 0; }
@@ -111,10 +112,6 @@
 .inventory-history-section .data-table .table-cell-primary .table-cell-content { min-width: 104px; }
 .inventory-stock-section tr[tabindex]:hover { background: var(--surface-muted); }
 .inventory-stock-section tr[tabindex]:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; background: var(--surface-muted); }
-.inventory-movement-reference { display: flex; flex-wrap: nowrap; align-items: center; gap: var(--space-2); min-width: 0; }
-.inventory-reference-label { min-width: 0; max-width: 144px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.inventory-movement-reference .button { flex-shrink: 0; min-height: 40px; padding-inline: 0; }
-.inventory-history-section .data-table :is(th, td):last-child .table-cell-content { max-width: 256px; }
 .inventory-movement-details { display: grid; gap: var(--space-4); }
 .inventory-movement-details .inventory-detail-list > div { display: grid; grid-template-columns: minmax(120px, 0.9fr) minmax(0, 1.1fr); align-items: start; }
 .inventory-movement-details dd { min-width: 0; overflow-wrap: anywhere; }
@@ -123,10 +120,6 @@
 .inventory-technical-details dd { font-size: 12px; font-weight: 400; user-select: text; }
 .inventory-quantity-decrease { color: var(--error-text); }
 .inventory-quantity-increase { color: var(--success); }
-.inventory-return-context { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding-top: var(--space-4); margin-top: var(--space-4); border-top: 1px solid var(--line); }
-.inventory-return-context > div { flex: 1 1 260px; }
-.inventory-return-context h3 { margin: 0; font-size: 14px; font-weight: 600; }
-.inventory-return-context .hint { margin: 4px 0 0; }
 .inventory-item-details { display: grid; align-content: start; gap: var(--space-4); }
 .inventory-detail-overview { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); margin: 0; padding-bottom: var(--space-4); border-bottom: 1px solid var(--line); }
 .inventory-detail-overview dt { font-size: 12px; color: var(--muted); }
@@ -137,17 +130,11 @@
 .inventory-detail-list dt { color: var(--muted); }
 .inventory-detail-list dd { margin: 0; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
 .inventory-item-notes { margin: 0; overflow-wrap: anywhere; }
-.inventory-detail-actions { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-2); }
-.inventory-detail-actions .button { min-height: 44px; }
-.inventory-detail-actions > .button:first-child { padding-left: 0; }
 .inventory-actions-popover { z-index: 60; width: min(296px, calc(100vw - 24px)); max-height: var(--radix-popover-content-available-height); overflow-y: auto; padding: 6px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); box-shadow: var(--shadow-select); }
 .inventory-actions-popover .inventory-menu-item { grid-template-columns: 18px minmax(0, 1fr); gap: 10px; align-items: start; }
 .inventory-actions-popover .inventory-menu-item > svg { margin-top: 3px; }
 .inventory-actions-popover .inventory-menu-item > span { display: grid; gap: 3px; color: var(--ink); }
 .inventory-actions-popover .inventory-menu-item small { font-size: 12px; line-height: 1.5; color: var(--muted); }
-.inventory-count-help { font-size: 12px; color: var(--muted); }
-.inventory-count-help summary { min-height: 36px; padding-block: 8px; cursor: pointer; }
-.inventory-count-help p { margin: 0; }
 
 .inventory-item-cell {
   display: grid;
@@ -514,7 +501,6 @@
 
 .recipe-dialog .inventory-form-body { gap: var(--space-3); }
 .recipe-dialog .inventory-form-grid .field { margin: 0; }
-.recipe-dialog .recipe-mode-help { margin: -4px 0 0; }
 .recipe-dialog .inventory-recipe-heading h3 { margin: 0; font-size: 14px; }
 .inventory-recipe-row {
   display: grid;
@@ -639,9 +625,6 @@
   .inventory-section .inventory-filter-bar .field { width: auto; }
   .inventory-history-section .section-actions { width: 100%; }
   .inventory-history-section .table-search { max-width: none; width: 100%; }
-  .inventory-movement-reference { flex-direction: column; align-items: flex-start; gap: 0; }
-  .inventory-reference-label { max-width: 100%; white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
-  .inventory-movement-reference .button { min-height: 44px; }
   .inventory-form-grid, .inventory-period-metrics, .inventory-breakdown-summary { grid-template-columns: minmax(0, 1fr); }
   .inventory-count-comparison { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .inventory-count-comparison dd { white-space: normal; overflow-wrap: anywhere; }

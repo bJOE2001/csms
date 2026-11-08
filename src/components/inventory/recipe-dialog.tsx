@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { BookOpenCheck, Trash2 } from "lucide-react";
 import type { Product } from "@/lib/menu/domain";
 import { readInventory, saveInventory } from "@/lib/inventory/client";
+import { createRecipeSaveAttempt, saveRecipeAttempt, type RecipeSaveAttempt } from "@/lib/inventory/recipe-save";
 import {
   decimal,
   displayQuantity,
@@ -154,7 +155,12 @@ function RecipeEditor({
   );
   const [mode, setMode] = useState<"recipe" | "finished_good">(source?.mode ?? "recipe");
   const [error, setError] = useState("");
-  const [confirm, setConfirm] = useState<"activate" | "deactivate">();
+  const [confirmDeactivate, setConfirmDeactivate] = useState(false);
+  const [savingIntent, setSavingIntent] = useState<"draft" | "activate">("activate");
+  const [savingStage, setSavingStage] = useState<"draft" | "activate">("draft");
+  const submission = useRef<{ key: string; attempt: RecipeSaveAttempt } | undefined>(undefined);
+  const revisions = useRef(new Map<string, number>());
+  const submitting = useRef(false);
   const operation = useRef(crypto.randomUUID());
 
   const selectedSize = product.sizes?.find(size => size.id === sizeId);
@@ -166,27 +172,58 @@ function RecipeEditor({
       ? data.items.filter(item => item.item_type === "finished_good" || parts.some(part => part.ingredient_id === item.id))
       : data.items;
 
-  async function apply(action: "draft" | "activate" | "deactivate") {
+  const components = parts.map(({ ingredient_id, quantity }) => ({ ingredient_id, quantity }));
+  const submissionKey = (intent: "draft" | "activate") => JSON.stringify({ sizeId, mode, components, intent });
+  const currentAttempt = submission.current?.key === submissionKey("activate") ? submission.current.attempt : undefined;
+
+  async function submit(intent: "draft" | "activate") {
+    if (submitting.current) return;
+    submitting.current = true;
+    setPending(true);
+    setSavingIntent(intent);
+    setSavingStage("draft");
+    setError("");
+    let attempt: RecipeSaveAttempt | undefined;
+    try {
+      const key = submissionKey(intent);
+      if (submission.current?.key !== key) {
+        const revision = revisions.current.get(sizeId) ?? config?.revision ?? 0;
+        const matchesSavedDraft = revision === config?.revision && config?.draft?.mode === mode &&
+          JSON.stringify(components) === JSON.stringify(config.draft.components.map(row => ({ ingredient_id: row.ingredient_id, quantity: recipeQuantity(row.quantity) })));
+        submission.current = { key, attempt: createRecipeSaveAttempt({
+          product_id: product.id, size_id: sizeId === "regular" ? null : sizeId,
+          expected_revision: revision, mode, components,
+        }, intent === "activate", matchesSavedDraft) };
+      }
+      attempt = submission.current.attempt;
+      await saveRecipeAttempt(attempt, payload => saveInventory("recipe", payload), setSavingStage);
+      await refresh();
+      notify.success(intent === "activate" ? "Recipe saved and activated" : "Recipe draft saved");
+      onClose();
+    } catch (failure) {
+      const message = failure instanceof Error ? failure.message : "Recipe could not be saved.";
+      setError(attempt?.activated ? `Recipe activated, but the menu could not refresh. ${message}`
+        : intent === "activate" && attempt?.draftSaved ? `Draft saved. Activation failed: ${message}` : message);
+      if (attempt?.draftSaved && !attempt.activated) await refresh().catch(() => {});
+    } finally {
+      if (attempt?.draftSaved) revisions.current.set(sizeId, attempt.revisionAfterDraft + (attempt.activated ? 1 : 0));
+      submitting.current = false;
+      setPending(false);
+    }
+  }
+
+  async function deactivate() {
     const payload = recipeSchema.parse({
       operation_id: operation.current,
       product_id: product.id,
       size_id: sizeId === "regular" ? null : sizeId,
-      action,
+      action: "deactivate",
       mode,
-      expected_revision: config?.revision ?? 0,
-      ...(action === "draft"
-        ? { components: parts.map(({ ingredient_id, quantity }) => ({ ingredient_id, quantity })) }
-        : {}),
+      expected_revision: revisions.current.get(sizeId) ?? config?.revision ?? 0,
     });
     await saveInventory("recipe", payload);
     await refresh();
-    notify.success(
-      action === "draft"
-        ? "Recipe draft saved"
-        : action === "activate"
-          ? "Inventory tracking activated"
-          : "Inventory tracking deactivated",
-    );
+    notify.success("Recipe deactivated");
     onClose();
   }
 
@@ -194,18 +231,9 @@ function RecipeEditor({
     <>
       <form
         className="dialog-form"
-        onSubmit={async event => {
+        onSubmit={event => {
           event.preventDefault();
-          if (pending) return;
-          setPending(true);
-          setError("");
-          try {
-            await apply("draft");
-          } catch (failure) {
-            setError(failure instanceof Error ? failure.message : "Recipe could not be saved.");
-          } finally {
-            setPending(false);
-          }
+          void submit("activate");
         }}
       >
         <DialogBody className="inventory-form-body">
@@ -259,9 +287,6 @@ function RecipeEditor({
             </label>
           </div>
 
-          <p className="hint recipe-mode-help">
-            {mode === "finished_good" ? "Tracks ready-to-sell stock and eligible returns." : "Stock deducted on completed sales."}
-          </p>
 
           {source && (
             <section className="inventory-breakdown-card" aria-label="Saved recipe cost breakdown">
@@ -342,12 +367,9 @@ function RecipeEditor({
 
               </details>
 
-              <p className="hint">
-                Save a draft to refresh costs; activate it to update the active recipe. Gross profit excludes operating expenses.
-              </p>
             </section>
           )}
-          {!source && <p className="dialog-note">Save a draft to calculate Total Preparation Cost, Estimated Gross Profit, and cost completeness. Selling Price: {money(sellingPrice)}.</p>}
+          {!source && <p className="dialog-note">Preparation cost: not calculated · Selling price: {money(sellingPrice)}</p>}
 
           <div className="inventory-recipe-heading">
             <h3>Required Inventory Items</h3>
@@ -372,10 +394,7 @@ function RecipeEditor({
               No active Finished Good items found. Add one in <Link href="/app/inventory">Inventory</Link> or switch to Recipe-based preparation.
             </p>
           ) : parts.length === 0 ? (
-            <p className="hint">
-              Add the inventory items used to prepare one {selectedSizeLabel !== "Regular" ? `${selectedSizeLabel} ` : ""}
-              {product.name}.
-            </p>
+            <p className="hint">No components added.</p>
           ) : null}
 
           {parts.map((part, index) => {
@@ -423,7 +442,6 @@ function RecipeEditor({
                     disabled={pending}
                     inputMode="decimal"
                     value={part.quantity}
-                    placeholder={item?.base_unit === "g" ? "e.g., 18" : item?.base_unit === "ml" ? "e.g., 200" : "e.g., 1"}
                     onChange={event =>
                       setParts(rows =>
                         rows.map(row => (row.key === part.key ? { ...row, quantity: event.target.value } : row)),
@@ -450,9 +468,9 @@ function RecipeEditor({
           })}
 
           {config?.active && <details className="recipe-tracking-settings">
-            <summary>Tracking settings</summary>
+            <summary>Advanced settings</summary>
             <p className="hint">Deactivation prevents future sales of this size until a valid recipe is activated.</p>
-            <Button variant="outline" disabled={pending} onClick={() => setConfirm("deactivate")}>Deactivate tracking</Button>
+            <Button variant="outline" disabled={pending} onClick={() => setConfirmDeactivate(true)}>Deactivate Recipe</Button>
           </details>}
         </DialogBody>
 
@@ -460,40 +478,28 @@ function RecipeEditor({
           <Button variant="outline" disabled={pending} data-dialog-cancel onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" variant={config?.draft ? "outline" : "default"} pending={pending} pendingLabel="Saving draft…">
+          <Button variant="outline" disabled={pending} pending={pending && savingIntent === "draft"} pendingLabel="Saving draft…"
+            onClick={event => { if (event.currentTarget.form?.reportValidity()) void submit("draft"); }}>
             Save draft
           </Button>
-          {config?.draft && <Button disabled={pending} onClick={() => setConfirm("activate")}>Activate saved draft</Button>}
+          <Button type="submit" disabled={pending} pending={pending && savingIntent === "activate"}
+            pendingLabel={savingStage === "activate" ? "Activating…" : "Saving…"}>
+            {currentAttempt?.activated ? "Refresh menu" : currentAttempt?.draftSaved ? "Retry activation" : "Save & Activate"}
+          </Button>
         </DialogFooter>
       </form>
 
-      {confirm && (
+      {confirmDeactivate && (
         <InventoryConfirm
-          title={confirm === "activate" ? "Activate saved recipe?" : "Deactivate inventory tracking?"}
-          description={
-            confirm === "activate"
-              ? "Future POS sales of this product size will automatically deduct these inventory items and use the calculated preparation cost. Unsaved edits in the form are not included."
-              : "This product size cannot be sold until a valid inventory recipe is activated again. Completed receipts remain unchanged."
-          }
+          title="Deactivate recipe?"
+          description="This product size cannot be sold until a valid inventory recipe is activated again. Completed receipts remain unchanged."
           summaryRows={[
             { label: "Product", value: product.name },
             { label: "Size", value: selectedSizeLabel },
-            ...(confirm === "activate" && config?.draft
-              ? [
-                  {
-                    label: "Components",
-                    value: `${config.draft.components.length} item${config.draft.components.length === 1 ? "" : "s"}`,
-                  },
-                  {
-                    label: "Total Preparation Cost",
-                    value: config.draft.cost_cents === null ? "Incomplete" : money(config.draft.cost_cents),
-                  },
-                ]
-              : []),
           ]}
           confirmLabel="Confirm"
-          onClose={() => setConfirm(undefined)}
-          onConfirm={() => apply(confirm)}
+          onClose={() => setConfirmDeactivate(false)}
+          onConfirm={deactivate}
         />
       )}
     </>

@@ -1,50 +1,43 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type RefObject } from "react";
 import { Button } from "../ui/button";
 import { AppFormDialog } from "../ui/app-form-dialog";
 import { DialogBody, DialogFooter } from "../ui/dialog-layout";
 import { Input } from "../ui/primitives/input";
 import { Select } from "../ui/select";
-import { displayQuantity, returnSchema, type Returnable } from "@/lib/inventory/domain";
+import { displayQuantity, returnSchema, scaled, type Returnable } from "@/lib/inventory/domain";
 import { saveInventory } from "@/lib/inventory/client";
 import { InventoryConfirm } from "./inventory-confirm";
 import { notify } from "@/lib/notify";
 
-export function ReturnStockDialog({ entries, refresh }: { entries: Returnable[]; refresh: () => Promise<unknown> }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <Button variant="outline" disabled={!entries.length} onClick={() => setOpen(true)}>
-        Return Finished Goods
-      </Button>
-      {open && entries.length > 0 && (
-        <ReturnEditor entries={entries} refresh={refresh} onClose={() => setOpen(false)} />
-      )}
-    </>
-  );
-}
+const receiptKey = (entry: Returnable) => entry.sale_id ?? entry.receipt;
 
-function ReturnEditor({
+export function ReturnStockDialog({
   entries,
   refresh,
   onClose,
+  returnFocusRef,
 }: {
   entries: Returnable[];
   refresh: () => Promise<unknown>;
   onClose: () => void;
+  returnFocusRef?: RefObject<HTMLElement | null>;
 }) {
   const [entry, setEntry] = useState(entries[0]);
   const [review, setReview] = useState<ReturnType<typeof returnSchema.parse>>();
   const [error, setError] = useState("");
   const operation = useRef(crypto.randomUUID());
+  const receipts = Array.from(new Map(entries.map(row => [receiptKey(row), row])).values());
+  const receiptItems = entries.filter(row => receiptKey(row) === receiptKey(entry));
 
   return (
     <AppFormDialog
       open
       onClose={onClose}
-      title="Return Finished Goods"
-      description="Restore unopened, reusable finished goods from a refunded receipt. Prepared drink ingredients are never restored automatically."
+      title="Return to Stock"
+      description="Only unopened, reusable finished goods can be returned."
+      returnFocusRef={returnFocusRef}
     >
       <form
         className="dialog-form"
@@ -58,6 +51,15 @@ function ReturnEditor({
             reason: form.get("reason"),
           });
           if (parsed.success) {
+            const quantity = scaled(parsed.data.quantity);
+            if (quantity > scaled(String(entry.remaining_quantity))) {
+              setError("Return quantity exceeds the remaining returnable quantity.");
+              return;
+            }
+            if (entry.base_unit === "each" && quantity % 1_000_000n !== 0n) {
+              setError("Enter a whole number of pieces.");
+              return;
+            }
             setError("");
             setReview(parsed.data);
           } else {
@@ -72,13 +74,24 @@ function ReturnEditor({
             </p>
           )}
           <label className="field">
-            Refunded receipt item
+            Refunded receipt
+            <Select
+              value={receiptKey(entry)}
+              onValueChange={id => { setEntry(entries.find(row => receiptKey(row) === id)!); setError(""); }}
+              options={receipts.map(row => ({
+                value: receiptKey(row),
+                label: `#${row.receipt}${receipts.filter(other => other.receipt === row.receipt).length > 1 ? ` · …${receiptKey(row).slice(-8)}` : ""}`,
+              }))}
+            />
+          </label>
+          <label className="field">
+            Finished good
             <Select
               value={entry.id}
-              onValueChange={id => setEntry(entries.find(row => row.id === id)!)}
-              options={entries.map(row => ({
+              onValueChange={id => { setEntry(entries.find(row => row.id === id)!); setError(""); }}
+              options={receiptItems.map(row => ({
                 value: row.id,
-                label: `#${row.receipt} · ${row.ingredient_name}`,
+                label: row.ingredient_name,
               }))}
             />
           </label>
@@ -87,7 +100,7 @@ function ReturnEditor({
           </p>
           <label className="field">
             Return quantity
-            <Input name="quantity" required inputMode="decimal" />
+            <Input key={entry.id} name="quantity" required inputMode="decimal" />
           </label>
           <label className="field">
             Return reason
@@ -95,12 +108,8 @@ function ReturnEditor({
               name="reason"
               required
               maxLength={500}
-              placeholder="Confirm that the goods are unopened and reusable"
             />
           </label>
-          <p className="hint">
-            Restoring stock records a product-cost credit on the return date while keeping the original receipt snapshot intact.
-          </p>
         </DialogBody>
         <DialogFooter>
           <Button variant="outline" data-dialog-cancel onClick={onClose}>

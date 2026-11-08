@@ -5,7 +5,7 @@ import type { Product } from "../../src/lib/menu/domain";
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 
-async function setup(page: Page, missingCost = false) {
+async function setup(page: Page, missingCost = false, founder = true) {
   const items: InventoryData["items"] = Array.from({ length: 6 }, (_, n) => ({
     id: id(n + 1), name: n ? `Ingredient ${n + 1}` : "Ground Coffee with a long descriptive inventory item name",
     item_type: "ingredient", base_unit: "g", quantity: "1000", minimum_stock: "10",
@@ -31,7 +31,7 @@ async function setup(page: Page, missingCost = false) {
   const calls: { action: string; data: Record<string, unknown> }[] = [];
   let inventoryReads = 0;
   await page.route("**/api/pos", route => route.fulfill({ json: {
-    shop: { id: id(99), name: "LOGO" }, user_id: id(99), founder: true, products: [product], categories: [],
+    shop: { id: id(99), name: "LOGO" }, user_id: id(99), founder, products: [product], categories: [],
   } }));
   await page.route("**/api/inventory*", route => {
     if (route.request().method() === "GET") {
@@ -52,7 +52,18 @@ for (const viewport of [
   const fixture = await setup(page);
   await page.goto("/app/menu");
   await expect(page.getByRole("region", { name: "Menu products", exact: true })).toContainText("Recipe Active");
-  await page.screenshot({ path: `.local/ui-review/menu-recipes/menu-${viewport.width}.png`, animations: "disabled" });
+  const table = page.getByRole("region", { name: "Menu products", exact: true });
+  await expect(table.locator('thead th').filter({ hasText: /^Recipe Status$/ })).toHaveCount(1);
+  await expect(table.locator('tbody td[data-label="Recipe Status"]')).toContainText("Recipe Active");
+  await expect(table.locator('.table-cell-primary .menu-inventory-status')).toHaveCount(0);
+  if (viewport.width >= 768) {
+    const head = await table.locator('thead th').filter({ hasText: /^Recipe Status$/ }).boundingBox();
+    const cell = await table.locator('tbody td[data-label="Recipe Status"]').boundingBox();
+    expect(Math.abs(head!.x - cell!.x)).toBeLessThan(1);
+    expect(Math.abs(head!.width - cell!.width)).toBeLessThan(1);
+  }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: `.local/ui-review/menu-recipes/menu-${viewport.width}.png`, fullPage: true, animations: "disabled" });
   const edit = page.getByRole("button", { name: "Edit Cafe Latte", exact: true });
   await edit.click();
   const product = page.getByRole("dialog", { name: "Edit product", exact: true });
@@ -119,6 +130,16 @@ test("View Recipe respects unsaved product edits and uses the selected saved siz
   await recipe.getByRole("button", { name: "Close dialog", exact: true }).click();
   await expect(edit).toBeFocused();
   expect(fixture.calls).toHaveLength(0);
+});
+
+test("view-only staff retain their existing menu visibility without owner recipe details", async ({ page }) => {
+  await setup(page, false, false);
+  await page.goto("/app/menu");
+  const table = page.getByRole("region", { name: "Menu products", exact: true });
+  await expect(table).toContainText("Cafe Latte");
+  await expect(table.locator('thead th').filter({ hasText: /^Recipe Status$/ })).toHaveCount(0);
+  await expect(table.locator('.menu-inventory-status')).toHaveCount(0);
+  await expect(table.getByRole("button", { name: /Manage Recipe/ })).toHaveCount(0);
 });
 
 test("missing costs remain visible and failed draft saves retain inputs and revision", async ({ page }) => {

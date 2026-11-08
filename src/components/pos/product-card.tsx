@@ -3,6 +3,7 @@
 import { useId, useLayoutEffect, useRef } from "react";
 import type { Product } from "@/lib/menu/domain";
 import { inventoryAvailable, isAvailable } from "@/lib/menu/domain";
+import { optionUnavailableReason } from "@/lib/menu/availability";
 import { money } from "@/lib/sales/domain";
 import { Icon } from "../ui/icon";
 import { Button } from "../ui/button";
@@ -57,7 +58,7 @@ export function ProductCard({
           )}
           <div className="product-meta">
             <span className="product-availability">
-              {product.active && product.inventory?.[sizeId ?? "regular"]?.state !== "active" ? "Inventory recipe required before this product can be sold." : available ? "Available" : product.active && selected?.active !== false && product.inventory?.[sizeId ?? "regular"]?.state === "active" ? "Out of stock" : "Unavailable"}
+              {optionUnavailableReason(product, sizeId) ?? "Available"}
             </span>
             {quantity > 0 && (
               <span className="product-cart-quantity">{quantity} in cart</span>
