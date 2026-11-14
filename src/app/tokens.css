@@ -1,32 +1,32 @@
-/* Warm peach, charcoal and white; shared by Tailwind/shadcn and app surfaces.
-   Superseded by Sip & Snap — Warm Espresso & Caramel. */
+/* Monochrome Black & White palette; shared by Tailwind/shadcn and app surfaces.
+   Sip & Snap — High-Contrast Monochrome. */
 :root {
   color-scheme: light;
   /* Brand primitives use HSL channels so shadcn/Tailwind alpha modifiers work.
      The approved hex values remain documented beside their single definitions. */
-  --espresso: 13.17073 53.24675% 15.09804%; /* #3B1B12 */
-  --roasted-coffee: 19.16667 44.44444% 31.76471%; /* #75442D */
-  --caramel: 27.16216 85.05747% 65.88235%; /* #F2A15E */
-  --latte-cream: 31.57895 100% 88.82353%; /* #FFE4C6 */
-  --warm-canvas: 34.28571 41.17647% 96.66667%; /* #FAF7F3 */
+  --espresso: 0 0% 7.05882%; /* #121212 */
+  --roasted-coffee: 0 0% 21.96078%; /* #383838 */
+  --caramel: 0 0% 90.19608%; /* #E6E6E6 */
+  --latte-cream: 0 0% 93.33333%; /* #EEEEEE */
+  --warm-canvas: 0 0% 96.86275%; /* #F7F7F7 */
   --pure-white: 0 0% 100%; /* #FFFFFF */
-  --warm-ivory: 27.5 100% 95.29412%; /* #FFF2E7 */
-  --soft-sand: 26.66667 28.125% 87.45098%; /* #E8DED6 */
-  --dark-cocoa: 16 20.54795% 14.31373%; /* #2C211D */
-  --muted-mocha: 21.81818 9.56522% 45.09804%; /* #7E7068 */
-  --warm-white: 31.30435 100% 95.4902%; /* #FFF4E8 */
-  --cream-taupe: 24 25.92593% 73.52941%; /* #CDB8AA */
-  /* Minimal accessibility variants: text >=4.5:1 and controls >=3:1 on ivory. */
-  --readable-mocha: 21.81818 9.82143% 43.92157%; /* #7B6D65 */
-  --control-sand: 24 17.3913% 54.90196%; /* #A08878 */
-  --sidebar-bg: hsl(var(--espresso));
-  --sidebar-text: hsl(var(--warm-white));
-  --sidebar-muted: hsl(var(--cream-taupe));
-  --sidebar-hover: #553023;
-  --sidebar-border: #5B382A;
+  --warm-ivory: 0 0% 94.90196%; /* #F2F2F2 */
+  --soft-sand: 0 0% 87.84314%; /* #E0E0E0 */
+  --dark-cocoa: 0 0% 10.19608%; /* #1A1A1A */
+  --muted-mocha: 0 0% 43.92157%; /* #707070 */
+  --warm-white: 0 0% 98.03922%; /* #FAFAFA */
+  --cream-taupe: 0 0% 72.15686%; /* #B8B8B8 */
+  /* Minimal accessibility variants: text >=4.5:1 and controls >=3:1 on white/canvas. */
+  --readable-mocha: 0 0% 40%; /* #666666 */
+  --control-sand: 0 0% 53.33333%; /* #888888 */
+  --sidebar-bg: hsl(var(--warm-white));
+  --sidebar-text: hsl(var(--espresso));
+  --sidebar-muted: hsl(var(--readable-mocha));
+  --sidebar-hover: hsl(var(--warm-ivory));
+  --sidebar-border: hsl(var(--soft-sand));
   --sidebar-active: hsl(var(--caramel));
   --sidebar-active-text: hsl(var(--espresso));
-  --sidebar-focus: hsl(var(--latte-cream));
+  --sidebar-focus: hsl(var(--roasted-coffee));
   /* shadcn semantic colors; legacy names below resolve to this same palette. */
   --background: var(--warm-canvas);
   --foreground: var(--dark-cocoa);
@@ -89,9 +89,9 @@
   --product-media-width: 64px;
   --product-media-height: 64px;
   --radius-control: 999px;
-  --shadow-sm: 0 2px 8px #30241b04;
-  --shadow-dialog: 0 24px 80px #30241b26;
-  --shadow-select: 0 8px 24px #30241b12, 0 2px 6px #30241b08;
+  --shadow-sm: 0 2px 8px #00000008;
+  --shadow-dialog: 0 24px 80px #00000026;
+  --shadow-select: 0 8px 24px #00000014, 0 2px 6px #0000000a;
   --select-max-height: 320px;
   --calendar-surface: hsl(var(--warm-white));
   --calendar-selected: hsl(var(--espresso));
@@ -101,6 +101,7 @@
   --calendar-day-height: 44px;
   --motion-fast: 140ms;
   --motion-normal: 220ms;
+  --motion-base: 260ms;
   --motion-enter: 280ms;
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
 }

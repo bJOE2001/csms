@@ -74,6 +74,7 @@ export type Product = Omit<z.infer<typeof productSchema>, "id"> & {
 };
 export type Category = { id: string; name: string };
 export type ShopData = {
+  access?: import("@/lib/auth/permissions").MemberAccess;
   shop: { id: string; name: string };
   user_id: string;
   founder: boolean;

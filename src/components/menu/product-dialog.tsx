@@ -21,6 +21,7 @@ import { Icon } from "../ui/icon";
 import { ProductImageUpload } from "./product-image-upload";
 import { productImageFileError } from "@/lib/menu/image-upload";
 import { RecipeStatus } from "./recipe-status";
+import { useCan } from "../access-context";
 
 type Props = {
   product?: Product;
@@ -41,6 +42,7 @@ function RecipeSummary({ product, sizeId, onManage }: {
   onManage: () => void;
 }) {
   const entry = product?.inventory?.[sizeId];
+  const canRecipe = useCan("inventory", "recipe", true);
   const hasCost = entry?.state === "active" && entry.cost_cents != null;
   const status = product ? productInventoryStatus({ ...product, inventory: entry ? { [sizeId]: entry } : {} }) : "Recipe Not Configured";
   return (
@@ -53,20 +55,27 @@ function RecipeSummary({ product, sizeId, onManage }: {
           </output>
           <RecipeStatus status={status} />
         </div>
-        {product && <TableActionButton icon={BookOpenCheck} label="View Recipe" tooltip="View Recipe" onClick={onManage} />}
+        {canRecipe && (product ? (
+          <TableActionButton icon={BookOpenCheck} label="View Recipe" tooltip="View Recipe" onClick={onManage} />
+        ) : (
+          <small className="product-recipe-hint">Use Save &amp; Configure Recipe below to set ingredients.</small>
+        ))}
       </div>
     </div>
   );
 }
 
 export function ProductDialog(props: Props) {
-  const [recipeSize, setRecipeSize] = useState<string>();
+  const [recipeTarget, setRecipeTarget] = useState<{ sizeId: string; product: Product }>();
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const recipeProduct = recipeTarget
+    ? (props.data.products.find((p) => p.id === recipeTarget.product.id) ?? props.product ?? recipeTarget.product)
+    : undefined;
   return (
     <>
       <FormDialog
         triggerRef={triggerRef}
-        trigger={props.product ? null : <>Add product</>}
+        trigger={props.product ? null : <><Icon name="plus" size={18} />Add product</>}
         triggerLabel={props.product ? `Edit ${props.product.name}` : undefined}
         tableAction={props.product ? { icon: Pencil, tooltip: "Edit product" } : undefined}
         triggerClassName={props.product ? "secondary compact" : "accent"}
@@ -74,26 +83,33 @@ export function ProductDialog(props: Props) {
         className="product-dialog"
         size="lg"
       >
-        <ProductEditor {...props} onManageRecipe={setRecipeSize} />
+        <ProductEditor
+          {...props}
+          onManageRecipe={(sizeId, targetProduct) => setRecipeTarget({ sizeId, product: targetProduct })}
+        />
       </FormDialog>
-      {props.product && recipeSize && (
+      {recipeProduct && recipeTarget && (
         <RecipeDialog
-          product={props.product}
+          product={recipeProduct}
           refresh={props.refresh}
-          initialSizeId={recipeSize}
+          initialSizeId={recipeTarget.sizeId}
           initialOpen
           hideTrigger
           returnFocusRef={triggerRef}
-          onClose={() => setRecipeSize(undefined)}
+          onClose={() => setRecipeTarget(undefined)}
         />
       )}
     </>
   );
 }
 
-function ProductEditor({ product, data, refresh, onManageRecipe }: Props & { onManageRecipe: (sizeId: string) => void }) {
+function ProductEditor({ product, data, refresh, onManageRecipe }: Props & {
+  onManageRecipe: (sizeId: string, product: Product) => void;
+}) {
+  const canRecipe = useCan("inventory", "recipe", data.founder);
   const id = useId();
   const draftId = useRef(product?.id ?? crypto.randomUUID());
+  const savedProductRef = useRef<{ product: Product; sizeId: string } | null>(null);
   const dialog = useFormDialog();
   const [sizes, setSizes] = useState<SizeDraft[]>(
     (product?.sizes ?? []).map((size) => ({
@@ -140,11 +156,19 @@ function ProductEditor({ product, data, refresh, onManageRecipe }: Props & { onM
     );
 
   const regularActive = product?.inventory?.regular?.state === "active";
-  const manageRecipe = (sizeId: string) => dialog?.closeThen(() => onManageRecipe(sizeId));
+  const manageRecipe = (sizeId: string) => {
+    if (product) dialog?.closeThen(() => onManageRecipe(sizeId, product));
+  };
 
   return (
     <MutationForm
       submitLabel="Save product"
+      secondarySubmit={!product && canRecipe ? { label: "Save & Configure Recipe", name: "intent", value: "configure_recipe" } : undefined}
+      onSuccess={(form) => {
+        if (form.get("intent") === "configure_recipe" && savedProductRef.current) {
+          onManageRecipe(savedProductRef.current.sizeId, savedProductRef.current.product);
+        }
+      }}
       successTitle={product ? "Product updated" : "Product saved successfully"}
       errorTitle="Failed to save product"
       action={async (_previous, form) => {
@@ -207,6 +231,19 @@ function ProductEditor({ product, data, refresh, onManageRecipe }: Props & { onM
             parsed.data,
             imageFile ?? undefined,
           );
+          savedProductRef.current = {
+            product: {
+              id: draftId.current,
+              name: parsed.data.name,
+              category_id: parsed.data.category_id,
+              description: parsed.data.description,
+              image_url: parsed.data.image_url,
+              active: parsed.data.active,
+              price_cents: parsed.data.price_cents,
+              sizes: (parsed.data.sizes ?? []).map((size) => ({ ...size, cost_cents: null })),
+            },
+            sizeId: mainSize?.id ?? parsed.data.sizes?.[0]?.id ?? "regular",
+          };
           await refresh();
           return {
             status: "success",

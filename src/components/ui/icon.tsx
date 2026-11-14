@@ -21,6 +21,8 @@ import {
   Wallet,
   LibraryBig,
   Package,
+  RotateCcw,
+  UsersRound,
   type LucideIcon,
 } from "lucide-react";
 
@@ -47,6 +49,8 @@ const icons: Record<string, LucideIcon> = {
   wallet: Wallet,
   libraries: LibraryBig,
   inventory: Package,
+  "return-stock": RotateCcw,
+  users: UsersRound,
 };
 export function Icon({ name, size = 20 }: { name: string; size?: number }) {
   const Component = icons[name] ?? Grid2X2;

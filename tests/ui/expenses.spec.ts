@@ -139,7 +139,7 @@ test("date filtering is inclusive, search is functional and empty periods remain
 
 test("staff can read expenses but cannot see management actions", async ({ page }) => {
   await page.goto("/expenses?staff");
-  await expect(page.getByText("You can view expenses. An owner manages expense records.")).toBeVisible();
+  await expect(page.getByText("You have view-only access to expenses.")).toBeVisible();
   await expect(page.getByRole("button", { name: /Add Expense|Edit expense|Delete expense/ })).toHaveCount(0);
   await expect(page.getByRole("cell", { name: "Electricity", exact: true })).toBeVisible();
 });

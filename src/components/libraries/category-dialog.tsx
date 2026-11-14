@@ -6,6 +6,7 @@ import { saveMenu } from "@/lib/menu/use-catalog";
 import { FormDialog } from "../ui/form-dialog";
 import { MutationForm } from "../mutation-form";
 import { Input } from "../ui/primitives/input";
+import { Icon } from "../ui/icon";
 
 type Props = {
   category?: Category;
@@ -21,6 +22,7 @@ export function CategoryDialog({ category, shopId, refresh }: Props) {
           null
         ) : (
           <>
+            <Icon name="plus" size={18} />
             Add category
           </>
         )

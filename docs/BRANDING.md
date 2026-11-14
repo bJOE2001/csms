@@ -1,18 +1,18 @@
-# Sip & Snap — Warm Espresso & Caramel
+# Sip&Snap — Warm Espresso & Caramel
 
-The application uses a dark Espresso navigation shell, a transparent logo treatment, a Warm Canvas workspace, white panels and Caramel highlights. Self-hosted Manrope, existing Lucide icons, compact POS cards, shared tables and pagination remain in place. This is a presentation refactor; transaction calculations, authentication, requests, database schemas and reporting scope are unchanged.
+The application uses a dark Espresso navigation shell, plain Sip&Snap text, a Warm Canvas workspace, white panels and Caramel highlights. Self-hosted Manrope, existing Lucide icons, compact POS cards, shared tables and pagination remain in place. Branding does not change transaction calculations, authentication, database schemas or reporting scope.
 
-## Approved artwork
+## Text identity
 
-The official business name is **Sip & Snap**, centralized in `src/lib/brand.ts` with its description, export filename prefix, verified address, directions URL and logo dimensions. `displayShopName` maps exact legacy business aliases to the new display name without writing to `shops`, sales or inventory records. Distinct branch names are preserved. Existing technical identifiers, environment variables, migrations and seed data are unchanged; the historical rename SQL is not part of this rebrand.
+The current business name is **Sip&Snap**, centralized in `src/lib/brand.ts` with its description, export filename prefix, verified address and directions URL. A business logo has not been supplied. `displayShopName` maps exact legacy business aliases and the former spaced spelling to the current display name without writing to `shops`, sales or inventory records. Distinct branch names are preserved. Existing technical identifiers, environment variables, migrations and seed data are unchanged.
 
-The supplied artwork is `public/images/Logo.png`, served unchanged at `/images/Logo.png`: a 1254 × 1254 transparent RGBA PNG. BrandLogo references this configuration and preserves the square aspect ratio, original colors, lettering and embedded artwork. Its wrapper has no added background, stroke, shadow, cropping or filters. The existing espresso surfaces provide contrast. Sidebar artwork is 128px wide; compact admin headers use 64px, public headers 68px (60px mobile), and sign-in uses 128px (112px mobile).
+`BrandLogo` renders the business name as a `.brand-wordmark` span, shared by public navigation, workspace headers, account pages and decorative concept-packaging labels. Headers use 24px text; the login page uses 36px text (32px on small screens). Text inherits contrasting surface colors and preserves the name on one line. Receipt previews and printouts use the same plain business name. No artwork request or image fallback is needed.
 
-Regenerate browser icons with `node scripts/generate-brand-icons.mjs`. The source asset SHA-256 is `7AAA43532C721A7154E8958D32950FFDB7D6F251AE80774AC0CE8C57B8761D9D`.
+Regenerate text-only browser/PWA assets with `node scripts/generate-brand-icons.mjs`. The SVG and PNG variants contain only Sip&Snap lettering on a cream background and keep installable POS support working without a business-logo asset.
 
-Browser icons in `public/brand` are proportional full-artwork resizes of the same source, including 16/32/48px ICO entries, a 192px PNG and a 180px Apple icon. At very small sizes the detailed wordmark is inherently less legible; a separately approved simplified mark could improve recognition. No unrelated symbol or arbitrary crop is introduced. No PWA or service worker is added.
+Browser metadata uses `/brand/text-icon.svg`; the POS manifest uses 192px and 512px text PNGs, and Apple devices use a 180px text icon. The offline worker caches these current assets and does not depend on removed logo files. Public structured data no longer claims an official logo or logo-based social image.
 
-Receipt previews use the supplied color logo against an espresso surface. Thermal receipts use **Sip & Snap** text, because no approved monochrome artwork was supplied. Both supported paper widths retain original financial content. Reports normalize exact legacy shop-name aliases for display and use `sip-and-snap-` filenames, without modifying stored data.
+Receipt previews and thermal receipts use **Sip&Snap** text. Both supported paper widths retain original financial content. Reports normalize exact legacy shop-name aliases for display and use `sip-and-snap-` filenames, without modifying stored data.
 
 Public metadata, structured data, authentication titles, admin page titles, navigation labels, story, visit copy and footer use the shared identity. Canonical URLs and social/contact links remain controlled by existing verified configuration. The photo booth is labeled coming soon, with no booking or service claims.
 
@@ -78,4 +78,4 @@ Below 1280px, POS keeps its full-width product menu and existing modal cart draw
 | Add action treatments | `src/components/menu/product-dialog.tsx`, `src/components/libraries/category-dialog.tsx`, `src/components/expense-dialog.tsx` |
 | Documentation and verification | `README.md`, `docs/UI_DESIGN.md`, `docs/BRANDING.md`, `tests/ui/branding.spec.ts`, `tests/ui/navigation.spec.ts` |
 
-`public/images/Logo.png` is the supplied asset, not a generated derivative. Existing Tailwind configuration, APIs, financial services and database migrations require no branding changes.
+No business-logo artwork is required. Existing APIs, financial services and database migrations require no branding changes.

@@ -6,20 +6,21 @@ export async function GET(request: NextRequest) {
   const code = query.get("code"),
     hash = query.get("token_hash"),
     type = query.get("type");
+  const requested = query.get("next");
+  const isJoin = Boolean(requested && /^\/join\?token=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requested));
   let succeeded = false;
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     succeeded = !error;
-  } else if (hash && (type === "invite" || type === "recovery")) {
+  } else if (hash && (type === "invite" || type === "recovery" || type === "signup" || type === "email")) {
     const { error } = await supabase.auth.verifyOtp({ token_hash: hash, type });
     succeeded = !error;
   }
   if (!succeeded)
     return NextResponse.redirect(
-      new URL("/sign-in?error=credentials", process.env.APP_URL ?? request.url),
+      new URL(isJoin ? "/login?confirmed=1" : "/login?error=credentials", process.env.APP_URL ?? request.url),
     );
-  const next =
-    query.get("next") === "/reset-password" ? "/reset-password" : "/dashboard";
+  const next = requested === "/reset-password" || (requested && isJoin) ? requested : "/dashboard";
   const response = NextResponse.redirect(
     new URL(next, process.env.APP_URL ?? request.url),
   );

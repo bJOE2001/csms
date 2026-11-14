@@ -7,6 +7,7 @@ import {money} from "@/lib/sales/domain";
 import {useBeginLoading} from "../ui/global-loading-bar";
 import {WorkspaceSkeleton} from "../ui/workspace-skeleton";
 import {Button} from "../ui/button";
+import {Icon} from "../ui/icon";
 import {Card} from "../ui/card";
 import {DataTable} from "../ui/data-table";
 import {TableActionButton} from "../ui/table-action-button";
@@ -18,8 +19,10 @@ import {InventoryItemDialog} from "./item-dialog";
 import {StockDialog,type StockWorkflow} from "./stock-dialog";
 import {ReturnStockDialog} from "./return-dialog";
 import {MovementDetails, movementLabels as labels} from "./movement-details";
+import {useCan} from "../access-context";
 const views=[{key:"items",label:"Stock Items"},{key:"history",label:"History"}] as const;
 export function InventoryWorkspace({from,to,today}:{from:string;to:string;today:string}) {
+  const canAdd = useCan("inventory", "create", true), canEdit = useCan("inventory", "edit", true), canStock = useCan("inventory", "stock", true), canRestore = useCan("inventory", "return", true);
   const [snapshot, setSnapshot] = useState<{ data: InventoryData; from: string; to: string }>();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -111,7 +114,7 @@ export function InventoryWorkspace({from,to,today}:{from:string;to:string;today:
 
   const active=data.items.filter(item=>item.active);
   const returnable=data.returnable.filter(entry=>scaled(String(entry.remaining_quantity))>0n);
-  const canReturn=!loading && !error && returnable.length>0;
+  const canReturn=canRestore && !loading && !error && returnable.length>0;
   const value=data.items.reduce((sum,item)=>sum+(item.value_cents??0),0);
   const items=data.items.filter(item=>(typeFilter==="all"||item.item_type===typeFilter)&&(statusFilter==="all"||stockStatus(item)===statusFilter));
   const history=data.movements.filter(row=>(itemFilter==="all"||row.ingredient_id===itemFilter)&&(movementFilter==="all"||row.kind===movementFilter));
@@ -121,10 +124,10 @@ export function InventoryWorkspace({from,to,today}:{from:string;to:string;today:
     <header className="inventory-header">
       <div><h1 className="m-0">Inventory</h1><p className="hint mb-0 mt-2">Manage ingredients, packaging, and finished goods.</p></div>
       <div className="inventory-header-actions">
-        <InventoryItemDialog refresh={refresh} triggerLabelText="Add Item" triggerClassName="secondary" />
-        <Button variant="outline" ref={returnTrigger} disabled={!canReturn}
+        {canAdd && <InventoryItemDialog refresh={refresh} triggerLabelText="Add Item" triggerClassName="secondary" />}
+        {canRestore && <Button variant="outline" ref={returnTrigger} disabled={!canReturn}
           title={!returnable.length ? "No refunded finished goods are eligible to return to stock." : "Restore eligible finished goods from a refunded receipt."}
-          onClick={()=>setReturnEntries(returnable)}>Return to Stock</Button>
+          onClick={()=>setReturnEntries(returnable)}><Icon name="return-stock" size={18} />Return to Stock</Button>}
       </div>
     </header>
     {error && <p role="alert" className="form-message error">{error} Previous results remain visible. <Button variant="outline" onClick={refresh}>Retry</Button></p>}
@@ -141,11 +144,11 @@ export function InventoryWorkspace({from,to,today}:{from:string;to:string;today:
           <label className="field"><span className="sr-only">Stock status</span><Select aria-label="Stock status" value={statusFilter} onValueChange={setStatusFilter} options={["all","In Stock","Low Stock","Out of Stock","Inactive"].map(value=>({value,label:value==="all"?"All statuses":value}))} /></label>
         </div>}
         paginationResetKey={typeFilter+statusFilter}
-        columns={[{key:"name",label:"Item",kind:"primary"},{key:"quantity",label:"On Hand",numeric:true},{key:"cost",label:"Average Unit Cost",numeric:true},{key:"value",label:"Stock Value",numeric:true},{key:"status",label:"Status",kind:"status"},{key:"actions",label:"Actions",kind:"actions"}]}
-        rows={items.map(item=>({id:item.id,label:`Open ${item.name} details`,onActivate:()=>{detailsTrigger.current=document.querySelector<HTMLElement>(`[aria-label="${CSS.escape(`Open ${item.name} details`)}"]`);setSelected(item);},search:item.name,cells:{
+        columns={[{key:"name",label:"Item",kind:"primary",sortable:true},{key:"quantity",label:"On Hand",numeric:true,sortable:true},{key:"cost",label:"Average Unit Cost",numeric:true},{key:"value",label:"Stock Value",numeric:true,sortable:true},{key:"status",label:"Status",kind:"status"},{key:"actions",label:"Actions",kind:"actions"}]}
+        rows={items.map(item=>({id:item.id,label:`Open ${item.name} details`,onActivate:()=>{detailsTrigger.current=document.querySelector<HTMLElement>(`[aria-label="${CSS.escape(`Open ${item.name} details`)}"]`);setSelected(item);},search:item.name,sort:{name:item.name,quantity:Number(item.quantity),value:item.value_cents??-1},cells:{
           name:<><strong>{item.name}</strong><small className="cell-description">{itemTypes.find(t=>t.value===item.item_type)?.label}</small></>,
           quantity:displayQuantity(item.quantity,item.base_unit),cost:formatUnitCost(item.unit_cost_cents),value:item.value_cents===null?"Incomplete":money(item.value_cents),status:<InventoryStatus item={item} />,
-          actions:<ItemRowActions item={item} onStock={(workflow,trigger)=>{actionTrigger.current=trigger;setActiveStockModal({item,workflow});}} onEdit={trigger=>{actionTrigger.current=trigger;setEditingItem(item);}} />,
+          actions:<ItemRowActions item={item} allowStock={canStock} allowEdit={canEdit} onStock={(workflow,trigger)=>{actionTrigger.current=trigger;setActiveStockModal({item,workflow});}} onEdit={trigger=>{actionTrigger.current=trigger;setEditingItem(item);}} onViewDetails={trigger=>{detailsTrigger.current=trigger;setSelected(item);}} />,
         }}))} />
     </Card> : <Card className="menu-products inventory-section inventory-history-section">
       <DataTable caption="Inventory movement history" searchPlaceholder="Search history"
@@ -157,8 +160,8 @@ export function InventoryWorkspace({from,to,today}:{from:string;to:string;today:
         </div>}
         paginationResetKey={itemFilter+movementFilter+snapshot.from+snapshot.to}
         emptyMessage={historyFiltersActive ? "No movements match these filters. Choose All items, All movements, or another date range." : "No stock movements in this reporting period."}
-        columns={[{key:"date",label:"Date / Time",kind:"compact"},{key:"item",label:"Item",kind:"primary"},{key:"kind",label:"Movement"},{key:"quantity",label:"Quantity Change",numeric:true},{key:"balance",label:"Balance After",numeric:true},{key:"value",label:"Cost Change",numeric:true},{key:"actions",label:"Actions",kind:"actions"}]}
-        rows={history.map(row=>({id:row.id,search:row.name+" "+row.reason+" "+(row.reference??"")+" "+row.source_id,cells:{
+        columns={[{key:"date",label:"Date / Time",kind:"compact",sortable:true},{key:"item",label:"Item",kind:"primary",sortable:true},{key:"kind",label:"Movement"},{key:"quantity",label:"Quantity Change",numeric:true},{key:"balance",label:"Balance After",numeric:true},{key:"value",label:"Cost Change",numeric:true,sortable:true},{key:"actions",label:"Actions",kind:"actions"}]}
+        rows={history.map(row=>({id:row.id,search:row.name+" "+row.reason+" "+(row.reference??"")+" "+row.source_id,sort:{date:`${row.occurred_on}T${row.created_at}`,item:row.name,value:row.value_delta_cents??0},cells:{
           date:<>{new Intl.DateTimeFormat("en-PH",{dateStyle:"medium",timeZone:"UTC"}).format(new Date(`${row.occurred_on}T00:00:00Z`))}<small className="cell-description">{new Date(row.created_at).toLocaleTimeString("en-PH",{timeZone:"Asia/Manila",hour:"numeric",minute:"2-digit"})}</small></>,
           item:<strong>{row.name}</strong>,kind:labels[row.kind]??row.kind,
           quantity:<span className={Number(row.quantity_delta)<0 ? "inventory-quantity-decrease" : "inventory-quantity-increase"}>{signedQuantity(row.quantity_delta,row.base_unit)}</span>,
@@ -170,9 +173,9 @@ export function InventoryWorkspace({from,to,today}:{from:string;to:string;today:
         }}))} />
     </Card>}
     {selectedMovement && <MovementDetails movement={selectedMovement} onClose={()=>setSelectedMovement(undefined)} />}
-    {returnEntries && <ReturnStockDialog entries={returnEntries} refresh={refresh} returnFocusRef={canReturn ? returnTrigger : viewTrigger} onClose={()=>setReturnEntries(undefined)} />}
+    {canRestore && returnEntries && <ReturnStockDialog entries={returnEntries} refresh={refresh} returnFocusRef={canReturn ? returnTrigger : viewTrigger} onClose={()=>setReturnEntries(undefined)} />}
     {selected && <ItemDetails item={selected} onClose={()=>{setSelected(undefined);requestAnimationFrame(()=>detailsTrigger.current?.focus());}} />}
-    {editingItem && <InventoryItemDialog item={editingItem} initialOpen hideTrigger onClose={()=>setEditingItem(undefined)} refresh={refresh} returnFocusRef={rowReturnFocus} />}
-    {activeStockModal && <StockDialog items={data.items} item={activeStockModal.item} today={today} workflow={activeStockModal.workflow} open hideTrigger onOpenChange={open=>{if(!open)setActiveStockModal(null);}} refresh={refresh} returnFocusRef={activeStockModal.item ? rowReturnFocus : undefined} />}
+    {canEdit && editingItem && <InventoryItemDialog item={editingItem} initialOpen hideTrigger onClose={()=>setEditingItem(undefined)} refresh={refresh} returnFocusRef={rowReturnFocus} />}
+    {canStock && activeStockModal && <StockDialog items={data.items} item={activeStockModal.item} today={today} workflow={activeStockModal.workflow} open hideTrigger onOpenChange={open=>{if(!open)setActiveStockModal(null);}} refresh={refresh} returnFocusRef={activeStockModal.item ? rowReturnFocus : undefined} />}
   </div>;
 }

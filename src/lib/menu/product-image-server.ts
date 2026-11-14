@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import type { Product } from "./domain";
 import { MAX_PRODUCT_IMAGE_BYTES } from "./image-upload";
+import { accessFor, can } from "@/lib/auth/permissions";
 
 const BUCKET = "product-images";
 export class ProductImageError extends Error {
@@ -37,9 +38,10 @@ export async function validateProductImage(file: File) {
 export async function saveProductWithImage(db: SupabaseClient<Database>, userId: string,
   shopId: string, product: Omit<Product, "id" | "sizes"> & { id?: string; sizes?: Omit<NonNullable<Product["sizes"]>[number], "cost_cents">[] }, file: File) {
   const { data: member, error: accessError } = await db.from("shop_members")
-    .select("role").eq("shop_id", shopId).eq("user_id", userId).eq("status", "active").maybeSingle();
+    .select("*").eq("shop_id", shopId).eq("user_id", userId).eq("status", "active").maybeSingle();
   if (accessError) throw new ProductImageError("Shop permissions could not be checked. Try again.", 503);
-  if (member?.role !== "founder") throw new ProductImageError("Only the shop owner can manage product images.", 403);
+  const access = member ? accessFor(member.role, member.permissions) : null;
+  if (!can(access, "menu", "create") && !can(access, "menu", "edit")) throw new ProductImageError("You do not have permission to manage product images.", 403);
   const image = await validateProductImage(file);
   if (!product.id) throw new ProductImageError("A product ID is required. Reopen the product form and try again.");
   const productId = product.id;

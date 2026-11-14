@@ -10,8 +10,10 @@ const screens = [
   { path: "/app/sales", name: "Sales", heading: "Sales" },
   { path: "/expenses", name: "Expenses", heading: "Expenses Management" },
   { path: "/libraries", name: "Libraries", heading: "Libraries" },
+  { path: "/app/users", name: "User Management", heading: "User Management" },
 ];
 async function catalog(page: Page, shopName = "Common Ground Coffee") {
+  await page.route("**/api/users", route => route.fulfill({ json: { data: { user_id: "owner", members: [], invitations: [] } } }));
   await page.route("**/api/inventory*", route => route.fulfill({ json: { data: { items: [], movements: [], configs: [], returnable: [] } } }));
   await page.route("**/api/pos", route => route.fulfill({ json: {
     shop: { id: uid(1), name: shopName }, founder: true, user_id: uid(1),
@@ -44,7 +46,7 @@ for (const viewport of [
   { width: 1440, height: 900 }, { width: 1280, height: 800 }, { width: 1032, height: 1376 },
   { width: 960, height: 1440 }, { width: 768, height: 1024 }, { width: 393, height: 844 },
 ]) {
-  test(`official logo and brand navigation stay consistent at ${viewport.width}px`, async ({ page }, info) => {
+  test(`text brand and navigation stay consistent at ${viewport.width}px`, async ({ page }, info) => {
     test.setTimeout(120_000);
     await page.setViewportSize(viewport);
     await catalog(page);
@@ -59,14 +61,11 @@ for (const viewport of [
       const currentHeaderHeight = (await sidebar.boundingBox())!.height;
       if (headerHeight === undefined) headerHeight = currentHeaderHeight;
       expect(currentHeaderHeight).toBe(headerHeight);
-      const logo = sidebar.getByRole("img", { name: "Sip & Snap", exact: true });
-      await expect(logo).toHaveAttribute("src", "/images/Logo.png");
-      await expect.poll(() => logo.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth === 1254 && image.naturalHeight === 1254)).toBe(true);
-      await expect(logo).toHaveCSS("object-fit", "contain");
-      await expect(logo).toHaveCSS("filter", "none");
-      await expect(logo).toHaveCSS("transform", "none");
-      const imageBox = (await logo.boundingBox())!;
-      expect(Math.abs(imageBox.width / imageBox.height - 1)).toBeLessThan(0.01);
+      const wordmark = sidebar.locator(".brand-wordmark");
+      await expect(wordmark).toHaveText("Sip&Snap");
+      await expect(wordmark).toBeVisible();
+      await expect(sidebar.locator(".brand-artwork img, .brand-artwork svg")).toHaveCount(0);
+      expect(await wordmark.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
       const artwork = sidebar.locator(".brand-artwork");
       await expect(artwork).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
       await expect(artwork).toHaveCSS("background-image", "none");
@@ -74,8 +73,8 @@ for (const viewport of [
       await expect(artwork).toHaveCSS("border-radius", "0px");
       await expect(artwork).toHaveCSS("box-shadow", "none");
       await expect(artwork).toHaveCSS("padding", "0px");
-      await expect(logo).toHaveCSS("box-shadow", "none");
-      await expect(sidebar).toHaveCSS("background-color", "rgb(59, 27, 18)");
+      await expect(wordmark).toHaveCSS("box-shadow", "none");
+      await expect(sidebar).toHaveCSS("background-color", "rgb(250, 250, 250)");
       if (viewport.width < 1280) {
         await expect(page.getByRole("navigation", { name: "Shop", exact: true })).toHaveCount(0);
         await expect(page.getByRole("button", { name: "Sign out", exact: true })).toHaveCount(0);
@@ -83,17 +82,18 @@ for (const viewport of [
         const drawerLogo = page.getByRole("dialog", { name: "Navigation menu", exact: true }).locator(".brand-artwork");
         await expect(drawerLogo).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
         await expect(drawerLogo).toHaveCSS("box-shadow", "none");
-        await expect(drawerLogo.locator("img")).toHaveAttribute("src", "/images/Logo.png");
+        await expect(drawerLogo.locator(".brand-wordmark")).toHaveText("Sip&Snap");
+        await expect(drawerLogo.locator("img, svg")).toHaveCount(0);
       }
       const nav = page.getByRole("navigation", { name: "Shop", exact: true });
       await expect(nav.getByRole("link")).toHaveCount(screens.length);
       const active = nav.getByRole("link", { name: screen.name, exact: true });
       await expect(active).toHaveAttribute("aria-current", "page");
-      await expect(active).toHaveCSS("background-color", "rgb(242, 161, 94)");
-      await expect(active).toHaveCSS("color", "rgb(59, 27, 18)");
-      await expect(active.locator("svg")).toHaveCSS("color", "rgb(59, 27, 18)");
+      await expect(active).toHaveCSS("background-color", "rgb(230, 230, 230)");
+      await expect(active).toHaveCSS("color", "rgb(18, 18, 18)");
+      await expect(active.locator("svg")).toHaveCSS("color", "rgb(18, 18, 18)");
       const workspace = page.locator(screen.name === "POS" ? ".pos-menu" : ".workspace-shell > .workspace-content");
-      await expect(workspace).toHaveCSS("background-color", "rgb(250, 247, 243)");
+      await expect(workspace).toHaveCSS("background-color", "rgb(247, 247, 247)");
       const signOut = page.locator(viewport.width >= 1280 ? ".workspace-sidebar form" : ".workspace-navigation-drawer form");
       await expect(signOut).toHaveAttribute("action", "/auth/sign-out");
       await expect(signOut).toHaveAttribute("method", "post");
@@ -122,20 +122,20 @@ test("brand buttons, controls, statuses and focus retain readable contrast", asy
   await catalog(page);
   await page.goto("/app/menu");
   const add = page.getByRole("button", { name: "Add product", exact: true });
-  await expect(add).toHaveCSS("background-color", "rgb(242, 161, 94)");
-  await expect(add).toHaveCSS("color", "rgb(59, 27, 18)");
+  await expect(add).toHaveCSS("background-color", "rgb(230, 230, 230)");
+  await expect(add).toHaveCSS("color", "rgb(18, 18, 18)");
   await add.click();
   const save = page.getByRole("button", { name: "Save product", exact: true });
-  await expect(save).toHaveCSS("background-color", "rgb(59, 27, 18)");
+  await expect(save).toHaveCSS("background-color", "rgb(18, 18, 18)");
   await expect(save).toHaveCSS("color", "rgb(255, 255, 255)");
   await page.keyboard.press("Tab");
   await save.focus();
-  await expect(save).toHaveCSS("outline-color", "rgb(117, 68, 45)");
+  await expect(save).toHaveCSS("outline-color", "rgb(56, 56, 56)");
   await expect(save).toHaveCSS("outline-width", "3px");
   expect(await save.evaluate(node => getComputedStyle(node).getPropertyValue("--tw-ring-shadow").trim())).toBe("0 0 #0000");
   const input = page.getByLabel("Product name", { exact: true });
   await input.focus();
-  await expect(input).toHaveCSS("outline-color", "rgb(117, 68, 45)");
+  await expect(input).toHaveCSS("outline-color", "rgb(56, 56, 56)");
   await expect(input).toHaveCSS("outline-width", "2px");
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
@@ -157,7 +157,7 @@ test("brand buttons, controls, statuses and focus retain readable contrast", asy
   await page.keyboard.press("ArrowDown");
   const option = page.getByRole("option", { name: "Coffee", exact: true });
   await option.focus();
-  await expect(option).toHaveCSS("background-color", "rgb(255, 228, 198)");
+  await expect(option).toHaveCSS("background-color", "rgb(238, 238, 238)");
   await page.keyboard.press("Escape");
   await chooseOption(page, category, "All categories");
   await page.getByRole("button", { name: "Delete product Coffee 1", exact: true }).click();
@@ -165,7 +165,7 @@ test("brand buttons, controls, statuses and focus retain readable contrast", asy
   const destructiveColors = await destructive.evaluate(node => {
     const css = getComputedStyle(node); return { foreground: css.color, background: css.backgroundColor };
   });
-  expect(destructiveColors.background).not.toBe("rgb(242, 161, 94)");
+  expect(destructiveColors.background).not.toBe("rgb(230, 230, 230)");
   expect(contrast(destructiveColors.foreground, destructiveColors.background)).toBeGreaterThanOrEqual(4.5);
 });
 
@@ -183,7 +183,7 @@ for (const [method, width, size, price] of [["Cash", 1440, "12 oz", 14500], ["E-
     });
     await page.goto("/pos");
     const brand = page.locator(width >= 1280 ? ".workspace-brand" : ".workspace-mobile-brand").first();
-    await expect(brand).toHaveAttribute("title", "Sip & Snap");
+    await expect(brand).toHaveAttribute("title", "Sip&Snap");
     if (size === "16 oz") await page.getByRole("group", { name: "Size for Latte", exact: true }).getByRole("radio", { name: size, exact: true }).check();
     await page.getByRole("button", { name: new RegExp(`Latte ${size}.*Add to cart`) }).click();
     if (width < 1280) await page.getByRole("button", { name: /^Open cart/ }).click();

@@ -7,11 +7,11 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 800
     await page.goto("/?receipt&long");
     await page.getByRole("button", { name: "View receipt" }).click();
     const dialog = page.getByRole("dialog", { name: "Sale receipt", exact: true });
-    const logo = dialog.getByRole("img", { name: "Sip & Snap", exact: true });
-    await expect(logo).toHaveAttribute("src", "/images/Logo.png");
-    await expect.poll(() => logo.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
-    const box = (await logo.boundingBox())!;
-    expect(Math.abs(box.width / box.height - 1)).toBeLessThan(0.02);
+    const name = dialog.locator(".receipt-business-name");
+    await expect(name).toHaveText("Sip&Snap");
+    await expect(name).toBeVisible();
+    await expect(dialog.locator(".receipt-brand img, .receipt-brand svg")).toHaveCount(0);
+    expect(await name.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
     await expect(dialog).toContainText("Purok 6, Ising, Carmen, Davao del Norte");
     await expect(dialog.locator(".receipt-brand")).not.toContainText("LOGO Coffee");
     await expect(dialog.getByRole("combobox", { name: "Paper width", exact: true })).toHaveText("80 mm");
@@ -39,7 +39,7 @@ for (const width of ["80", "58"] as const) {
       await expect(print).toHaveAttribute("data-paper-width", width);
       await expect(print).toContainText("E-wallet");
       await expect(print).toContainText("Refunded in full");
-      await expect(print.locator(".receipt-business-name")).toHaveText("Sip & Snap");
+      await expect(print.locator(".receipt-business-name")).toHaveText("Sip&Snap");
       await expect(print.locator("img")).toHaveCount(0);
       await expect(print.locator(".receipt-brand")).not.toContainText("LOGO Coffee");
       await expect(print).not.toContainText(/Preparation cost|Private|Owner ingredient|Wrong order|GCash|Cash received|Change given/);
@@ -62,16 +62,15 @@ for (const width of ["80", "58"] as const) {
   }
 }
 
-test("logo failure keeps the receipt readable without broken artwork", async ({ page }) => {
-  await page.route("**/images/Logo.png", route => route.fulfill({ status: 404, body: "" }));
+test("text-only receipt branding is immediately available without optional business details", async ({ page }) => {
   await page.addInitScript(() => { window.print = () => { document.documentElement.dataset.printCalled = "true"; }; });
   await page.goto("/?receipt&single&no-business&staff");
   await page.getByRole("button", { name: "View receipt" }).click();
   const dialog = page.getByRole("dialog", { name: "Sale receipt", exact: true });
   await expect(dialog.locator(".receipt-kind")).toHaveText("Sales receipt");
-  await expect(dialog.locator(".receipt-logo")).toHaveCount(0);
-  await expect(dialog.locator(".receipt-business-name")).toHaveText("Sip & Snap");
-  await expect(dialog.locator(".receipt-business")).toHaveCount(0);
+  await expect(dialog.locator("img, .receipt-logo, .receipt-brand-artwork")).toHaveCount(0);
+  await expect(dialog.locator(".receipt-business-name")).toHaveText("Sip&Snap");
+  await expect(dialog.locator(".receipt-store-details")).toHaveText("Common Ground Coffee");
   await expect(dialog).not.toContainText("Purok 6");
   await dialog.getByRole("button", { name: "Print receipt", exact: true }).click();
   await expect(page.locator("html")).toHaveAttribute("data-print-called", "true");
@@ -79,23 +78,22 @@ test("logo failure keeps the receipt readable without broken artwork", async ({ 
   await expect(page.locator(".print-receipt img")).toHaveCount(0);
 });
 
-test("thermal printing works while preview artwork is loading and closing the preview clears print content", async ({ page }) => {
-  let release!: () => void;
-  const gate = new Promise<void>(resolve => { release = resolve; });
-  await page.route("**/images/Logo.png", async route => { await gate; await route.continue(); });
+test("text receipt preview and print remain ready across closing and reopening", async ({ page }) => {
   await page.addInitScript(() => { window.print = () => { document.documentElement.dataset.printCalled = "true"; }; });
   await page.goto("/?receipt");
   await page.getByRole("button", { name: "View receipt" }).click();
+  await expect(page.locator(".receipt-brand .receipt-business-name")).toHaveText("Sip&Snap");
+  await expect(page.locator(".receipt-brand img")).toHaveCount(0);
   await page.getByRole("button", { name: "Print receipt", exact: true }).click();
   await expect(page.locator("html")).toHaveAttribute("data-print-called", "true");
-  await expect(page.locator(".print-receipt .receipt-business-name")).toHaveText("Sip & Snap");
+  await expect(page.locator(".print-receipt .receipt-business-name")).toHaveText("Sip&Snap");
   await expect(page.locator(".print-receipt img")).toHaveCount(0);
   await page.getByRole("button", { name: "Close dialog", exact: true }).click();
   await expect(page.locator(".print-receipt")).toHaveCount(0);
-  release();
   await page.locator("html").evaluate(element => element.removeAttribute("data-print-called"));
   await page.getByRole("button", { name: "View receipt" }).click();
-  await expect.poll(() => page.locator(".receipt-logo").evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
+  await expect(page.locator(".receipt-brand .receipt-business-name")).toHaveText("Sip&Snap");
+  await expect(page.locator(".receipt-brand img")).toHaveCount(0);
   expect(await page.locator("html").getAttribute("data-print-called")).toBeNull();
   await page.getByRole("button", { name: "Print receipt", exact: true }).click();
   await expect(page.locator("html")).toHaveAttribute("data-print-called", "true");

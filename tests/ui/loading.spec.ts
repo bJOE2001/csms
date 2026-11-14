@@ -26,7 +26,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1032, height: 137
     expect(bounds).toMatchObject({ x: 0, y: 0, width: viewport.width, height: 3 });
     await expect(bar(page)).toHaveCSS("pointer-events", "none");
     await expect(bar(page)).toHaveCSS("opacity", "1");
-    await expect(bar(page).locator(".global-loading-segment")).toHaveCSS("background-color", "rgb(242, 161, 94)");
+    await expect(bar(page).locator(".global-loading-segment")).toHaveCSS("background-color", "rgb(230, 230, 230)");
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     // Freeze a visible phase of the real indeterminate animation for visual QA.
     await bar(page).locator(".global-loading-segment").evaluate(el => {

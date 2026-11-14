@@ -100,6 +100,9 @@ export function Dialog({
           event.preventDefault();
           if (dismissible && dismissOnOutside && !isNotificationTarget(event.target)) onClose();
         }}
+        onOverlayClick={() => {
+          if (dismissible && dismissOnOutside) onClose();
+        }}
       >
         <div className="dialog-heading" data-has-close={showCloseButton || undefined}>
           <div>

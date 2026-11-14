@@ -125,4 +125,13 @@ describe("simple sales", () => {
       }).success,
     ).toBe(false);
   });
+  it("preserves optional offline capture times and rejects ambiguous dates", () => {
+    const id = "00000000-0000-4000-8000-000000000001";
+    const sale = { id, method: "cash", items: [{ product_id: id, quantity: 1, price_cents: 100 }] };
+    expect(checkoutSchema.parse(sale)).toEqual(sale);
+    for (const captured_at of ["2026-11-12T08:30:00.000Z", "2026-11-12T16:30:00+08:00"])
+      expect(checkoutSchema.parse({ ...sale, captured_at }).captured_at).toBe(captured_at);
+    for (const captured_at of ["2026-11-12", "2026-11-12T08:30:00", "2026-02-30T08:30:00Z", "tomorrow", null])
+      expect(checkoutSchema.safeParse({ ...sale, captured_at }).success).toBe(false);
+  });
 });

@@ -93,6 +93,12 @@ export function DateRangeFilter({
     }
     setRange(current => ({ ...current, [field]: next, source }));
   };
+  const applyRange = (nextStart: string, nextEnd: string) => {
+    setNavigationError(null);
+    lastRequested.current = null;
+    retryFailed.current = true;
+    setRange({ start: nextStart, end: nextEnd, source: "calendar" });
+  };
   const failed = loadFailure?.from === start && loadFailure.to === end ? loadFailure.message : null;
   const feedback = error ?? navigationError ?? failed;
 
@@ -118,6 +124,7 @@ export function DateRangeFilter({
           name="from"
           value={start}
           onValueChange={(value, source) => changeDate("start", value, source)}
+          onRangeSelect={applyRange}
           range={{ from: start, to: end }}
           aria-invalid={error ? true : undefined}
           aria-describedby={feedback ? errorId : undefined}
@@ -135,6 +142,7 @@ export function DateRangeFilter({
           name="to"
           value={end}
           onValueChange={(value, source) => changeDate("end", value, source)}
+          onRangeSelect={applyRange}
           range={{ from: start, to: end }}
           min={start || undefined}
           aria-invalid={error ? true : undefined}

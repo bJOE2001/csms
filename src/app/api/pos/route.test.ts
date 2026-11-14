@@ -55,7 +55,7 @@ describe("expense mutations", () => {
   it("preserves database authorization and conflict failures without invalidating reports", async () => {
     mocks.rpc.mockResolvedValue({ error: { code: "42501", message: "Access denied" } });
     const response = await POST(request());
-    expect(response.status).toBe(422);
+    expect(response.status).toBe(403);
     expect(await response.json()).toEqual({ error: "Access denied" });
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
   });
@@ -64,5 +64,26 @@ describe("expense mutations", () => {
     expect(mocks.rpc).toHaveBeenCalledWith(action === "expense" ? "pos_add_expense" : "pos_void_expense",
       action === "expense" ? { p_shop_id: id, p_data: { id, spent_on: edit.spent_on, description: edit.description, amount_cents: edit.amount_cents } } : { p_shop_id: id, p_id: id });
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/app/sales");
+  });
+});
+
+describe("offline checkout capture time", () => {
+  const sale = { id, method: "cash", captured_at: "2026-11-12T08:30:00.000Z", items: [{ product_id: id, quantity: 1, price_cents: 100 }] };
+  it("passes the original capture time into the transactional checkout", async () => {
+    expect((await POST(request(sale, "checkout"))).status).toBe(200);
+    expect(mocks.rpc).toHaveBeenCalledWith("pos_checkout", { p_shop_id: id, p_data: sale });
+  });
+  it("rejects an ambiguous capture time before calling checkout", async () => {
+    expect((await POST(request({ ...sale, captured_at: "2026-11-12" }, "checkout"))).status).toBe(400);
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+  it("rejects a saved sale from another cashier before calling checkout", async () => {
+    const response = await POST(new NextRequest("http://localhost:3000/api/pos", {
+      method: "POST",
+      headers: { host: "localhost:3000", origin: "http://localhost:3000", "content-type": "application/json" },
+      body: JSON.stringify({ action: "checkout", shop_id: id, user_id: "00000000-0000-4000-8000-000000000002", data: sale }),
+    }));
+    expect(response.status).toBe(403);
+    expect(mocks.rpc).not.toHaveBeenCalled();
   });
 });

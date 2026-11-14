@@ -23,12 +23,13 @@ try:
  run("pg_ctl","-D",str(cluster),"-l",str(cluster/"server.log"),"-o","-h 127.0.0.1 -p 55439","-w","start");started=True
  sql("create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,raw_user_meta_data jsonb default '{}');create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated;grant execute on function auth.uid() to authenticated;")
  for migration in sorted((root/"supabase/migrations").glob("*.sql")):
-  if migration.name=="202611070006_recipe_only_costing.sql":continue # Legacy compatibility gates precede the intentional selling-policy upgrade.
+  if migration.name in {"202611070006_recipe_only_costing.sql", "202611130001_offline_sale_time.sql", "202611140002_user_access_control.sql"}:continue # Legacy compatibility gates precede the selling-policy, offline-time and permission upgrades.
   if migration.name=="202611020001_simple_pos.sql":sql((root/"tests/database/pre-upgrade.sql").read_text(encoding="utf-8"))
   sql(migration.read_text(encoding="utf-8"))
  publication_setup=(root/"supabase/publication/publish-public-menu.sql").read_text(encoding="utf-8")
  sql(publication_setup+publication_setup) # The sole legacy shop is selected; retries are idempotent.
  sql((root/"supabase/migrations/202611060001_public_menu.sql").read_text(encoding="utf-8"))
+ sql((root/"supabase/migrations/202611140001_public_menu_top_sales.sql").read_text(encoding="utf-8"))
  sql("do $$begin assert (select count(*) from public.shops where public_menu_enabled)=1, 'Migration retry reset publication';end $$;update public.shops set public_menu_enabled=false;")
  sql("do $$begin assert (select total_cents from public.pos_sales where id='00000000-0000-4000-8000-000000000098')=12000;assert (select items->0->>'name' from public.pos_sales where id='00000000-0000-4000-8000-000000000098')='Original latte · Regular';assert (select count(*) from public.pos_products where name='Original latte')=1;end $$;")
  print(sql((root/"tests/database/simple-pos.sql").read_text(encoding="utf-8")))
@@ -37,6 +38,7 @@ try:
  print(sql((root/"tests/database/menu.sql").read_text(encoding="utf-8")))
  print(sql((root/"tests/database/expenses-management.sql").read_text(encoding="utf-8")))
  sql((root/"supabase/migrations/202611060001_public_menu.sql").read_text(encoding="utf-8")) # Idempotent reapplication.
+ sql((root/"supabase/migrations/202611140001_public_menu_top_sales.sql").read_text(encoding="utf-8")) # Idempotent reapplication.
  print(sql((root/"tests/database/public-menu.sql").read_text(encoding="utf-8")))
  print(sql((root/"tests/database/inventory.sql").read_text(encoding="utf-8")))
  print(sql((root/"tests/database/inventory-checkout.sql").read_text(encoding="utf-8")))
@@ -130,6 +132,35 @@ try:
  else:raise RuntimeError("Demo cleanup accepted an ambiguous target shop")
  print("Demo seed date range, snapshots, permissions, preservation and idempotence passed.")
  sql((root/"supabase/migrations/202611070006_recipe_only_costing.sql").read_text(encoding="utf-8"))
+ sql((root/"supabase/migrations/202611130001_offline_sale_time.sql").read_text(encoding="utf-8"))
+ sql("do $$begin assert not exists(select 1 from public.pos_sales where received_at is distinct from created_at), 'Offline upgrade changed historical dates';end $$;")
+ print(sql((root/"tests/database/offline-checkout.sql").read_text(encoding="utf-8")))
+ print("Offline capture dates, audit times, exact-request retries, authorization and stock rollback passed.")
+ access_migration=(root/"supabase/migrations/202611140002_user_access_control.sql").read_text(encoding="utf-8")
+ sql(access_migration)
+ print(sql((root/"tests/database/user-access.sql").read_text(encoding="utf-8")))
+ sql((root/"tests/database/user-access-retry.sql").read_text(encoding="utf-8"))
+ access_snapshot="""copy (select jsonb_build_object(
+  'users',(select jsonb_agg(to_jsonb(x) order by id) from auth.users x),
+  'members',(select jsonb_agg(to_jsonb(x) order by id) from public.shop_members x),
+  'invitations',(select jsonb_agg(to_jsonb(x) order by id) from public.membership_invites x),
+  'sales',(select jsonb_agg(to_jsonb(x) order by id) from public.pos_sales x),
+  'expenses',(select jsonb_agg(to_jsonb(x) order by id) from public.pos_expenses x),
+  'products',(select jsonb_agg(to_jsonb(x) order by id) from public.pos_products x),
+  'stock_movements',(select jsonb_agg(to_jsonb(x) order by id) from public.stock_movements x),
+  'audit',(select jsonb_agg(to_jsonb(x) order by id) from public.audit_logs x))) to stdout;"""
+ before_access_retry=sql(access_snapshot)
+ for attempt in range(2):
+  sql(access_migration)
+  assert sql(access_snapshot)==before_access_retry,'Access migration retry changed saved permissions, invitations or business history'
+ # Model a partial SQL Editor application: columns/functions exist but checks
+ # and one policy are missing. Recovery must restore them without changing rows.
+ sql("alter table public.shop_members drop constraint shop_members_permissions_check;alter table public.membership_invites drop constraint membership_invites_permissions_check;drop policy pos_products_read on public.pos_products;")
+ sql(access_migration)
+ assert sql(access_snapshot)==before_access_retry,'Partial access migration recovery changed saved data'
+ sql("do $$begin assert (select count(*) from pg_catalog.pg_constraint where (conrelid='public.shop_members'::regclass and conname='shop_members_permissions_check') or (conrelid='public.membership_invites'::regclass and conname='membership_invites_permissions_check'))=2,'Permission validation checks missing';end $$;")
+ print(sql((root/"tests/database/user-access.sql").read_text(encoding="utf-8")))
+ print("Access migration repeated runs and partial recovery preserve permissions, invitations, users and business history.")
  print("All migrations and legacy compatibility assertions passed; recipe-only policy applied. Run reset-development.py for new-policy integration gates.")
 finally:
  if started:run("pg_ctl","-D",str(cluster),"-m","fast","-w","stop")

@@ -75,7 +75,7 @@ body:has(.workspace-shell) {
   padding: 12px 24px;
   border-bottom: 1px solid var(--sidebar-border);
 }
-.workspace-mobile-brand { display: block; flex-shrink: 0; width: 64px; }
+.workspace-mobile-brand { display: block; flex-shrink: 0; width: auto; }
 .navigation-toggle.button {
   flex-shrink: 0;
   width: 44px;
@@ -533,6 +533,30 @@ body:has(.workspace-shell) {
   color: hsl(var(--accent-foreground));
   background: hsl(var(--accent));
 }
+.product-stepper {
+  display: grid;
+  grid-template-columns: 44px minmax(28px, 1fr) 44px;
+  align-items: center;
+  gap: 4px;
+  width: 124px;
+  min-height: 44px;
+}
+.product-stepper .product-added {
+  min-width: 28px;
+  min-height: 44px;
+  padding: 6px 4px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.product-stepper-btn.button {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
 .product-card-unavailable .product-title > strong,
 .product-card-unavailable .product-price {
   color: var(--muted);
@@ -759,12 +783,42 @@ body:has(.workspace-shell) {
   color: var(--surface);
 }
 .cart-checkout .field {
-  margin: 14px 0 6px;
+  margin: 10px 0 4px;
   font-size: 12px;
 }
 .cart-checkout .field input {
   min-height: 44px;
   font-size: 13px;
+}
+.cash-quick-tenders {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+.cash-tender-pill {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 28px;
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.cash-tender-pill:hover {
+  background: var(--surface-muted);
+}
+.cash-tender-pill[aria-pressed="true"] {
+  background: hsl(var(--secondary));
+  border-color: var(--brand);
+  color: var(--brand);
 }
 .cart-change {
   margin: 8px 0 2px;
@@ -784,7 +838,7 @@ body:has(.workspace-shell) {
   margin: 10px 0 0;
   text-align: center;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 @container (max-width:720px) {
   .pos-products {
@@ -919,3 +973,12 @@ body:has(.workspace-shell) {
     overflow: visible;
   }
 }
+.pos-sync-status {
+  padding: 10px 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.pos-sync-status > p { margin: 0 0 6px; }
+.pos-sync-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.pos-sync-status summary { cursor: pointer; padding: 8px 0; }
+.pos-sync-status li { margin-block: 8px; overflow-wrap: anywhere; }

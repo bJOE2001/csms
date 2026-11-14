@@ -1,27 +1,16 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import sharp from "sharp";
 
-// Preserve the complete supplied artwork; do not crop or invent an icon-only mark.
-const source = process.argv[2] ?? "public/images/Logo.png";
+// Temporary text identity only: no pictorial logo has been supplied.
 const output = "public/brand";
 await mkdir(output, { recursive: true });
-const sizes = [16, 32, 48];
-const images = await Promise.all(sizes.map(size => sharp(source).resize(size, size, { fit: "contain" }).png().toBuffer()));
-const header = Buffer.alloc(6 + 16 * images.length);
-header.writeUInt16LE(1, 2);
-header.writeUInt16LE(images.length, 4);
-let offset = header.length;
-images.forEach((image, index) => {
-  const entry = 6 + 16 * index;
-  header[entry] = sizes[index];
-  header[entry + 1] = sizes[index];
-  header.writeUInt16LE(1, entry + 4);
-  header.writeUInt16LE(32, entry + 6);
-  header.writeUInt32LE(image.length, entry + 8);
-  header.writeUInt32LE(offset, entry + 12);
-  offset += image.length;
-});
-await writeFile(`${output}/favicon.ico`, Buffer.concat([header, ...images]));
-await Promise.all([[192, "icon-192.png"], [180, "apple-touch-icon.png"]].map(([size, name]) =>
-  sharp(source).resize(size, size, { fit: "contain" }).png().toFile(`${output}/${name}`),
+const source = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Sip&amp;Snap">
+  <title>Sip&amp;Snap</title>
+  <rect width="512" height="512" fill="#FAF7F3"/>
+  <text x="256" y="280" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-size="78" font-weight="700" fill="#3B1B12">Sip&amp;Snap</text>
+</svg>
+`;
+await writeFile(`${output}/text-icon.svg`, source);
+await Promise.all([[192, "text-icon-192.png"], [512, "text-icon-512.png"], [180, "text-apple-touch-icon.png"]].map(([size, name]) =>
+  sharp(Buffer.from(source)).resize(size, size).png().toFile(`${output}/${name}`),
 ));

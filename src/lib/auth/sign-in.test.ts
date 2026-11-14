@@ -2,7 +2,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ create: vi.fn(), authenticate: vi.fn(), redirect: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.create }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
-import { signIn } from "@/app/sign-in/actions";
+import { signIn } from "@/app/login/actions";
 
 const idle = { status: "idle" } as const;
 function form(email = "staff@example.invalid", password = "test-only-placeholder") {

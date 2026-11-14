@@ -7,6 +7,7 @@ import { SalesRecords } from "./sales-records";
 import { periodDates } from "@/lib/sales/period";
 import { useReportSnapshot } from "@/lib/use-report-snapshot";
 import type { ReceiptBusinessDetails } from "@/lib/sales/receipt";
+import { useCan } from "./access-context";
 export function SalesView({
   sales: loadedSales,
   expenses: loadedExpenses = [],
@@ -32,6 +33,7 @@ export function SalesView({
   business?: ReceiptBusinessDetails;
   stockReturnCredits?: number;
 }) {
+  const canExport = useCan("sales", "export", true), canDashboard = useCan("dashboard", "view", founder);
   const report = useReportSnapshot(shopId, loadError ? null : { sales: loadedSales, expenses: loadedExpenses, stockReturnCredits, from, to });
   const sales = report?.sales ?? [];
   const expenses = report?.expenses ?? [];
@@ -49,7 +51,7 @@ export function SalesView({
         </div>
         <div className="sales-header-actions sales-date-range">
           <DateRangeFilter from={appliedFrom} to={appliedTo} loadFailure={loadError ? { from, to, message: loadError } : undefined} />
-          {report && <ExportSales
+          {report && canExport && <ExportSales
             report={{ shopName, timezone, from: appliedFrom, to: appliedTo, sales, expenses, stockReturnCredits: report?.stockReturnCredits ?? 0 }}
           />}
         </div>
@@ -66,7 +68,7 @@ export function SalesView({
             { label: "Refunded Transactions", value: summary.refunds },
           ].map(({ label, value }) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
         </dl>
-        <p className="sales-report-notes"><Link href={`/dashboard?from=${appliedFrom}&to=${appliedTo}`}>View business performance on Dashboard</Link></p>
+        {canDashboard && <p className="sales-report-notes"><Link href={`/dashboard?from=${appliedFrom}&to=${appliedTo}`}>View business performance on Dashboard</Link></p>}
         {summary.stockReturnCredits > 0 && <p className="hint">Recorded stock returns credit {money(summary.stockReturnCredits)} to product costs in this reporting period. Original receipt costs remain unchanged.</p>}
         {summary.missingCosts > 0 && (
           <p role="status" className="form-message error">

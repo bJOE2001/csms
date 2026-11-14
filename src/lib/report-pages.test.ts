@@ -63,9 +63,10 @@ describe("Dashboard server authorization and report consistency", () => {
     await expect(renderDashboard()).rejects.toThrow("Authentication redirect");
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
-  it("rejects staff before fetching confidential analytics", async () => {
-    mocks.member.mockResolvedValue({ role: "staff", shop: { id: shopId }, supabase: { rpc: mocks.rpc } });
+  it("requires Dashboard access before fetching confidential analytics", async () => {
+    mocks.member.mockRejectedValue(new Error("NEXT_REDIRECT"));
     await expect(renderDashboard()).rejects.toThrow("NEXT_REDIRECT");
+    expect(mocks.member).toHaveBeenCalledWith("dashboard");
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
   it("shares Sales readers and sends only aggregate data plus five recent receipts", async () => {

@@ -8,8 +8,8 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/primitives/input";
 import { credentialErrors, type SignInState } from "@/lib/auth/sign-in";
 
-export function SignInForm({ action, initialError }: {
-  action: (previous: SignInState, form: FormData) => Promise<SignInState>; initialError?: string;
+export function SignInForm({ action, initialError, initialNotice }: {
+  action: (previous: SignInState, form: FormData) => Promise<SignInState>; initialError?: string; initialNotice?: string;
 }) {
   const id = useId();
   const [state, formAction, pending] = useActionState(async (previous: SignInState, form: FormData): Promise<SignInState> => {
@@ -55,6 +55,7 @@ export function SignInForm({ action, initialError }: {
           }
         }}>
           {state.message && <p ref={errorMessage} className="form-message error sign-in-error" role="alert" tabIndex={-1}>{state.message}</p>}
+          {!state.message && initialNotice && <p className="form-message success sign-in-error" role="status">{initialNotice}</p>}
           <div className="field"><label htmlFor={`${id}-email`}>Email</label>
             <Input ref={emailInput} id={`${id}-email`} name="email" type="email" autoComplete="email" autoCapitalize="none" spellCheck={false} placeholder="name@example.com" value={email} onChange={event => setEmail(event.target.value)} required readOnly={pending} aria-invalid={!!errors?.email || undefined} aria-describedby={errors?.email ? `${id}-email-error` : undefined} />
             {errors?.email && <p className="sign-in-field-error" id={`${id}-email-error`}>{errors.email}</p>}

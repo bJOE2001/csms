@@ -12,7 +12,8 @@ import { categorySchema } from "@/lib/menu/domain";
 import { updateExpenseSchema } from "@/lib/expenses/domain";
 import { MAX_PRODUCT_IMAGE_BYTES } from "@/lib/menu/image-upload";
 import { ProductImageError, saveProductWithImage } from "@/lib/menu/product-image-server";
-export async function GET() {
+import { accessFor, can } from "@/lib/auth/permissions";
+export async function GET(request: NextRequest) {
   const db = await createClient();
   const {
     data: { user },
@@ -24,7 +25,7 @@ export async function GET() {
     );
   const { data: member, error: accessError } = await db
     .from("shop_members")
-    .select("shop_id,role,shops(id,name,timezone)")
+    .select("*,shops(id,name,timezone)")
     .eq("user_id", user.id)
     .eq("status", "active")
     .order("created_at")
@@ -37,9 +38,13 @@ export async function GET() {
     );
   if (!member)
     return NextResponse.json(
-      { error: "Create your shop first." },
+      { error: "No active shop access." },
       { status: 403 },
     );
+  const access = accessFor(member.role, member.permissions);
+  const requestedModule = request?.headers.get("X-Workspace-Module") ?? "pos";
+  const moduleKey = requestedModule === "menu" || requestedModule === "libraries" ? requestedModule : "pos";
+  if (!can(access, moduleKey)) return NextResponse.json({ error: "You do not have access to this module." }, { status: 403 });
   const [{ data, error }, { data: categories, error: categoryError }] =
     await Promise.all([
       db
@@ -75,6 +80,7 @@ export async function GET() {
           shop: member.shops,
           user_id: user.id,
           founder: member.role === "founder",
+          access,
           products: data?.map(product => ({ ...product, inventory: configurations[product.id] })),
           categories,
         },
@@ -147,11 +153,14 @@ export async function POST(request: NextRequest) {
           "archive_product",
         ]),
         shop_id: z.uuid(),
+        user_id: z.uuid().optional(),
         data: z.unknown(),
       })
       .parse(payload);
     if (multipart && body.action !== "product")
       throw new ProductImageError("Image uploads are supported only for product saves.");
+    if (body.action === "checkout" && body.user_id && body.user_id !== user.id)
+      return NextResponse.json({ error: "Sign in with the original cashier account to sync this sale." }, { status: 403 });
     let result;
     if (body.action === "checkout")
       result = await db.rpc("pos_checkout", {
@@ -218,7 +227,7 @@ export async function POST(request: NextRequest) {
                 ? result.error.message
                 : "The request could not be saved. Retry with the same details.",
         },
-        { status: 422 },
+        { status: result.error.code === "42501" ? 403 : 422 },
       );
     if (["expense", "update_expense", "void_expense"].includes(body.action)) {
       revalidatePath("/expenses");

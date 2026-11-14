@@ -12,6 +12,7 @@ import { MutationForm } from "./mutation-form";
 import { SaleReceipt } from "./sale-receipt";
 import { Select } from "./ui/select";
 import { customerReceipt, type CustomerReceipt, type ReceiptBusinessDetails, type ReceiptPaperWidth } from "@/lib/sales/receipt";
+import { useCan } from "./access-context";
 
 export function ReceiptDialog({
   sale: s,
@@ -41,6 +42,7 @@ export function ReceiptDialog({
   hideTrigger?: boolean;
 }) {
   const router = useRouter();
+  const canRefund = useCan("sales", "refund", founder), canPrint = useCan("sales", "print", true);
   const startRefresh = useLoadingTransition();
   const [paperWidth, setPaperWidth] = useState<ReceiptPaperWidth>("80");
   const receipt = customerReceipt(s, timezone);
@@ -55,18 +57,18 @@ export function ReceiptDialog({
       readOnly
       className="receipt-dialog"
       onClose={onCancelPrint}
-      readOnlyActions={
+      readOnlyActions={canPrint ?
         <>
         <label className="receipt-paper-setting">Paper width<Select value={paperWidth} disabled={printing} onValueChange={value => setPaperWidth(value === "58" ? "58" : "80")} options={[{ value: "80", label: "80 mm" }, { value: "58", label: "58 mm" }]} /></label>
         <Button pending={printing} pendingLabel="Preparing…" onClick={() => onPrint(receipt, paperWidth)}>
           <Icon name="print" size={18} />
           Print receipt
         </Button>
-        </>
+        </> : undefined
       }
     >
       <SaleReceipt receipt={receipt} shopName={shopName} business={business} />
-      {founder && <section className="receipt-business" aria-label="Business details">
+      {(founder || canRefund) && <section className="receipt-business" aria-label="Business details">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3>Business details</h3>
           <span className="receipt-label">Not printed</span>
@@ -99,7 +101,7 @@ export function ReceiptDialog({
             Refund reason: {s.refund_reason}
           </p>
         )}
-        {founder && s.status === "completed" && (
+        {canRefund && s.status === "completed" && (
           <div className="receipt-management">
             <p className="hint">
               Return the payment to the customer before recording a full refund.

@@ -5,6 +5,14 @@
 .data-table table { table-layout: auto; font-size: 13px; }
 .data-table :is(th, td) { padding: 12px; }
 .data-table th { font-weight: 500; }
+.data-table .table-sort {
+  min-height: 20px;
+  margin-block: -8px;
+  padding: 8px 0;
+  color: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
 .data-table td { overflow-wrap: anywhere; }
 .data-table .table-cell-content { min-width: 0; }
 .data-table .numeric { font-variant-numeric: tabular-nums; }
@@ -96,7 +104,7 @@
 }
 @media (max-width: 1279px), (pointer: coarse) {
   .table-action-button.button { width: 44px; height: 44px; min-height: 44px; }
-  .data-table .table-sort { min-height: 44px; }
+  .data-table .table-sort { min-height: 44px; margin-block: -12px; padding: 12px 0; }
   .table-page-size .select-trigger { min-height: 44px; }
 }
 @media (max-width: 1000px) {

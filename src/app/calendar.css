@@ -119,7 +119,12 @@
 }
 .calendar-hidden { visibility: hidden; }
 .calendar :is(.calendar-day-button, .calendar-nav):focus-visible,
-.calendar-close:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; box-shadow: none; }
+.calendar-close:focus-visible,
+.calendar-preset-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; box-shadow: none; }
+.calendar-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.calendar-preset-btn { min-height: 32px; padding: 4px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); font-size: 12px; font-weight: 600; cursor: pointer; }
+.calendar-preset-btn:hover { background: var(--calendar-range); }
+.calendar-preset-btn[aria-pressed="true"] { border-color: var(--brand); background: hsl(var(--secondary)); color: var(--brand); }
 .calendar-range-summary { margin: 12px 0 0; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; text-align: center; overflow-wrap: anywhere; }
 @media (max-width: 767px) {
   .date-picker-field > input[data-focus-owner="parent"] { font-size: 16px; }

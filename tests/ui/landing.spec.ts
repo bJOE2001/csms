@@ -6,8 +6,13 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 800
     await page.setViewportSize(viewport);
     await page.goto("/?landing");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Good coffee.");
+    await expect(page.locator(".site-hero-hours")).toContainText("5:00 PM–9:00 PM");
+    await expect(page.locator(".site-story-announcement")).toBeVisible();
+    expect(await page.locator(".site-story-announcement").evaluate(el => parseFloat(getComputedStyle(el).borderTopLeftRadius))).toBeGreaterThanOrEqual(16);
     await expect(page.locator(".workspace-sidebar")).toHaveCount(0);
     await expect(page.locator(".site-header").getByRole("link", { name: "View Menu", exact: true })).toHaveCount(0);
+    await expect(page.locator(".site-header")).toHaveCSS("background-color", "rgb(250, 248, 245)");
+    await expect(page.locator(".site-footer")).toHaveCSS("background-color", "rgb(236, 232, 224)");
     if (viewport.width >= 900) await expect(page.locator(".site-header").getByRole("link", { name: "Menu", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Explore Our Menu", exact: true })).toHaveAttribute("href", "/menu");
     const hero = page.locator(".site-hero-photo .site-photo-composition > img");
@@ -15,13 +20,15 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 800
     await page.evaluate(async () => { await document.fonts.ready; await Promise.all([...document.images].map(image => image.decode().catch(() => {}))); });
     expect(await hero.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
     await expect(hero).toHaveAttribute("src", "/site/takeaway-latte-concept.webp");
-    await expect(page.locator(".site-cup-sticker img")).toHaveCount(2);
-    for (const image of await page.locator(".site-cup-sticker img").all()) {
-      await expect(image).toHaveAttribute("src", "/images/Logo.png");
-      expect(await image.evaluate((el: HTMLImageElement) => Math.abs(el.clientWidth / el.clientHeight - el.naturalWidth / el.naturalHeight))).toBeLessThan(0.05);
+    await expect(page.locator(".site-cup-sticker .brand-wordmark")).toHaveCount(2);
+    for (const wordmark of await page.locator(".brand-wordmark").all()) {
+      await expect(wordmark).toHaveText("Sip&Snap");
+      expect(await wordmark.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
     }
+    await expect(page.locator(".brand-artwork img, .brand-artwork svg")).toHaveCount(0);
+    await expect(page.locator(".site-header .brand-wordmark")).toBeVisible();
     await expect(page.locator(".coffee-site")).not.toContainText("LOGO Coffee");
-    await expect(page.getByRole("img", { name: "Sip & Snap", exact: true })).toHaveCount(2);
+    await expect(page.getByRole("img", { name: "Sip&Snap", exact: true })).toHaveCount(0);
     await expect(page.locator(".site-gallery, .site-location-ribbon")).toHaveCount(0);
     await expect(page.locator("main section")).toHaveCount(5);
     await expect(page.locator(".site-featured .site-product")).toHaveCount(4);
@@ -45,7 +52,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 800
     await page.screenshot({ path: `.local/ui-review/storefront/visit-${viewport.width}.png` });
     await page.goto("/menu");
     await expect(page.locator(".site-product")).toHaveCount(4);
-    await page.locator(".site-header .brand-logo").evaluate((image: HTMLImageElement) => image.decode());
+    await expect(page.locator(".site-header .brand-wordmark")).toHaveText("Sip&Snap");
     const menuColumns = viewport.width >= 1200 ? 3 : viewport.width >= 640 ? 2 : 1;
     expect(await page.locator(".site-product-grid").evaluate(el => getComputedStyle(el).gridTemplateColumns.split(" ").length)).toBe(menuColumns);
     expect((await page.locator(".site-menu-heading").boundingBox())!.height).toBeLessThan(260);
@@ -60,6 +67,8 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 800
       await page.getByRole("button", { name: "Open customer navigation", exact: true }).click();
       const drawer = page.getByRole("dialog", { name: "Customer navigation", exact: true });
       await expect(drawer.getByRole("button", { name: "Close customer navigation", exact: true })).toBeFocused();
+      await expect(drawer.locator(".brand-wordmark")).toHaveText("Sip&Snap");
+      await expect(drawer.locator(".brand-artwork img, .brand-artwork svg")).toHaveCount(0);
       await expect(drawer.getByRole("navigation").getByRole("link")).toHaveCount(4);
       await expect(drawer.getByRole("link", { name: "Menu", exact: true })).toHaveCount(1);
       await expect(drawer.getByRole("link", { name: "Menu", exact: true })).toHaveAttribute("href", "/menu");
@@ -108,9 +117,36 @@ test("unpublished content stays honest with reduced motion and keyboard access",
   await page.goto("/?landing&unpublished");
   await expect(page.getByText("Your next favorite is waiting in store.", { exact: true })).toBeVisible();
   await expect(page.getByText(/123 Coffee Lane|hello@example|5-star|best sellers/i)).toHaveCount(0);
-  await expect(page.locator(".site-hero-photo figcaption")).toContainText("Concept imagery");
+  await expect(page.locator(".site-hero-photo .site-photo-strip-top")).toContainText("FRAME 01");
   await expect(page.locator(".site-featured .site-product")).toHaveCount(0);
   await page.keyboard.press("Tab");
   await expect(page.getByRole("link", { name: "Skip to content", exact: true })).toBeFocused();
   expect(await page.locator(".coffee-site").evaluate(el => el.getAnimations({ subtree: true }).length)).toBe(0);
+});
+
+test("interactive scroll progress, header state, parallax and section reveal update on scroll", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/?landing");
+  await expect(page.locator(".site-scroll-progress")).toBeVisible();
+  const scrollCue = page.getByRole("link", { name: "Scroll to explore", exact: true });
+  await expect(scrollCue).toBeVisible();
+  await expect(scrollCue).toHaveAttribute("href", "#featured");
+  await scrollCue.click();
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+  await page.locator("#our-story").scrollIntoViewIfNeeded();
+  await expect(page.locator(".site-header")).toHaveAttribute("data-scrolled", "true");
+  await expect(page.locator("#our-story")).toHaveAttribute("data-reveal", "visible");
+  const announcementBounds = (await page.locator(".site-story-announcement").boundingBox())!;
+  const storyLinkBounds = (await page.getByRole("link", { name: "Make time for a visit", exact: true }).boundingBox())!;
+  expect(storyLinkBounds.y).toBeGreaterThanOrEqual(announcementBounds.y + announcementBounds.height);
+  await expect.poll(() =>
+    page.locator(".coffee-site").evaluate(el => parseFloat(el.style.getPropertyValue("--scroll-progress") || "0")),
+  ).toBeGreaterThan(0);
+  await expect.poll(() =>
+    page.locator(".site-photo-composition[data-parallax]").first().evaluate(el => el.style.getPropertyValue("--parallax-y").trim()),
+  ).not.toBe("");
+  const heroComposition = page.locator(".site-hero-photo .site-photo-composition");
+  await expect(heroComposition).toHaveAttribute("data-film-mode", "bw");
+  await page.locator(".site-hero-photo").getByRole("button", { name: "Develop photo", exact: true }).click();
+  await expect(heroComposition).toHaveAttribute("data-film-mode", "color");
 });

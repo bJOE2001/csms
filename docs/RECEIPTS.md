@@ -4,7 +4,7 @@
 
 ## Branding and business information
 
-`src/lib/brand.ts` centralizes Sip & Snap’s approved identity, the original `/images/Logo.png` artwork, its 1254 × 1254 aspect ratio, and the owner-confirmed address. The sidebar, sign-in page, public defaults and receipts use that same source. Artwork is not recolored, cropped or regenerated. Receipt previews show the official color artwork; failed previews fall back to the business name. Thermal receipts use the business name as a clean monochrome fallback and contain no color-logo bitmap.
+`src/lib/brand.ts` centralizes the Sip&Snap text identity and the owner-confirmed address. The sidebar, sign-in page, public defaults and receipts use that same source. Receipt previews and thermal printouts both show the business name as real text; no business-logo image is loaded or required.
 
 Sales passes the existing verified `SITE_ADDRESS` and optional validated `SITE_CONTACT_PHONE` configuration through to both preview and print. Missing optional details are omitted; no phone number is fabricated. A distinct shop name can appear as a branch label; the old Coffee Logo placeholder is omitted.
 
@@ -18,7 +18,7 @@ The final total always comes from the saved transaction. Item subtotal uses save
 
 Choose 80 mm (default) or 58 mm in the receipt footer. The print stylesheet uses 72 mm or 50 mm of content with 4 mm page margins. Select matching paper in the printer dialog, disable browser headers/footers, and check the printer’s actual printable area. No fixed receipt length is imposed; long receipts paginate with repeating item headers and unbroken normal item rows.
 
-`ReceiptPrint` mounts only the customer-safe model in a body-level portal. It waits for fonts and image decoding, permits the logo fallback to render, then calls the existing native browser print function. Print CSS excludes the entire application, overlays, owner details, notifications and controls. Closing the receipt during preparation cancels the pending print; preparation errors allow a retry. The afterprint event removes the temporary portal without claiming that a physical print succeeded.
+`ReceiptPrint` mounts only the customer-safe model in a body-level portal. It waits for fonts and any receipt images, then calls the existing native browser print function. The business name is immediately available as text. Print CSS excludes the entire application, overlays, owner details, notifications and controls. Closing the receipt during preparation cancels the pending print; preparation errors allow a retry. The afterprint event removes the temporary portal without claiming that a physical print succeeded.
 
 Browser printing still opens its print dialog and depends on the operating system and printer configuration. Silent printing and physical thermal-printer compatibility are not claimed. Reference behavior: [native print](https://developer.mozilla.org/en-US/docs/Web/API/Window/print), [image readiness](https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/decode), [page sizing](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@page/size).
 

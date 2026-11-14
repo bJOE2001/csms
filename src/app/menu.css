@@ -326,7 +326,7 @@
   align-items: center;
   padding: 2px 8px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   line-height: 1.35;
   white-space: nowrap;
@@ -357,7 +357,7 @@
   display: block;
   margin-top: 4px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -365,6 +365,7 @@
 .product-recipe-summary { display: grid; align-content: start; gap: 8px; min-width: 0; }
 .product-recipe-label { font-size: 12px; line-height: 1.4; }
 .product-recipe-content { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.product-recipe-hint { flex: 1 0 100%; color: var(--muted); font-size: 12px; line-height: 1.4; }
 .product-recipe-value { display: flex; flex: 1 1 110px; flex-direction: column; align-items: flex-start; gap: 4px; min-width: min-content; min-height: 44px; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--surface-muted); }
 .product-recipe-value output { color: var(--ink); font-size: 15px; font-weight: 650; line-height: 1.3; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .product-recipe-value-unavailable output { color: var(--muted); font-size: 12px; font-weight: 500; }

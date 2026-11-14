@@ -28,7 +28,11 @@ async function mock(page: Page, catalog = products()) {
   await page.route("**/api/pos", route => {
     if (route.request().method() === "GET") return route.fulfill({ json: {
       shop: { id: uid(1), name: "Common Ground Coffee" }, user_id: uid(1), founder: true,
-      categories: [{ id: uid(2), name: "Coffee" }, { id: uid(3), name: "Non-Coffee" }, { id: uid(4), name: "Food" }], products: catalog,
+      categories: [{ id: uid(2), name: "Coffee" }, { id: uid(3), name: "Non-Coffee" }, { id: uid(4), name: "Food" }],
+      products: catalog.map(product => ({ ...product, inventory: product.inventory ?? Object.fromEntries(
+        (product.sizes?.length ? product.sizes.map(size => [size.id, size.cost_cents] as const) : [["regular", product.cost_cents] as const])
+          .map(([variant, cost]) => [variant, { state: "active", max_quantity: 100, cost_cents: cost }]),
+      ) })),
     } });
     const body = route.request().postDataJSON();
     calls.push(body);
@@ -46,6 +50,15 @@ async function increaseInCart(page: Page, name: string) {
   if (drawer) await page.getByRole("button", { name: "Close cart", exact: true }).click();
 }
 
+
+test("development reports offline reopening disabled instead of preparing indefinitely", async ({ page }) => {
+  await mock(page);
+  await page.goto("/?pos");
+  const status = page.getByRole("region", { name: "Offline and sync status" });
+  await expect(status).toContainText("Offline reopening is disabled in development");
+  await expect(status).not.toContainText("Preparing offline access");
+  expect(await page.evaluate(() => document.documentElement.dataset.posOfflineReady)).toBeUndefined();
+});
 
 test("inline sizes keep defaults, keyboard navigation and separate cart prices", async ({ page }) => {
   const calls = await mock(page);
@@ -339,10 +352,16 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1032, height: 137
     await add(page, "Cafe Latte 12 oz").focus();
     await page.keyboard.press("Enter");
     await expect(card).toBeFocused();
-    await expect(card.locator(".product-added")).toHaveText("Added to cart");
+    await expect(card.locator(".product-added")).toHaveText("1");
+    await expect(card.getByRole("button", { name: "Remove one Cafe Latte 12 oz", exact: true })).toBeVisible();
+    await expect(card.getByRole("button", { name: "Add another Cafe Latte 12 oz", exact: true })).toBeVisible();
     await expect(card.getByRole("button", { name: /Add to cart|Added to cart/ })).toHaveCount(0);
     await expect(card.locator(".product-cart-quantity")).toHaveText("1 in cart");
     await card.locator(".product-added").click();
+    await expect(card.locator(".product-cart-quantity")).toHaveText("1 in cart");
+    await card.getByRole("button", { name: "Add another Cafe Latte 12 oz", exact: true }).click();
+    await expect(card.locator(".product-cart-quantity")).toHaveText("2 in cart");
+    await card.getByRole("button", { name: "Remove one Cafe Latte 12 oz", exact: true }).click();
     await expect(card.locator(".product-cart-quantity")).toHaveText("1 in cart");
     expect((await card.boundingBox())!.height).toBe(initialHeight);
     expect(initialHeight).toBeLessThan(176);
@@ -407,7 +426,8 @@ test("Cart quantity limits remain accurate in the passive product indicator", as
   await expect(increase).toBeEnabled();
   await increase.click();
   await expect(card.locator(".product-cart-quantity")).toHaveText("100 in cart");
-  await expect(card.getByRole("button")).toHaveCount(0);
+  await expect(card.getByRole("button", { name: "Add another Brownie", exact: true })).toBeDisabled();
+  await expect(card.getByRole("button", { name: "Remove one Brownie", exact: true })).toBeEnabled();
 });
 
 test("changed prices and unavailable options retain passive card status and immutable cart snapshots", async ({ page }) => {
@@ -432,7 +452,8 @@ test("changed prices and unavailable options retain passive card status and immu
   await expect(page.locator(".pos-total")).toContainText("₱280.00");
   const card = page.getByRole("article", { name: "Cafe Latte", exact: true });
   await expect(card.locator(".product-cart-quantity")).toHaveText("2 in cart");
-  await expect(card.getByRole("button")).toHaveCount(0);
+  await expect(card.getByRole("button", { name: "Add another Cafe Latte 12 oz", exact: true })).toBeDisabled();
+  await expect(card.getByRole("button", { name: "Remove one Cafe Latte 12 oz", exact: true })).toBeEnabled();
   const decrease = page.getByRole("button", { name: "Decrease Cafe Latte 12 oz", exact: true });
   await decrease.click();
   await decrease.click();
@@ -440,4 +461,18 @@ test("changed prices and unavailable options retain passive card status and immu
   await expect(card.locator(".product-cart-quantity, .product-added")).toHaveCount(0);
   await expect(page.locator(".order-line")).toHaveCount(0);
   await expect(add(page, "Pumpkin Spice Latte")).toBeDisabled();
+});
+
+test("quick-tender cash pills populate Cash received and calculate change cleanly", async ({ page }) => {
+  await mock(page);
+  await page.goto("/?pos");
+  await add(page, "Cafe Latte 12 oz").click();
+  const tenders = page.getByRole("group", { name: "Quick cash amounts", exact: true });
+  await expect(tenders.getByRole("button")).toHaveCount(5);
+  await tenders.getByRole("button", { name: "₱500", exact: true }).click();
+  await expect(page.getByLabel("Cash received", { exact: true })).toHaveValue("500");
+  await expect(page.locator(".cart-change")).toContainText("₱370.00");
+  await tenders.getByRole("button", { name: "Exact", exact: true }).click();
+  await expect(page.getByLabel("Cash received", { exact: true })).toHaveValue("");
+  await expect(page.locator(".cart-change")).toContainText("₱0.00");
 });

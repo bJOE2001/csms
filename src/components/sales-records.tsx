@@ -53,16 +53,21 @@ export function SalesRecords({ sales, shopId, shopName, timezone, founder, from,
           searchPlaceholder="Search receipt or payment method"
           emptyMessage="No sales records found for the selected period."
           columns={[
-            { key: "receipt", label: "Receipt", kind: "primary" },
-            { key: "date", label: "Date", kind: "compact" },
+            { key: "receipt", label: "Receipt", kind: "primary", sortable: !recent },
+            { key: "date", label: "Date", kind: "compact", sortable: !recent },
             { key: "method", label: "Payment", kind: "compact" },
-            { key: "total", label: "Total", numeric: true },
+            { key: "total", label: "Total", numeric: true, sortable: !recent },
             { key: "status", label: "Status", kind: "status" },
             { key: "actions", label: "Actions", kind: "actions" },
           ]}
           rows={sales.map((s) => ({
             id: s.id,
             search: `${s.id} ${s.method} ${paymentMethodLabel(s.method)} ${s.status}`,
+            sort: {
+              receipt: s.id.slice(0, 8).toUpperCase(),
+              date: s.created_at,
+              total: s.total_cents,
+            },
             cells: {
               receipt: <strong className="table-receipt-number">#{s.id.slice(0, 8).toUpperCase()}</strong>,
               date: new Intl.DateTimeFormat("en-PH", {

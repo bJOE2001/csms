@@ -19,9 +19,10 @@ import { ProductDialog } from "./product-dialog";
 import { DeleteMenuRecord } from "../delete-menu-record";
 import { RecipeDialog } from "../inventory/recipe-dialog";
 import { RecipeStatus } from "./recipe-status";
+import { accessFor, can } from "@/lib/auth/permissions";
 
 export function MenuWorkspace() {
-  const { data, error, refresh, isLoading } = useCatalog();
+  const { data, error, refresh, isLoading } = useCatalog({ module: "menu" });
   const [categoryId, setCategoryId] = useState("all");
   const [availability, setAvailability] = useState("all");
   const [sort] = useState("name");
@@ -35,7 +36,7 @@ export function MenuWorkspace() {
               {error}
             </p>
             <Button onClick={refresh}>Try again</Button>
-            <a className="nav-link" href="/sign-in">
+            <a className="nav-link" href="/login">
               Sign in
             </a>
           </section>
@@ -46,6 +47,8 @@ export function MenuWorkspace() {
     );
 
   const available = data.products.filter(isAvailable).length;
+  const access = data.access ?? accessFor(data.founder ? "founder" : "staff");
+  const canAdd = can(access, "menu", "create"), canEdit = can(access, "menu", "edit"), canDelete = can(access, "menu", "delete"), canRecipe = can(access, "inventory", "recipe");
   const products = data.products
     .filter(
       (product) =>
@@ -61,7 +64,7 @@ export function MenuWorkspace() {
             (sort === "price_desc" ? -1 : 1) || a.name.localeCompare(b.name),
     );
   return (
-    <WorkspaceShell active="menu" shopName={data.shop.name}>
+    <WorkspaceShell active="menu" shopName={data.shop.name} access={access}>
       <div className="menu-management grid gap-6" aria-busy={isLoading || undefined}>
         <header className="flex flex-col items-start justify-between gap-4 min-[761px]:flex-row min-[761px]:items-center">
           <div>
@@ -70,7 +73,7 @@ export function MenuWorkspace() {
               Manage your products, sizes, pricing, recipes, and availability.
             </p>
           </div>
-          {data.founder && <ProductDialog data={data} refresh={refresh} />}
+          {canAdd && <ProductDialog data={data} refresh={refresh} />}
         </header>
         {error && (
           <p role="alert" className="form-message error">
@@ -80,9 +83,9 @@ export function MenuWorkspace() {
             </Button>
           </p>
         )}
-        {!data.founder && (
+        {!canAdd && !canEdit && !canDelete && !canRecipe && (
           <p className="hint">
-            You can view the menu. An owner manages products.
+            You have view-only access to the menu.
           </p>
         )}
         <dl className="menu-overview">
@@ -150,10 +153,10 @@ export function MenuWorkspace() {
                 : "No products yet. Add your first product to start selling."
             }
             columns={[
-              { key: "product", label: "Product", kind: "primary" },
-              { key: "category", label: "Category" },
+              { key: "product", label: "Product", kind: "primary", sortable: true },
+              { key: "category", label: "Category", sortable: true },
               { key: "sizes", label: "Size" },
-              { key: "price", label: "Price", numeric: true },
+              { key: "price", label: "Price", numeric: true, sortable: true },
               ...(data.founder ? [{ key: "recipe", label: "Recipe Status", kind: "status" as const }] : []),
               { key: "active", label: "Availability", kind: "status" },
               { key: "actions", label: "Actions", kind: "actions" },
@@ -164,9 +167,18 @@ export function MenuWorkspace() {
               const unavailableReason = productUnavailableReason(product);
               const missingCost = (product.sizes?.length ? product.sizes.map(size => size.id) : ["regular"])
                 .some(key => product.inventory?.[key]?.state !== "active" || product.inventory[key].cost_cents == null);
+              const categoryName =
+                data.categories.find(
+                  (category) => category.id === product.category_id,
+                )?.name ?? "Uncategorized";
               return {
                 id: product.id,
                 search: `${product.name} ${data.founder ? invStatus : ""}`,
+                sort: {
+                  product: product.name,
+                  category: categoryName,
+                  price: range.min,
+                },
                 cells: {
                   product: (
                     <div className="menu-product-identity">
@@ -187,10 +199,7 @@ export function MenuWorkspace() {
                       </div>
                     </div>
                   ),
-                  category:
-                    data.categories.find(
-                      (category) => category.id === product.category_id,
-                    )?.name ?? "Uncategorized",
+                  category: categoryName,
                   sizes: (
                     <span className="menu-size-list">
                       {product.sizes?.length
@@ -222,21 +231,21 @@ export function MenuWorkspace() {
                       {unavailableReason && unavailableReason !== "Recipe missing" && unavailableReason !== "Recipe not activated" && <small className="menu-availability-reason">{unavailableReason}</small>}
                     </div>
                   ),
-                  actions: data.founder ? (
+                  actions: canEdit || canDelete || canRecipe ? (
                     <div className="table-actions">
-                      <RecipeDialog product={product} refresh={refresh} />
-                      <ProductDialog
+                      {canRecipe && <RecipeDialog product={product} refresh={refresh} />}
+                      {canEdit && <ProductDialog
                         product={product}
                         data={data}
                         refresh={refresh}
-                      />
-                      <DeleteMenuRecord
+                      />}
+                      {canDelete && <DeleteMenuRecord
                         id={product.id}
                         name={product.name}
                         kind="product"
                         shopId={data.shop.id}
                         refresh={refresh}
-                      />
+                      />}
                     </div>
                   ) : (
                     "View only"

@@ -188,3 +188,33 @@ test("recipe loading and load failure retain an explicit Cancel action without a
   await expect(recipe).toHaveCount(0);
   await expect(trigger).toBeFocused();
 });
+
+test("Add product provides a guided Save & Configure Recipe workflow", async ({ page }) => {
+  await setup(page);
+  await page.route("**/api/pos", async route => {
+    if (route.request().method() === "POST") {
+      return route.fulfill({ json: { data: { id: id(40) } } });
+    }
+    return route.fulfill({
+      json: {
+        shop: { id: id(99), name: "LOGO" },
+        user_id: id(99),
+        founder: true,
+        products: [],
+        categories: [],
+      },
+    });
+  });
+  await page.goto("/app/menu");
+  await page.getByRole("button", { name: "Add product", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Add product", exact: true });
+  await expect(dialog.getByRole("button", { name: "Save product", exact: true })).toBeVisible();
+  const saveAndRecipe = dialog.getByRole("button", { name: "Save & Configure Recipe", exact: true });
+  await expect(saveAndRecipe).toBeVisible();
+  await dialog.getByLabel("Product name", { exact: true }).fill("Matcha Latte");
+  await dialog.getByLabel("Selling price (PHP)", { exact: true }).fill("150");
+  await saveAndRecipe.click();
+  const recipe = page.getByRole("dialog", { name: "Recipe · Matcha Latte", exact: true });
+  await expect(recipe).toBeVisible();
+  await recipe.getByRole("button", { name: "Cancel", exact: true }).click();
+});

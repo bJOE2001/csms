@@ -12,7 +12,7 @@ export default function ForgotPassword() {
       title="Reset your password"
       description="Enter your account email to request a recovery link."
       footer={
-        <Link className="top-link" href="/sign-in">
+        <Link className="top-link" href="/login">
           Back to sign in
         </Link>
       }

@@ -37,15 +37,27 @@ test("date filters select both endpoints, highlight their range and keep ISO rep
   await expect(page.locator('input[name="from"]')).toHaveValue("2026-11-01");
   await expect(page.locator('input[name="to"]')).toHaveValue("2026-11-04");
   calendar = await openCalendar(page, "To Date");
-  await expect(day(calendar, "2026-11-01")).toHaveCSS("background-color", "rgb(59, 27, 18)");
-  await expect(day(calendar, "2026-11-04")).toHaveCSS("background-color", "rgb(59, 27, 18)");
-  await expect(calendar.locator('[data-day="2026-11-02"]')).toHaveCSS("background-color", "rgb(255, 228, 198)");
-  await expect(calendar).toHaveCSS("border-color", "rgb(232, 222, 214)");
+  await expect(day(calendar, "2026-11-01")).toHaveCSS("background-color", "rgb(18, 18, 18)");
+  await expect(day(calendar, "2026-11-04")).toHaveCSS("background-color", "rgb(18, 18, 18)");
+  await expect(calendar.locator('[data-day="2026-11-02"]')).toHaveCSS("background-color", "rgb(238, 238, 238)");
+  await expect(calendar).toHaveCSS("border-color", "rgb(224, 224, 224)");
   await expect(calendar.locator(".calendar-range-summary")).toHaveText("Nov 1, 2026 – Nov 4, 2026");
   await expect(calendar.getByRole("button", { name: "Today", exact: true })).toHaveCount(0);
   await page.screenshot({ path: info.outputPath("range-desktop.png") });
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "Open To Date calendar", exact: true })).toBeFocused();
+});
+
+test("quick range presets inside range calendar apply both dates in one step", async ({ page }) => {
+  await page.addInitScript(timestamp => { Date.now = () => timestamp; }, new Date("2026-11-04T04:00:00Z").getTime());
+  await page.goto("/app/sales");
+  const calendar = await openCalendar(page, "From Date");
+  const presets = calendar.getByRole("group", { name: "Quick date ranges", exact: true });
+  await expect(presets.getByRole("button", { name: "Last 30 days", exact: true })).toBeVisible();
+  await expect(presets.getByRole("button", { name: "This month", exact: true })).toBeVisible();
+  await presets.getByRole("button", { name: "Last 7 days", exact: true }).click();
+  await expect(calendar).toHaveCount(0);
+  await expect(page).toHaveURL(/from=2026-10-29&to=2026-11-04/);
 });
 
 test("valid typing applies automatically while invalid, incomplete and oversized ranges keep the existing report", async ({ page }) => {

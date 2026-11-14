@@ -11,6 +11,8 @@ import { SalesView } from "@/components/sales-view";
 import { ExpensesView } from "@/components/expenses-view";
 import { MenuWorkspace } from "@/components/menu/menu-workspace";
 import { LibrariesWorkspace } from "@/components/libraries/libraries-workspace";
+import { UsersWorkspace } from "@/components/users/users-workspace";
+import { accessFor } from "@/lib/auth/permissions";
 import { PosWorkspace } from "@/components/pos/pos-workspace";
 import { Input } from "@/components/ui/primitives/input";
 import { Select } from "@/components/ui/select";
@@ -41,6 +43,7 @@ import "@/app/loading.css";
 import "@/app/workspace-shell.css";
 import "@/app/menu.css";
 import "@/app/libraries.css";
+import "@/app/users.css";
 import "@/app/sales.css";
 import "@/app/dashboard.css";
 import "@/app/expenses.css";
@@ -375,8 +378,8 @@ function InventoryFixture() {
   return <NotificationProvider><WorkspaceShell active="inventory" shopName="LOGO"><InventoryWorkspace from={from} to={to} today="2026-11-07" /></WorkspaceShell></NotificationProvider>;
 }
 createRoot(document.getElementById("root")!).render(
-  <LoadingProvider><WorkspaceFrame>{
-  location.pathname === "/app/inventory" ? <InventoryFixture /> : location.pathname === "/sign-in" ? <SignInFixture /> : (new URLSearchParams(location.search).has("landing") || ["/menu", "/visit"].includes(location.pathname)) ? <LandingFixture /> : (location.pathname === "/dashboard" || new URLSearchParams(location.search).has("dashboard")) ? <DashboardFixture /> : location.search.includes("loading") ? <LoadingFixture /> : location.search.includes("selects") ? (
+  <LoadingProvider><WorkspaceFrame initialAccess={new URLSearchParams(location.search).has("access") ? JSON.parse(new URLSearchParams(location.search).get("access")!) : accessFor(new URLSearchParams(location.search).has("staff") ? "staff" : "founder")}>{
+  location.pathname === "/app/users" ? <NotificationProvider><WorkspaceShell active="users" shopName="Sip&Snap"><UsersWorkspace /></WorkspaceShell></NotificationProvider> : location.pathname === "/app/inventory" ? <InventoryFixture /> : location.pathname === "/login" ? <SignInFixture /> : (new URLSearchParams(location.search).has("landing") || ["/menu", "/visit"].includes(location.pathname)) ? <LandingFixture /> : (location.pathname === "/dashboard" || new URLSearchParams(location.search).has("dashboard")) ? <DashboardFixture /> : location.search.includes("loading") ? <LoadingFixture /> : location.search.includes("selects") ? (
     <SelectFixture />
   ) : location.search.includes("controls") ? (
     <ControlsFixture />

@@ -5,7 +5,7 @@ test("public account screens fit narrow and wide viewports", async ({
 }, testInfo) => {
   for (const width of [375, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
-    for (const route of ["/sign-in", "/forgot-password", "/reset-password"]) {
+    for (const route of ["/login", "/forgot-password", "/reset-password"]) {
       await page.goto(route);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       expect(
@@ -34,13 +34,13 @@ test("sign-in prevents duplicate submissions without resizing its button", async
   const heldRequest = new Promise<void>((resolve) => {
     releaseRequest = resolve;
   });
-  await page.route("**/sign-in", async (route) => {
+  await page.route("**/login", async (route) => {
     if (route.request().method() !== "POST") return route.continue();
     await heldRequest;
     await route.abort();
   });
   try {
-    await page.goto("/sign-in");
+    await page.goto("/login");
     await page
       .getByLabel("Email", { exact: true })
       .fill("ui-check@example.invalid");
@@ -65,8 +65,8 @@ test("sign-in prevents duplicate submissions without resizing its button", async
 });
 
 test("sign-in transport failure preserves the form and offers a safe retry", async ({ page }) => {
-  await page.route("**/sign-in", route => route.request().method() === "POST" ? route.abort() : route.continue());
-  await page.goto("/sign-in");
+  await page.route("**/login", route => route.request().method() === "POST" ? route.abort() : route.continue());
+  await page.goto("/login");
   await page.getByLabel("Email", { exact: true }).fill("ui-check@example.invalid");
   await page.getByLabel("Password", { exact: true }).fill("ui-check-placeholder");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();

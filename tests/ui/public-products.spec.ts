@@ -63,6 +63,13 @@ test("shared cards preserve prices, size labels, image references and full descr
     await action.click();
     await page.mouse.click(8, 8);
     await expect(dialog).toHaveCount(0);
+    const heading = long.getByRole("heading");
+    await heading.scrollIntoViewIfNeeded();
+    const headingBox = (await heading.boundingBox())!;
+    await page.mouse.click(headingBox.x + headingBox.width / 2, headingBox.y + headingBox.height / 2);
+    await expect(dialog).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
   await page.goto("/?landing");
@@ -126,6 +133,14 @@ test("actual category controls stay keyboard reachable without page overflow on 
     await expect(page.locator(".site-product")).toHaveCount(1);
     await expect(page.locator(".site-product h3")).toHaveText("Cookie");
     await filters.getByRole("button", { name: "All selections", exact: true }).click();
+    await expect(page.locator(".site-product")).toHaveCount(6);
+    const search = page.getByRole("searchbox", { name: "Search menu", exact: true });
+    await search.fill("Cookie");
+    await expect(page.locator(".site-product")).toHaveCount(1);
+    await expect(page.locator(".site-product h3")).toHaveText("Cookie");
+    await search.fill("nonexistent drink");
+    await expect(page.locator(".site-product")).toHaveCount(0);
+    await page.getByRole("button", { name: "Clear search", exact: true }).click();
     await expect(page.locator(".site-product")).toHaveCount(6);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }

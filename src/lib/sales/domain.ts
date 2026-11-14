@@ -4,6 +4,7 @@ export type { Product } from "../menu/domain";
 export const checkoutSchema = z
   .object({
     id: z.uuid(),
+    captured_at: z.iso.datetime({ offset: true }).optional(),
     method: z.enum(["cash", "gcash"]),
     tendered_cents: z.number().int().min(0).max(100000000000).optional(),
     items: z
@@ -32,6 +33,7 @@ export type Checkout = z.infer<typeof checkoutSchema>;
 export type Sale = {
   id: string;
   created_at: string;
+  received_at?: string;
   total_cents: number;
   total_cost_cents?: number | null;
   cost_recorded_at?: string | null;

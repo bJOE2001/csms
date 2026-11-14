@@ -1,7 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
-import { ArrowUpRight } from "lucide-react";
+import { useState, type CSSProperties } from "react";
 import type { PublicProduct } from "@/lib/site/public-menu";
 import { money } from "@/lib/sales/domain";
 import { Dialog } from "../ui/dialog";
@@ -14,13 +13,13 @@ function ProductSizes({ product }: { product: PublicProduct }) {
   </ul>;
 }
 
-export function PublicProductCard({ product, featured = false }: { product: PublicProduct; featured?: boolean }) {
+export function PublicProductCard({ product, featured = false, staggerIndex }: { product: PublicProduct; featured?: boolean; staggerIndex?: number }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const price = <>{product.sizes.some(size => size.price !== product.price) ? "From " : ""}{money(product.price)}</>;
   const sizes = featured
     ? "(min-width: 1400px) 302px, (min-width: 1200px) 23vw, (min-width: 640px) 46vw, calc(100vw - 40px)"
     : "(min-width: 1400px) 411px, (min-width: 1200px) 31vw, (min-width: 640px) 46vw, calc(100vw - 40px)";
-  return <article className="site-product" id={`product-${product.id}`}>
+  return <article className="site-product" id={`product-${product.id}`} data-reveal={featured ? "" : undefined} style={({ "--stagger-index": staggerIndex ?? 0 } as CSSProperties)}>
     <PublicProductImage product={product} sizes={sizes} />
     <div className="site-product-info">
       <div className="site-product-meta"><span>{product.category}</span><strong>{price}</strong></div>
@@ -28,8 +27,8 @@ export function PublicProductCard({ product, featured = false }: { product: Publ
       {product.description && <p className="site-product-description">{product.description}</p>}
       <ProductSizes product={product} />
       <div className="site-product-action">
-        {featured ? <Link prefetch={false} className="site-text-link" href={`/menu#product-${product.id}`} aria-label={`View ${product.name} on the full menu`}>View details<ArrowUpRight size={16} aria-hidden="true" /></Link>
-          : <button type="button" className="site-text-link" onClick={() => setDetailsOpen(true)} aria-label={`View details for ${product.name}`}>View details<ArrowUpRight size={16} aria-hidden="true" /></button>}
+        {featured ? <Link prefetch={false} className="site-text-link" href={`/menu#product-${product.id}`} aria-label={`View ${product.name} on the full menu`}><span className="sr-only">View details</span></Link>
+          : <button type="button" className="site-text-link" onClick={() => setDetailsOpen(true)} aria-label={`View details for ${product.name}`}><span className="sr-only">View details</span></button>}
       </div>
     </div>
     {!featured && <Dialog open={detailsOpen} onClose={() => setDetailsOpen(false)} title={product.name} size="lg" className="coffee-site site-product-dialog">

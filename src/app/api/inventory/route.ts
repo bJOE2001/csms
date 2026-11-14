@@ -4,15 +4,16 @@ import { createClient } from "@/lib/supabase/server";
 import { isSameOrigin } from "@/lib/http";
 import { inventoryRequest } from "@/lib/inventory/domain";
 import { dateRangeError, salesRange, shopDate } from "@/lib/sales/period";
+import { accessFor, can } from "@/lib/auth/permissions";
 
 async function access() {
   const db = await createClient();
   const { data: { user } } = await db.auth.getUser();
   if (!user) return { response: NextResponse.json({ error: "Sign in to open Inventory." }, { status: 401 }) };
-  const { data: member, error } = await db.from("shop_members").select("shop_id,role,shops(timezone)").eq("user_id", user.id).eq("status", "active").order("created_at").limit(1).maybeSingle();
+  const { data: member, error } = await db.from("shop_members").select("*,shops(timezone)").eq("user_id", user.id).eq("status", "active").order("created_at").limit(1).maybeSingle();
   if (error) return { response: NextResponse.json({ error: "Shop access could not load." }, { status: 503 }) };
-  if (!member || member.role !== "founder") return { response: NextResponse.json({ error: "Owner access required." }, { status: 403 }) };
-  return { db, member };
+  if (!member || !can(accessFor(member.role, member.permissions), "inventory")) return { response: NextResponse.json({ error: "Inventory access required." }, { status: 403 }) };
+  return { db, member, access: accessFor(member.role, member.permissions) };
 }
 export async function GET(request: NextRequest) {
   const permission = await access(); if (permission.response) return permission.response;
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
   return error ? failure(error) : NextResponse.json({ data }, { headers: { "Cache-Control": "private, no-store" } });
 }
 function failure(error: { code?: string; message: string }) {
-  return NextResponse.json({ error: error.code === "PGRST202" ? "Apply the Inventory migrations before opening Inventory." : ["P0001", "42501"].includes(error.code ?? "") ? error.message : "Inventory could not be saved. Refresh and retry with the same details." }, { status: error.code === "PGRST202" ? 503 : 422 });
+  return NextResponse.json({ error: error.code === "PGRST202" ? "Apply the Inventory migrations before opening Inventory." : ["P0001", "42501"].includes(error.code ?? "") ? error.message : "Inventory could not be saved. Refresh and retry with the same details." }, { status: error.code === "PGRST202" ? 503 : error.code === "42501" ? 403 : 422 });
 }
 export async function POST(request: NextRequest) {
   if (!isSameOrigin(request, process.env.APP_URL)) return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
@@ -42,6 +43,10 @@ export async function POST(request: NextRequest) {
     }
     text += decoder.decode();
     const body = inventoryRequest.parse(JSON.parse(text));
+    const allowed = body.action === "item"
+      ? can(permission.access, "inventory", "create") || can(permission.access, "inventory", "edit")
+      : can(permission.access, "inventory", body.action === "stock" ? "stock" : body.action === "recipe" ? "recipe" : "return");
+    if (!allowed) return NextResponse.json({ error: "You do not have permission for this action." }, { status: 403 });
     const rpc = ({ item: "pos_inventory_create_item", stock: "pos_inventory_post", recipe: "pos_inventory_recipe", return: "pos_inventory_return" } as const)[body.action];
     const { data, error } = await permission.db.rpc(rpc, { p_shop_id: permission.member.shop_id, p_data: body.data });
     if (error) return failure(error);

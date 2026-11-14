@@ -17,9 +17,8 @@ test("receipt shows branded items, original payment and change across screen siz
       exact: true,
     });
     const receipt = dialog.getByRole("article", { name: "Customer receipt" });
-    await expect(
-      receipt.getByRole("img", { name: "Sip & Snap", exact: true }),
-    ).toBeVisible();
+    await expect(receipt.locator(".receipt-business-name")).toHaveText("Sip&Snap");
+    await expect(receipt.locator("img")).toHaveCount(0);
     await expect(receipt).toContainText("Nov 2, 2026");
     await expect(receipt).toContainText("5:18 PM");
     await expect(receipt).toContainText("₱385.00");

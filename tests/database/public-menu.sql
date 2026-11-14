@@ -106,5 +106,18 @@ do $$begin
  assert public.read_public_menu('00000000-0000-4000-8000-000000920001')='{"status":"unpublished","products":[]}'::jsonb, 'Unpublishing takes effect on the next read';
  assert jsonb_array_length(public.read_public_menu()->'products')=1;
 end $$;
+reset role;
+update public.shops set public_menu_enabled=true where id='00000000-0000-4000-8000-000000920001';
+insert into public.pos_sales(id,shop_id,created_by,total_cents,method,status,items) values
+ ('00000000-0000-4000-8000-000000960001','00000000-0000-4000-8000-000000920001','00000000-0000-4000-8000-000000910001',100,'cash','completed',
+  '[{"product_id":"00000000-0000-4000-8000-000000930003","name":"B Free","quantity":5,"line_total_cents":0},{"product_id":"00000000-0000-4000-8000-000000930005","name":"Archived","quantity":99,"line_total_cents":9900}]'),
+ ('00000000-0000-4000-8000-000000960002','00000000-0000-4000-8000-000000920001','00000000-0000-4000-8000-000000910001',24000,'cash','refunded',
+  '[{"product_id":"00000000-0000-4000-8000-000000930001","name":"A Latte","quantity":10,"line_total_cents":120000}]');
+set local role anon;
+do $$declare ranked jsonb;begin
+ ranked:=public.read_public_menu('00000000-0000-4000-8000-000000920001');
+ assert ranked->'featured_ids'='["00000000-0000-4000-8000-000000930003"]'::jsonb, 'Top sales ranking must include only completed sales of available products';
+ assert ranked::text !~ '960001|960002|910001|refunded|Archived';
+end $$;
 rollback;
-select 'Public catalog privacy, publication, pricing, cross-shop isolation and read-only permissions passed.';
+select 'Public catalog privacy, publication, pricing, sales ranking, cross-shop isolation and read-only permissions passed.';

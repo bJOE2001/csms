@@ -93,7 +93,13 @@ describe("authenticated product uploads", () => {
     expect(mocks.upload).not.toHaveBeenCalled();
   });
   it("rejects oversized bodies even without a Content-Length header", async () => {
-    const response = await POST(request(new File([new Uint8Array(MAX_PRODUCT_IMAGE_BYTES + 40000)], "huge.png")));
+    const multipart = request(new File([new Uint8Array(MAX_PRODUCT_IMAGE_BYTES + 40000)], "huge.png"));
+    // Finish undici's async FormData producer before the route cancels this
+    // oversized fixture; cancellation otherwise leaves a late enqueue behind.
+    const body = await multipart.arrayBuffer();
+    const oversized = new NextRequest(multipart.url, { method: "POST", headers: multipart.headers, body });
+    expect(oversized.headers.has("content-length")).toBe(false);
+    const response = await POST(oversized);
     expect(response.status).toBe(413);
     expect(mocks.upload).not.toHaveBeenCalled();
   });

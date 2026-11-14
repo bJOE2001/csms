@@ -13,11 +13,11 @@ export default async function SalesPage({
 }: {
   searchParams: Promise<{ from?: string; to?: string; period?: string }>;
 }) {
-  const { supabase, shop, role } = await requireMember();
+  const { supabase, shop, role, access } = await requireMember("sales");
   const params = await searchParams;
   const today = shopDate(shop.timezone);
   const { from, to } = salesRange(params, today);
-  return <WorkspaceShell active="sales" shopName={shop.name}>
+  return <WorkspaceShell active="sales" shopName={shop.name} access={access}>
     <Suspense fallback={<WorkspaceSkeleton module="sales" />}>
       <SalesReport supabase={supabase} shop={shop} role={role} from={from} to={to} />
     </Suspense>

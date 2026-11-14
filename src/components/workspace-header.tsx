@@ -9,15 +9,18 @@ import { Icon } from "@/components/ui/icon";
 import { Button } from "./ui/button";
 import { BrandLogo } from "./brand-logo";
 import { coffeeBrand, displayShopName } from "@/lib/brand";
+import { deactivateCatalog, markOfflineSignedOut } from "@/lib/pos/offline-store";
+import { can, type MemberAccess } from "@/lib/auth/permissions";
 
-function NavigationLinks({ active, onNavigate, navigationRef }: {
+function NavigationLinks({ active, onNavigate, navigationRef, access }: {
   active: string;
   onNavigate?: () => void;
   navigationRef?: Ref<HTMLElement>;
+  access?: MemberAccess | null;
 }) {
   return (
     <nav ref={navigationRef} className="workspace-nav" aria-label="Shop">
-      {modules.map(item => (
+      {modules.filter(item => can(access, item.key)).map(item => (
         <Link key={item.key} href={item.href}
           className={"nav-link " + (active === item.key ? "selected" : "")}
           aria-current={active === item.key ? "page" : undefined}
@@ -36,17 +39,24 @@ function NavigationLinks({ active, onNavigate, navigationRef }: {
 function SignOut() {
   return (
     <div className="sidebar-footer">
-      <form action="/auth/sign-out" method="post">
+      <form action="/auth/sign-out" method="post" onSubmit={async event => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        markOfflineSignedOut();
+        await deactivateCatalog().catch(() => {});
+        form.submit();
+      }}>
         <button className="nav-link" type="submit"><Icon name="logout" />Sign out</button>
       </form>
     </div>
   );
 }
 
-export function WorkspaceHeader({ active, shopName }: {
+export function WorkspaceHeader({ active, shopName, access }: {
   active: string;
   shopName: string;
   role?: string;
+  access?: MemberAccess | null;
 }) {
   const label = displayShopName(shopName);
   const [open, setOpen] = useState(false);
@@ -63,15 +73,15 @@ export function WorkspaceHeader({ active, shopName }: {
   return (
     <>
       <aside className="workspace-sidebar">
-        <Link className="workspace-brand" href="/pos" aria-label={label === coffeeBrand.name ? coffeeBrand.name : coffeeBrand.name + " — " + label} title={label}>
+        <Link className="workspace-brand" href="/app" aria-label={label === coffeeBrand.name ? coffeeBrand.name : coffeeBrand.name + " — " + label} title={label}>
           <BrandLogo />
         </Link>
-        <NavigationLinks active={active} navigationRef={desktopNavigation} />
+        <NavigationLinks active={active} access={access} navigationRef={desktopNavigation} />
         <SignOut />
       </aside>
       <Dialog.Root open={open} onOpenChange={setOpen}>
         <header className="workspace-mobile-header">
-          <Link className="workspace-mobile-brand" href="/pos" aria-label={label === coffeeBrand.name ? coffeeBrand.name : coffeeBrand.name + " — " + label} title={label}>
+          <Link className="workspace-mobile-brand" href="/app" aria-label={label === coffeeBrand.name ? coffeeBrand.name : coffeeBrand.name + " — " + label} title={label}>
             <BrandLogo />
           </Link>
           <Dialog.Trigger asChild>
@@ -104,7 +114,7 @@ export function WorkspaceHeader({ active, shopName }: {
                 </Button>
               </Dialog.Close>
             </div>
-            <NavigationLinks active={active} onNavigate={() => setOpen(false)} />
+            <NavigationLinks active={active} access={access} onNavigate={() => setOpen(false)} />
             <SignOut />
           </Dialog.Content>
         </Dialog.Portal>

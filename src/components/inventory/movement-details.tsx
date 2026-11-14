@@ -6,6 +6,7 @@ import { LoadingLink } from "../ui/loading-link";
 import { AppFormDialog } from "../ui/app-form-dialog";
 import { DialogBody, DialogFooter } from "../ui/dialog-layout";
 import { Button } from "../ui/button";
+import { useCan } from "../access-context";
 
 export const movementLabels: Record<string, string> = {
   opening: "Initial Stock", receipt: "Stock In", sale: "Sale Consumption",
@@ -19,10 +20,11 @@ export function movementReference(movement: Movement) {
 }
 
 export function MovementDetails({ movement, onClose }: { movement: Movement; onClose: () => void }) {
+  const canSales = useCan("sales", "view", true);
   const kind = movementLabels[movement.kind] ?? movement.kind;
   const date = new Intl.DateTimeFormat("en-PH", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(`${movement.occurred_on}T00:00:00Z`));
   const recorded = new Intl.DateTimeFormat("en-PH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Manila" }).format(new Date(movement.created_at));
-  const receiptHref = movement.kind === "sale" && uuid.test(movement.source_id)
+  const receiptHref = canSales && movement.kind === "sale" && uuid.test(movement.source_id)
     ? `/app/sales?from=${movement.occurred_on}&to=${movement.occurred_on}#receipt-${movement.source_id}` : undefined;
   return <AppFormDialog open showCloseButton title="Stock Movement Details" description={`${kind} · ${date}`} onClose={onClose}>
     <DialogBody className="inventory-movement-details">

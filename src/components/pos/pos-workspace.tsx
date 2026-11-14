@@ -1,4 +1,5 @@
 "use client";
+import { accessFor, can } from "@/lib/auth/permissions";
 import { coffeeBrand } from "@/lib/brand";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -21,6 +22,9 @@ import {
 
 import { defaultSizeId, isAvailable } from "@/lib/menu/domain";
 import { useCatalog } from "@/lib/menu/use-catalog";
+import { enqueueSale, scopeFor } from "@/lib/pos/offline-store";
+import { useOutbox } from "@/lib/pos/use-outbox";
+import { PosPwaRegistration, type PosOfflineStatus } from "./pwa-registration";
 import {
   addLine,
   cartIssue,
@@ -39,6 +43,12 @@ const compactCartSnapshot = () => window.matchMedia(cartMediaQuery).matches;
 const serverCartSnapshot = () => false;
 
 export function PosWorkspace() {
+  const catalogState = useCatalog({ offline: true });
+  return <PosSession key={catalogState.data ? scopeFor(catalogState.data) : "unavailable"} catalogState={catalogState} />;
+}
+
+// A different cashier/shop must never inherit an open cart or pending checkout.
+function PosSession({ catalogState }: { catalogState: ReturnType<typeof useCatalog> }) {
   const compactCart = useSyncExternalStore(
     subscribeCartLayout,
     compactCartSnapshot,
@@ -49,7 +59,29 @@ export function PosWorkspace() {
   useEffect(() => {
     if (!compactCart) setCartOpen(false);
   }, [compactCart]);
-  const { data, error: loadError, refresh: load } = useCatalog();
+  const { data: catalog, error: loadError, refresh: load, offline, savedAt, storageError } = catalogState;
+  const [shellStatus, setShellStatus] = useState<PosOfflineStatus>("preparing");
+  useEffect(() => {
+    const update = () => setShellStatus((document.documentElement.dataset.posOfflineStatus as PosOfflineStatus | undefined)
+      ?? (document.documentElement.dataset.posOfflineReady === "true" ? "ready" : "preparing"));
+    update();
+    window.addEventListener("pos-offline-status", update);
+    return () => window.removeEventListener("pos-offline-status", update);
+  }, []);
+  const outbox = useOutbox(catalog, offline, load);
+  // Cached stock is only an estimate. Reserve this device's queued quantities;
+  // production rechecks shared stock atomically when each receipt syncs.
+  const data = catalog && offline ? {
+    ...catalog,
+    products: catalog.products.map(product => ({
+      ...product,
+      inventory: product.inventory && Object.fromEntries(Object.entries(product.inventory).map(([variant, value]) => {
+        const reserved = outbox.sales.reduce((sum, sale) => sum + sale.checkout.items.reduce((n, item) =>
+          n + (item.product_id === product.id && (item.size_id ?? "regular") === variant ? item.quantity : 0), 0), 0);
+        return [variant, { ...value, max_quantity: value.max_quantity === null ? null : Math.max(0, value.max_quantity - reserved) }];
+      })),
+    })),
+  } : catalog;
   const [error, setError] = useState(""),
     [query, setQuery] = useState(""),
     [categoryId, setCategoryId] = useState("all"),
@@ -92,6 +124,7 @@ export function PosWorkspace() {
     );
   }
   async function submit() {
+    if (!data || !can(data.access ?? accessFor(data.founder ? "founder" : "staff"), "pos", "checkout")) return;
     if (!data || busy) return;
     setError("");
     notify.dismiss("pos-checkout");
@@ -109,6 +142,7 @@ export function PosWorkspace() {
           throw Error("Cash received must cover the total.");
         sale = checkoutSchema.parse({
           id: crypto.randomUUID(),
+          captured_at: new Date().toISOString(),
           method,
           tendered_cents: tendered,
           items: lines.map((p) => ({
@@ -123,6 +157,22 @@ export function PosWorkspace() {
         localStorage.setItem(key, JSON.stringify(sale));
         setPending(sale);
       }
+      if (offline || !navigator.onLine) {
+        if (sale.method !== "cash")
+          throw Error("E-wallet checkout needs an internet connection to confirm payment. Reconnect to retry this saved sale.");
+        await enqueueSale(data, sale);
+        localStorage.removeItem(key);
+        setPending(undefined);
+        setCart([]);
+        setCash("");
+        await outbox.refresh();
+        void navigator.storage?.persist?.().catch(() => {});
+        notify.success("Sale saved offline", {
+          id: "pos-checkout",
+          description: `Receipt #${sale.id.slice(0, 8).toUpperCase()} · Will sync when this POS reconnects.`,
+        });
+        return;
+      }
       processing = true;
       const response = await fetch("/api/pos", {
         method: "POST",
@@ -130,8 +180,10 @@ export function PosWorkspace() {
         body: JSON.stringify({
           action: "checkout",
           shop_id: data.shop.id,
+          user_id: data.user_id,
           data: sale,
         }),
+        signal: AbortSignal.timeout(15000),
       });
       const result = await response.json();
       if (!response.ok) {
@@ -142,6 +194,8 @@ export function PosWorkspace() {
         }
         throw Error(result.error);
       }
+      if (result.data?.id !== sale.id || result.data?.total_cents !== sale.items.reduce((sum, item) => sum + item.price_cents * item.quantity, 0))
+        throw Error("Production did not confirm this receipt. Retry the saved sale to confirm its result.");
       localStorage.removeItem(key);
       setPending(undefined);
       setCart([]);
@@ -165,9 +219,9 @@ export function PosWorkspace() {
       <h1>POS unavailable</h1>
       <p role="alert" className="form-message error">{error || loadError}</p>
       <Button onClick={load}>Try again</Button>
-      <a className="nav-link" href="/app/setup">Shop setup</a>
-      <a className="nav-link" href="/sign-in">Sign in</a>
+      <a className="nav-link" href="/login">Sign in</a>
     </section> : <WorkspaceSkeleton module="pos" track={false} />}
+    <PosPwaRegistration />
   </WorkspaceShell>;
 
   const visibleProducts = data.products.filter(
@@ -326,6 +380,7 @@ export function PosWorkspace() {
                 <Button
                   variant={method === "gcash" ? "default" : "outline"}
                   aria-pressed={method === "gcash"}
+                  disabled={offline}
                   onClick={() => setMethod("gcash")}
                 >
                   {paymentMethodLabel("gcash")}
@@ -342,6 +397,25 @@ export function PosWorkspace() {
                       placeholder="Leave blank for exact payment"
                     />
                   </label>
+                  <div className="cash-quick-tenders" role="group" aria-label="Quick cash amounts">
+                    {[
+                      { label: "Exact", value: "" },
+                      { label: "₱100", value: "100" },
+                      { label: "₱200", value: "200" },
+                      { label: "₱500", value: "500" },
+                      { label: "₱1,000", value: "1000" },
+                    ].map((preset) => (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        className="cash-tender-pill"
+                        aria-pressed={cash === preset.value}
+                        onClick={() => setCash(preset.value)}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
                   <p className="cart-change">Change {money(change)}</p>
                 </>
               ) : (
@@ -358,7 +432,7 @@ export function PosWorkspace() {
         className="checkout-button"
         pending={busy}
         pendingLabel="Saving sale…"
-        disabled={!pending && (!lines.length || blocked || !!loadError)}
+        disabled={!can(data.access ?? accessFor(data.founder ? "founder" : "staff"), "pos", "checkout") || (!pending && (!lines.length || blocked || !!loadError || (offline && (!!storageError || method !== "cash"))))}
         onClick={submit}
       >
         {pending ? "Retry saved sale" : "Place an order"}
@@ -367,7 +441,8 @@ export function PosWorkspace() {
   );
   return (
     <Dialog.Root open={compactCart && cartOpen} onOpenChange={setCartOpen}>
-      <WorkspaceShell active="pos" shopName={data.shop.name}>
+      <WorkspaceShell active="pos" shopName={data.shop.name} access={data.access ?? accessFor(data.founder ? "founder" : "staff")}>
+        <PosPwaRegistration />
         <div className="pos-layout">
           <section className="pos-menu" aria-label="Product menu" tabIndex={0}>
             <div className="pos-toolbar">
@@ -395,6 +470,34 @@ export function PosWorkspace() {
               </span>
             </div>
             <div className="pos-menu-content">
+              <section className="pos-sync-status" aria-label="Offline and sync status">
+                <p role="status" aria-live="polite" aria-atomic="true">
+                  {offline ? "Offline · Cash sales saved on this device" : `Connected to production · ${
+                    shellStatus === "ready" ? "Ready for offline use"
+                    : shellStatus === "development" ? "Offline reopening is disabled in development"
+                    : shellStatus === "insecure" ? "Offline setup needs HTTPS or localhost"
+                    : shellStatus === "unsupported" ? "Offline setup is unavailable in this browser"
+                    : shellStatus === "error" ? "Offline setup could not finish. Stay online and reload to retry."
+                    : "Preparing offline access…"
+                  }`}
+                  {outbox.sales.length > 0 && ` · ${outbox.sales.length} ${outbox.sales.length === 1 ? "sale" : "sales"} waiting to sync`}
+                </p>
+                {offline && <p className="hint">Menu saved {savedAt ? new Date(savedAt).toLocaleString() : "on this device"}. Stock may have changed on other tills. Keep this browser&apos;s site data until every sale has synced.</p>}
+                {(storageError || outbox.error) && <p role="alert" className="form-message error">{storageError || outbox.error}</p>}
+                {!!outbox.sales.length && <>
+                  <div className="pos-sync-actions">
+                    <Button variant="outline" onClick={() => void outbox.sync()} disabled={offline || outbox.syncing} pending={outbox.syncing} pendingLabel="Syncing…"><Icon name="refresh" size={18} />Sync now</Button>
+                    <Button variant="ghost" onClick={outbox.exportSales}><Icon name="download" size={18} />Export unsynced sales</Button>
+                  </div>
+                  {outbox.sales.some(sale => sale.error) && <details>
+                    <summary>Sales needing review</summary>
+                    <p className="hint">Ask the owner to resolve these records. Original prices and IDs are kept; exporting also keeps the saved copies here.</p>
+                    <ul>{outbox.sales.filter(sale => sale.error).map(sale => <li key={sale.id}>
+                      Receipt #{sale.id.slice(0, 8).toUpperCase()} · {money(sale.checkout.items.reduce((sum, item) => sum + item.price_cents * item.quantity, 0))}: {sale.error}
+                    </li>)}</ul>
+                  </details>}
+                </>}
+              </section>
               {data.categories.length > 0 && (
                 <div
                   className="menu-filters"
@@ -446,6 +549,13 @@ export function PosWorkspace() {
                     : defaultSizeId(product);
                   const cartKey = lineKey(product.id, sizeId);
                   const cartLine = cart.find((line) => line.key === cartKey);
+                  const canIncrease =
+                    !cartLine ||
+                    (cartLine.quantity < 100 &&
+                      !cartIssue(
+                        { ...cartLine, quantity: cartLine.quantity + 1 },
+                        data.products,
+                      ));
                   return (
                     <ProductCard
                       key={product.id}
@@ -458,7 +568,9 @@ export function PosWorkspace() {
                         }))
                       }
                       quantity={cartLine?.quantity ?? 0}
+                      canIncrease={canIncrease}
                       disabled={busy || !!pending}
+                      onDecrease={() => changeQuantity(cartKey, -1)}
                       onAdd={() => {
                         try {
                           const next = addLine(cart, product, sizeId);

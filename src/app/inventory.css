@@ -55,7 +55,7 @@
   border-radius: 999px;
   background: var(--surface-muted);
   color: var(--ink);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -219,7 +219,7 @@
 
 .inventory-menu-item span {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 /* Receive Stock & Inventory History report layout */
@@ -309,7 +309,7 @@
   border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--surface);
-  box-shadow: 0 12px 28px rgba(44, 33, 29, 0.14);
+  box-shadow: 0 12px 28px rgba(18, 18, 18, 0.14);
   z-index: 60;
 }
 
@@ -404,7 +404,7 @@
 
 .inventory-count-comparison dt {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .inventory-count-comparison dd {

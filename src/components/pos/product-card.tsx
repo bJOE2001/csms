@@ -13,16 +13,20 @@ export function ProductCard({
   product,
   quantity,
   disabled,
+  canIncrease = true,
   sizeId,
   onSizeChange,
   onAdd,
+  onDecrease,
 }: {
   product: Product;
   quantity: number;
   disabled: boolean;
+  canIncrease?: boolean;
   sizeId?: string;
   onSizeChange: (sizeId: string) => void;
   onAdd: () => void;
+  onDecrease?: () => void;
 }) {
   const sizeGroup = useId();
   const card = useRef<HTMLElement>(null);
@@ -31,7 +35,7 @@ export function ProductCard({
   useLayoutEffect(() => {
     const restoreFocus = replacementFocus.current;
     replacementFocus.current = false;
-    if (restoreFocus && quantity > 0)
+    if (restoreFocus)
       card.current?.focus({ preventScroll: true });
   });
   const selected = product.sizes?.find((size) => size.id === sizeId);
@@ -90,10 +94,42 @@ export function ProductCard({
           )}
           <div className="product-actions">
             {quantity > 0 ? (
-              <span className="product-added">
-                <Icon name="check" size={14} />
-                Added to cart
-              </span>
+              onDecrease ? (
+                <div className="product-stepper" role="group" aria-label={`Quantity for ${itemName}`}>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="product-stepper-btn"
+                    aria-label={`Remove one ${itemName}`}
+                    disabled={disabled}
+                    onClick={(event) => {
+                      if (document.activeElement === event.currentTarget && quantity === 1)
+                        replacementFocus.current = true;
+                      onDecrease();
+                    }}
+                  >
+                    −
+                  </Button>
+                  <span className="product-added" aria-live="polite">
+                    {quantity}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="product-stepper-btn"
+                    aria-label={`Add another ${itemName}`}
+                    disabled={!available || disabled || !canIncrease}
+                    onClick={onAdd}
+                  >
+                    +
+                  </Button>
+                </div>
+              ) : (
+                <span className="product-added">
+                  <Icon name="check" size={14} />
+                  Added to cart
+                </span>
+              )
             ) : (
               <Button
                 variant="outline"

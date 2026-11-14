@@ -10,10 +10,10 @@ import { WorkspaceSkeleton } from "@/components/ui/workspace-skeleton";
 export default async function ExpensesPage({ searchParams }: {
   searchParams: Promise<{ from?: string; to?: string }>;
 }) {
-  const { supabase, shop, role } = await requireMember();
+  const { supabase, shop, role, access } = await requireMember("expenses");
   const today = shopDate(shop.timezone);
   const { from, to } = salesRange(await searchParams, today);
-  return <WorkspaceShell active="expenses" shopName={shop.name}>
+  return <WorkspaceShell active="expenses" shopName={shop.name} access={access}>
     <Suspense fallback={<WorkspaceSkeleton module="expenses" />}>
       <ExpensesReport supabase={supabase} shop={shop} role={role} today={today} from={from} to={to} />
     </Suspense>

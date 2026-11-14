@@ -7,6 +7,7 @@ import type { ActionState } from "@/lib/action-state";
 import { FormDialog } from "./ui/form-dialog";
 import { MutationForm } from "./mutation-form";
 import { Input } from "./ui/primitives/input";
+import { Icon } from "./ui/icon";
 import { Pencil, Trash2 } from "lucide-react";
 import { DatePicker } from "./ui/date-picker";
 import { Select } from "./ui/select";
@@ -49,7 +50,7 @@ export function ExpenseDialog({ expense, shopId, today }: {
   const operationId = useRef<string | undefined>(undefined);
   return (
     <FormDialog
-      trigger={expense ? null : "Add Expense"}
+      trigger={expense ? null : <><Icon name="plus" size={18} />Add Expense</>}
       tableAction={expense ? { icon: Pencil, tooltip: "Edit expense" } : undefined}
       triggerLabel={expense ? `Edit expense ${expense.description}` : undefined}
       triggerClassName={expense ? "secondary compact" : "accent"}

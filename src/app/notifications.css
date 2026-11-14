@@ -14,7 +14,7 @@
   border-radius: 12px;
   background: var(--surface);
   color: var(--ink);
-  box-shadow: 0 6px 24px rgb(59 27 18 / 10%);
+  box-shadow: 0 6px 24px rgb(18 18 18 / 10%);
   pointer-events: auto;
 }
 .app-toast [data-icon] { flex: none; margin-top: 1px; }
@@ -53,7 +53,7 @@
 [data-sonner-toaster].app-toaster:focus-visible,
 [data-sonner-toast].app-toast:focus-visible,
 .app-toast button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-[data-sonner-toast].app-toast:focus-visible { box-shadow: 0 6px 24px rgb(59 27 18 / 10%); }
+[data-sonner-toast].app-toast:focus-visible { box-shadow: 0 6px 24px rgb(18 18 18 / 10%); }
 @media (pointer: coarse) { .app-toast [data-close-button] { width: 44px; height: 44px; } }
 @media (prefers-reduced-motion: reduce) {
   [data-sonner-toaster].app-toaster, [data-sonner-toast].app-toast { transition: none; animation: none; }

@@ -138,14 +138,17 @@ h2 {
   background: transparent;
   box-shadow: none;
 }
-.brand-logo {
+.brand-wordmark {
   display: block;
-  width: 100%;
   max-width: 100%;
-  height: auto;
-  object-fit: contain;
+  color: inherit;
+  font-size: 24px;
+  font-weight: 750;
+  letter-spacing: -0.045em;
+  line-height: 1.25;
+  white-space: nowrap;
 }
-.brand .brand-artwork { width: 64px; }
+.brand .brand-artwork { width: auto; }
 .topbar .top-link { color: var(--sidebar-text); }
 .topbar .top-link:hover { background: var(--sidebar-hover); text-decoration: none; }
 .topbar .nav-link { background: var(--sidebar-active); color: var(--sidebar-active-text); }
@@ -197,7 +200,7 @@ h2 {
 }
 .eyebrow {
   color: var(--brand);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -354,9 +357,14 @@ h2 {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  body:not(:has(.coffee-site)),
+  body:not(:has(.coffee-site)) *,
+  body:not(:has(.coffee-site)) *::before,
+  body:not(:has(.coffee-site)) *::after,
+  .coffee-site[data-reduced-motion="true"],
+  .coffee-site[data-reduced-motion="true"] *,
+  .coffee-site[data-reduced-motion="true"] *::before,
+  .coffee-site[data-reduced-motion="true"] *::after {
     animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;

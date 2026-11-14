@@ -8,8 +8,10 @@ const modules = [
   { path: "/app/sales", label: "Sales", heading: "Sales" },
   { path: "/expenses", label: "Expenses", heading: "Expenses Management" },
   { path: "/libraries", label: "Libraries", heading: "Libraries" },
+  { path: "/app/users", label: "User Management", heading: "User Management" },
 ];
 async function catalog(page: Page) {
+  await page.route("**/api/users", route => route.fulfill({ json: { data: { user_id: "owner", members: [], invitations: [] } } }));
   await page.route("**/api/inventory*", route => route.fulfill({ json: { data: { items: [], configs: [], movements: [], returnable: [] } } }));
   await page.route("**/api/pos", route => route.fulfill({ json: {
     shop: { id: "00000000-0000-4000-8000-000000000001", name: "Common Ground Coffee" },
@@ -28,7 +30,9 @@ async function compactHeader(page: Page) {
   await expect(page.locator(".workspace-sidebar")).toBeHidden();
   await expect(page.getByRole("navigation", { name: "Shop", exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Sign out", exact: true })).toHaveCount(0);
-  await expect(header.getByRole("img", { name: "Sip & Snap", exact: true })).toBeVisible();
+  await expect(header.locator(".brand-wordmark")).toHaveText("Sip&Snap");
+  await expect(header.locator(".brand-wordmark")).toBeVisible();
+  await expect(header.locator(".brand-artwork img, .brand-artwork svg")).toHaveCount(0);
   await expect(header.locator(":scope > *")).toHaveCount(2);
   const logo = (await header.locator(".brand-artwork").boundingBox())!;
   const button = (await trigger(page).boundingBox())!;
@@ -39,7 +43,7 @@ async function compactHeader(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 }
 
-test("desktop keeps its sidebar with a smaller logo aligned to page headers", async ({ page }, info) => {
+test("desktop keeps its sidebar with a readable text brand", async ({ page }, info) => {
   test.setTimeout(120_000);
   await catalog(page);
   for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 800 }]) {
@@ -51,16 +55,16 @@ test("desktop keeps its sidebar with a smaller logo aligned to page headers", as
       await expect(sidebar).toBeVisible();
       await expect(page.locator(".workspace-mobile-header")).toBeHidden();
       await expect(trigger(page)).toHaveCount(0);
-      const logo = (await sidebar.locator(".brand-artwork").boundingBox())!;
-      expect(logo.width).toBe(128);
-      expect(logo.height).toBe(128);
-      const navigationIcon = (await sidebar.locator(".workspace-nav .nav-link > svg").first().boundingBox())!;
-      expect(Math.abs(logo.x - navigationIcon.x)).toBeLessThan(2);
-      if (screen.label !== "POS") {
-        const title = (await page.getByRole("heading", { name: screen.heading, exact: true }).boundingBox())!;
-        // Dashboard uses compact 24px insets; the other modules retain 32px.
-        expect(Math.abs(logo.y - title.y - (screen.label === "Dashboard" ? 8 : 0))).toBeLessThan(2);
-      }
+      const wordmark = sidebar.locator(".brand-wordmark");
+      await expect(wordmark).toHaveText("Sip&Snap");
+      await expect(wordmark).toBeVisible();
+      await expect(sidebar.locator(".brand-artwork img, .brand-artwork svg")).toHaveCount(0);
+      const text = (await wordmark.boundingBox())!;
+      const brand = (await sidebar.locator(".workspace-brand").boundingBox())!;
+      expect(text.width).toBeGreaterThan(60);
+      expect(text.x).toBeGreaterThanOrEqual(brand.x);
+      expect(text.x + text.width).toBeLessThanOrEqual(brand.x + brand.width + 1);
+      expect(await wordmark.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
       await expect(page.getByRole("navigation", { name: "Shop" }).getByRole("link")).toHaveCount(modules.length);
       await expect(page.getByRole("link", { name: screen.label, exact: true })).toHaveAttribute("aria-current", "page");
       const signOut = (await sidebar.getByRole("button", { name: "Sign out", exact: true }).boundingBox())!;
@@ -98,8 +102,8 @@ for (const viewport of [
       }
       const selected = nav.getByRole("link", { name: screen.label, exact: true });
       await expect(selected).toHaveAttribute("aria-current", "page");
-      await expect(selected).toHaveCSS("background-color", "rgb(242, 161, 94)");
-      await expect(menu).toHaveCSS("background-color", "rgb(59, 27, 18)");
+      await expect(selected).toHaveCSS("background-color", "rgb(230, 230, 230)");
+      await expect(menu).toHaveCSS("background-color", "rgb(250, 250, 250)");
       await expect(menu.locator("form")).toHaveAttribute("action", "/auth/sign-out");
       await expect(menu.locator("form")).toHaveAttribute("method", "post");
       await expect(menu.getByRole("button", { name: "Sign out", exact: true })).toBeInViewport();

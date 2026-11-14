@@ -1,24 +1,27 @@
 import { expect, test } from "@playwright/test";
 
 test("public routes render without authentication and preserve internal route boundaries", async ({ page, request }) => {
-  for (const [route, title] of [["/", "Sip & Snap | Coffee & Memories"], ["/menu", "Menu | Sip & Snap"], ["/visit", "Visit Us | Sip & Snap"]]) {
+  for (const [route, title] of [["/", "Sip&Snap"], ["/menu", "Menu"], ["/visit", "Visit Us"]]) {
     await page.goto(route);
     await expect(page).toHaveTitle(title);
     expect((await request.get(route)).headers()["x-robots-tag"]).toBeUndefined();
     await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
     await expect(page.locator(".workspace-sidebar")).toHaveCount(0);
-    await expect.poll(() => page.locator(".site-header .brand-logo").evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
+    await expect(page.locator(".site-header .brand-wordmark")).toHaveText("Sip&Snap");
+    await expect(page.locator(".site-header .brand-wordmark")).toBeVisible();
+    await expect(page.locator(".brand-artwork img, .brand-artwork svg")).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
   const privateCatalog = await request.get("/api/pos");
   expect(privateCatalog.status()).toBe(401);
   const dashboard = await request.get("/dashboard", { maxRedirects: 0 });
   expect(dashboard.status()).toBe(307);
-  expect(dashboard.headers().location).toContain("/sign-in");
+  expect(dashboard.headers().location).toContain("/login");
   const management = await request.get("/app/menu", { maxRedirects: 0 });
   expect(management.headers()["x-robots-tag"]).toBe("noindex, nofollow");
   await page.goto("/app/menu");
-  await expect(page.getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.locator(".workspace-sidebar, .workspace-mobile-header")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Add product", exact: true })).toHaveCount(0);
   await expect(page.getByRole("table")).toHaveCount(0);
   const publicMenu = await request.get("/api/public-menu");
@@ -36,7 +39,7 @@ test("legacy public menu bookmarks redirect permanently and retain query strings
   expect(response.headers().location).toBe("/menu?source=bookmark");
   await page.goto("/coffee-menu?source=bookmark#product-existing");
   await expect(page).toHaveURL(/\/menu\?source=bookmark#product-existing$/);
-  await expect(page).toHaveTitle("Menu | Sip & Snap");
+  await expect(page).toHaveTitle("Menu");
   await expect(page.locator(".workspace-sidebar")).toHaveCount(0);
 });
 
@@ -95,7 +98,7 @@ test("SEO includes honest local data, excludes private URLs, and leaves unknown 
   await page.goto("/");
   const schema = JSON.parse((await page.locator('script[type="application/ld+json"]').textContent())!);
   expect(schema["@type"]).toBe("CafeOrCoffeeShop");
-  expect(schema.name).toBe("Sip & Snap");
+  expect(schema.name).toBe("Sip&Snap");
   expect(schema.address).toBe("Purok 6, Ising, Carmen, Davao del Norte");
   expect(schema.aggregateRating).toBeUndefined();
   expect(schema.telephone).toBeUndefined();
@@ -112,23 +115,24 @@ test("SEO includes honest local data, excludes private URLs, and leaves unknown 
 });
 
 
-test("brand metadata, browser icons and account pages use Sip & Snap", async ({ page, request }) => {
+test("brand metadata, browser icons and account pages use Sip&Snap", async ({ page, request }) => {
   await page.goto("/");
-  await expect(page.locator('meta[property="og:site_name"]')).toHaveAttribute("content", "Sip & Snap");
-  await expect(page.locator('meta[name="application-name"]')).toHaveAttribute("content", "Sip & Snap");
+  await expect(page.locator('meta[property="og:site_name"]')).toHaveAttribute("content", "Sip&Snap");
+  await expect(page.locator('meta[name="application-name"]')).toHaveAttribute("content", "Sip&Snap");
   const icon = page.locator('link[rel="icon"]').first();
-  await expect(icon).toHaveAttribute("href", "/brand/favicon.ico");
-  expect((await request.get("/brand/favicon.ico")).status()).toBe(200);
-  expect((await request.get("/brand/apple-touch-icon.png")).status()).toBe(200);
-  await expect(page.locator('img[src*="Logov1"], img[src*="LogoWithWhite"]')).toHaveCount(0);
+  await expect(icon).toHaveAttribute("href", "/brand/text-icon.svg");
+  expect((await request.get("/brand/text-icon.svg")).status()).toBe(200);
+  expect((await request.get("/brand/text-apple-touch-icon.png")).status()).toBe(200);
+  await expect(page.locator('img[src="/images/Logo.png"], img[src*="Logov1"], img[src*="LogoWithWhite"], .brand-artwork img, .brand-artwork svg')).toHaveCount(0);
   await expect(page.locator("body")).not.toContainText(/\bLOGO(?: Coffee)?\b/);
   await expect(page.getByText("Photo booth experience coming soon.", { exact: true })).toBeVisible();
-  for (const [path, title] of [["/sign-in", "Sign In"], ["/forgot-password", "Reset Password"], ["/reset-password", "Choose a Password"], ["/pos", "POS"], ["/app/menu", "Menu Management"], ["/libraries", "Libraries"]]) {
+  for (const [path, title] of [["/login", "Sign In"], ["/forgot-password", "Reset Password"], ["/reset-password", "Choose a Password"], ["/pos", "Sign In"], ["/app/menu", "Sign In"], ["/libraries", "Sign In"]]) {
     await page.goto(path);
-    await expect(page).toHaveTitle(`${title} | Sip & Snap`);
-    const logo = page.locator(".brand-logo").first();
-    await expect(logo).toHaveAttribute("src", "/images/Logo.png");
-    await expect.poll(() => logo.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth === 1254 && image.naturalHeight === 1254)).toBe(true);
+    await expect(page).toHaveTitle(title);
+    const wordmark = page.locator(".brand-wordmark").first();
+    await expect(wordmark).toHaveText("Sip&Snap");
+    await expect(wordmark).toBeVisible();
+    await expect(page.locator(".brand-artwork img, .brand-artwork svg")).toHaveCount(0);
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", "noindex, nofollow");
   }
 });

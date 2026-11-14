@@ -16,16 +16,16 @@ end $$;
 -- Check references across shops, including archived products. RLS on a direct
 -- subquery would otherwise hide another shop's reference to this public image.
 create or replace function public.pos_can_manage_product_image(p_name text, p_delete boolean default false)
-returns boolean language sql stable security definer set search_path='' as $$
-  select case when p_name ~ '^[0-9a-f-]{36}/[0-9a-f-]{36}/[0-9a-f-]{36}\.(jpg|png|webp)$'
-    and split_part(p_name,'/',1) ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-  then public.is_shop_founder(split_part(p_name,'/',1)::uuid)
-    and (not p_delete or not exists (
-      select 1 from public.pos_products
-      where position('/storage/v1/object/public/product-images/' || p_name in image_url)>0
-    ))
-  else false end
-$$;
+returns boolean language plpgsql stable security definer set search_path='' as $$
+declare shop uuid; product uuid;
+begin
+ if p_name !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f-]{36}\.(jpg|png|webp)$' then return false;end if;
+ if p_delete and exists(select 1 from public.pos_products where position('/storage/v1/object/public/product-images/'||p_name in image_url)>0) then return false;end if;
+ shop:=split_part(p_name,'/',1)::uuid;product:=split_part(p_name,'/',2)::uuid;
+ -- Storage setup remains compatible with installations awaiting the ACL upgrade.
+ if to_regprocedure('public.has_shop_permission(uuid,text,text)') is null then return public.is_shop_founder(shop);end if;
+ return public.has_shop_permission(shop,'menu',case when exists(select 1 from public.pos_products where shop_id=shop and id=product) then 'edit' else 'create' end);
+end $$;
 revoke all on function public.pos_can_manage_product_image(text,boolean) from public,anon;
 grant execute on function public.pos_can_manage_product_image(text,boolean) to authenticated;
 

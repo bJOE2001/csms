@@ -510,7 +510,7 @@ test("staff can view Menu without management actions", async ({
     page.getByRole("heading", { name: "Menu Management", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByText("An owner manages products", { exact: false }),
+    page.getByText("You have view-only access to the menu.", { exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Add product", exact: true }),
@@ -613,7 +613,7 @@ test("Libraries shows member read-only access, empty data and loading retry", as
   await expect(page.getByRole("alert").filter({ hasText: "temporarily unavailable" })).toBeVisible();
   await page.getByRole("button", { name: "Try again" }).click();
   await expect(page.getByRole("table", { name: "Product categories", exact: true })).toBeVisible();
-  await expect(page.getByText("You can view categories. An owner manages category records.")).toBeVisible();
+  await expect(page.getByText("You have view-only access to categories.")).toBeVisible();
   await expect(page.getByRole("button", { name: /Add category|Edit category|Delete category/ })).toHaveCount(0);
   state.categories.splice(0);
   state.products.forEach(product => { product.category_id = undefined; });

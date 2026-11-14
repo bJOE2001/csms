@@ -4,7 +4,7 @@ import { coffeeBrand } from "../brand";
 export type VisitDetails = { address?: string; hours?: string; email?: string; phone?: string; directions?: string; instagram?: string; facebook?: string; ordering?: string };
 export type SitePhoto = {
   src: string; alt: string; width: number; height: number; kind: "concept" | "approved";
-  /** Percentage coordinates for the unchanged artwork, not an AI-generated wordmark. Omit for approved branded photos. */
+  /** Percentage coordinates for a decorative text label on concept packaging. */
   sticker?: { left: number; top: number; width: number };
 };
 export const siteContent = {
@@ -14,9 +14,8 @@ export const siteContent = {
   description: `Find your next favorite cup at ${coffeeBrand.name}. Explore the menu and make your coffee moment worth sharing.`,
   story: `Good coffee has a way of bringing people together. At ${coffeeBrand.name}, every visit is a chance to slow down and enjoy the moment.`,
   // Temporary generated concepts, not photographs of actual products, packaging or premises.
-  hero: { src: "/site/takeaway-latte-concept.webp", alt: `Iced latte in a takeaway cup with the ${coffeeBrand.name} artwork. Temporary packaging concept.`, width: 1122, height: 1402, kind: "concept", sticker: { left: 49, top: 54, width: 30 } } satisfies SitePhoto,
-  storyImage: { src: "/site/coffee-together-concept.webp", alt: `A shared coffee moment with takeaway cups and the ${coffeeBrand.name} artwork. Temporary lifestyle concept.`, width: 1402, height: 1122, kind: "concept", sticker: { left: 44.5, top: 65, width: 16 } } satisfies SitePhoto,
-  photographyNote: "Concept imagery. Actual drinks, packaging and shop may differ.",
+  hero: { src: "/site/takeaway-latte-concept.webp", alt: `Iced latte in a takeaway cup labeled ${coffeeBrand.name}. Temporary packaging concept.`, width: 1122, height: 1402, kind: "concept", sticker: { left: 49, top: 54, width: 30 } } satisfies SitePhoto,
+  storyImage: { src: "/site/coffee-together-concept.webp", alt: `A shared coffee moment with takeaway cups labeled ${coffeeBrand.name}. Temporary lifestyle concept.`, width: 1402, height: 1122, kind: "concept", sticker: { left: 44.5, top: 65, width: 16 } } satisfies SitePhoto,
 } as const;
 
 export function httpsUrl(value?: string) {

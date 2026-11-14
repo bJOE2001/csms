@@ -31,6 +31,7 @@ export type Database = {
           shop_id: string;
           user_id: string;
           role: "founder" | "staff";
+          permissions: Json | null;
           status: string;
           created_at: string;
         },
@@ -58,9 +59,22 @@ export type Database = {
         archived_at: string | null;
       }>;
       pos_categories: Table<{ id: string; shop_id: string; name: string }>;
+      pos_sales: Table<{
+        id: string;
+        shop_id: string;
+        status: string;
+        items: Json;
+        created_at: string;
+      }>;
     };
     Views: { [_ in never]: never };
     Functions: {
+      has_shop_permission: { Args: { p_shop_id: string; p_module: string; p_action?: string }; Returns: boolean };
+      read_shop_users: { Args: { p_shop_id: string }; Returns: Json };
+      manage_shop_user: { Args: { p_shop_id: string; p_data: Json }; Returns: Json };
+      membership_invite_details: { Args: { p_token: string }; Returns: Json };
+      accept_membership_invite: { Args: { p_token: string }; Returns: string };
+      resolve_shop_access: { Args: Record<PropertyKey, never>; Returns: string | null };
       pos_inventory_create_item: { Args: { p_shop_id: string; p_data: Json }; Returns: Json };
       pos_inventory_read: { Args: { p_shop_id: string; p_from: string; p_to: string }; Returns: Json };
       pos_inventory_save_item: { Args: { p_shop_id: string; p_data: Json }; Returns: Json };

@@ -71,7 +71,10 @@ async function mock(
                   },
                 ]
               : []),
-          ],
+          ].map(item => ({
+            ...item,
+            inventory: { regular: { state: "active", max_quantity: 100, cost_cents: item.cost_cents } },
+          })),
         },
       });
     const body = route.request().postDataJSON();
@@ -164,14 +167,14 @@ test("wallet checkout stays in POS and product editing lives in Menu", async ({
     "Spanish latte",
   );
   await page.getByLabel("Selling price (PHP)").fill("150");
-  await expect(page.getByLabel("Manual Estimated Cost (PHP)")).toHaveValue("50.00");
-  await page.getByLabel("Manual Estimated Cost (PHP)").fill("55.25");
+  await expect(page.getByLabel("Calculated Preparation Cost", { exact: true })).toHaveText("₱50.00");
   await page.getByRole("button", { name: "Save product", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   expect(calls[1]).toMatchObject({
     action: "product",
-    data: { price_cents: 15000, cost_cents: 5525 },
+    data: { price_cents: 15000 },
   });
+  expect(calls[1].data).not.toHaveProperty("cost_cents");
 });
 test("POS fits desktop, tablet, phone and landscape", async ({
   page,
@@ -311,6 +314,11 @@ test("desktop menu and order items scroll without moving navigation or checkout"
   ]) {
     await page.setViewportSize(size);
     if (size.width < 1280) await page.getByRole("button", { name: /^Open cart/ }).click();
+    // Wait for React to replace the drawer with the desktop cart (or back)
+    // before Playwright scrolls a node removed by the breakpoint change.
+    if (size.width >= 1280)
+      await expect(page.locator("#current-order")).not.toHaveClass(/pos-cart-drawer/);
+    else await expect(page.locator("#current-order")).toHaveClass(/pos-cart-drawer/);
     await page
       .getByRole("button", { name: "Place an order", exact: true })
       .scrollIntoViewIfNeeded();

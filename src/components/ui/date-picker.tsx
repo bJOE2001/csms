@@ -16,6 +16,7 @@ type Props = {
   value?: string;
   defaultValue?: string;
   onValueChange?: (value: string, source: "calendar" | "input") => void;
+  onRangeSelect?: (from: string, to: string) => void;
   min?: string;
   disabled?: boolean;
   required?: boolean;
@@ -24,7 +25,7 @@ type Props = {
   "aria-describedby"?: string;
 };
 
-export function DatePicker({ label, id, name, value, defaultValue = "", onValueChange, min, disabled, required, range, "aria-invalid": invalid, "aria-describedby": description }: Props) {
+export function DatePicker({ label, id, name, value, defaultValue = "", onValueChange, onRangeSelect, min, disabled, required, range, "aria-invalid": invalid, "aria-describedby": description }: Props) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
   const hintId = `${inputId}-hint`;
@@ -167,6 +168,38 @@ export function DatePicker({ label, id, name, value, defaultValue = "", onValueC
           <Calendar {...calendarProps} mode="range" selected={selectedRange} onSelect={(_range, day) => chooseDay(day)} required />
         ) : (
           <Calendar {...calendarProps} mode="single" selected={selectedDate} onSelect={day => chooseDay(day)} required />
+        )}
+        {range && onRangeSelect && (
+          <div className="calendar-presets" role="group" aria-label="Quick date ranges">
+            {(() => {
+              const todayValue = calendarValue(today);
+              const shiftDays = (days: number) => {
+                const shifted = new TZDate(today.getFullYear(), today.getMonth(), today.getDate(), 12, 0, 0, CALENDAR_TIME_ZONE);
+                shifted.setDate(shifted.getDate() + days);
+                return calendarValue(shifted);
+              };
+              const monthStart = calendarValue(new TZDate(today.getFullYear(), today.getMonth(), 1, 12, 0, 0, CALENDAR_TIME_ZONE));
+              return [
+                { label: "Last 7 days", from: shiftDays(-6), to: todayValue },
+                { label: "Last 30 days", from: shiftDays(-29), to: todayValue },
+                { label: "This month", from: monthStart, to: todayValue },
+              ].map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  className="calendar-preset-btn"
+                  aria-pressed={range.from === preset.from && range.to === preset.to}
+                  onClick={() => {
+                    onRangeSelect(preset.from, preset.to);
+                    setEditing(false);
+                    setOpen(false);
+                  }}
+                >
+                  {preset.label}
+                </button>
+              ));
+            })()}
+          </div>
         )}
         {range && <p className="calendar-range-summary">{displayCalendarDate(range.from) || "Start date"} – {displayCalendarDate(range.to) || "End date"}</p>}
       </PopoverContent>

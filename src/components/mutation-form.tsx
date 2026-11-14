@@ -11,6 +11,8 @@ export function MutationForm({
   action,
   children,
   submitLabel,
+  secondarySubmit,
+  onSuccess,
   disabled = false,
   successTitle,
   errorTitle = "Operation failed",
@@ -18,6 +20,8 @@ export function MutationForm({
   action: (previous: ActionState, form: FormData) => Promise<ActionState>;
   children: ReactNode;
   submitLabel: string;
+  secondarySubmit?: { label: string; name: string; value: string };
+  onSuccess?: (form: FormData) => void;
   disabled?: boolean;
   successTitle?: string;
   errorTitle?: string;
@@ -41,6 +45,7 @@ export function MutationForm({
           id: noticeId, description: successTitle ? result.message : undefined,
         });
         dialog?.complete();
+        onSuccess?.(form);
       } else if (result.status === "error" && !result.validation) {
         notify.error(errorTitle, { id: noticeId, description: result.message });
       } else if (result.validation) notify.dismiss(noticeId);
@@ -95,6 +100,17 @@ export function MutationForm({
             onClick={dialog.cancel}
           >
             Cancel
+          </Button>
+        )}
+        {secondarySubmit && (
+          <Button
+            type="submit"
+            variant="outline"
+            name={secondarySubmit.name}
+            value={secondarySubmit.value}
+            disabled={pending || disabled}
+          >
+            {secondarySubmit.label}
           </Button>
         )}
         <Button

@@ -9,7 +9,7 @@ These are temporary generated concepts, not photographs of actual Sip & Snap pro
 | `public/site/takeaway-latte-concept.webp` | 1122 × 1402 | 101,320 | Hero, iced latte in a disposable takeaway cup |
 | `public/site/coffee-together-concept.webp` | 1402 × 1122 | 115,506 | Lifestyle, two takeaway cups at a café table |
 
-Both generator outputs are unbranded. The original `/images/Logo.png` is layered separately by SitePhoto at percentage coordinates in `src/lib/site/config.ts`. Only uniform scaling and positioning are applied: no filters, artificial outlines, recoloring, letter generation, perspective warping, shadows or cropping. The front-facing compositions allow an aspect-preserving sticker treatment. The branding overlay now uses the owner-supplied Sip & Snap artwork; underlying concept photographs remain unchanged.
+Both generator outputs are unbranded. SitePhoto overlays plain Sip&Snap text at percentage coordinates in `src/lib/site/config.ts`; no business-logo artwork is available or required. The text remains separate from the image and scales to its label container. The underlying concept photographs remain unchanged.
 
 The WebP files use quality 84. Full-resolution PNG generation outputs remain in the imagegen output directory; no source artwork was overwritten. Photography is not assigned to unknown menu products. Product cards continue to use their existing catalog image URLs or an explicit missing-photo placeholder.
 

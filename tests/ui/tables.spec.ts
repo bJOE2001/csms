@@ -110,8 +110,8 @@ for (const viewport of [
         expect(button.icon).toBe(18);
       }
       if (screen.path === "/app/menu") {
-        await expect(region).toContainText("22 oz · Unavailable");
-        await expect(region).toContainText("Cost not recorded");
+        await expect(region).toContainText("22 oz · Size disabled by owner");
+        await expect(region).toContainText("Preparation cost unavailable");
         await expect(region).toContainText("Uncategorized");
         await expect(region).toContainText("₱1,000,000.00");
       }

@@ -3,11 +3,13 @@ import { expect, test } from "@playwright/test";
 for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 800 }, { width: 1032, height: 1376 }, { width: 768, height: 1024 }, { width: 393, height: 852 }]) {
   test(`focused sign-in layout at ${viewport.width}px`, async ({ page }) => {
     await page.setViewportSize(viewport);
-    await page.goto("/sign-in");
+    await page.goto("/login");
     await page.evaluate(() => document.fonts.ready);
     await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
     await expect(page.locator(".topbar, nav, .workspace-sidebar")).toHaveCount(0);
-    await expect(page.getByRole("img", { name: "Sip & Snap", exact: true })).toHaveAttribute("src", "/images/Logo.png");
+    await expect(page.locator(".brand-wordmark")).toHaveText("Sip&Snap");
+    await expect(page.locator(".brand-wordmark")).toBeVisible();
+    await expect(page.locator(".brand-artwork img, .brand-artwork svg")).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Forgot password?", exact: true })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Back to website", exact: true })).toHaveAttribute("href", "/");
     const card = (await page.locator(".sign-in-card").boundingBox())!;
@@ -20,7 +22,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 800
   });
 }
 test("validation and password visibility remain accessible without submitting or losing input", async ({ page }) => {
-  await page.goto("/sign-in");
+  await page.goto("/login");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page.getByText("Enter your email.", { exact: true })).toBeVisible();
   await expect(page.getByText("Enter your password.", { exact: true })).toBeVisible();
@@ -48,7 +50,7 @@ test("validation and password visibility remain accessible without submitting or
   expect(await page.locator("html").getAttribute("data-sign-in-calls")).toBeNull();
 });
 test("failed sign-in retains email, prevents duplicates and keeps errors inline", async ({ page }) => {
-  await page.goto("/sign-in");
+  await page.goto("/login");
   await page.getByLabel("Email", { exact: true }).fill("staff@example.invalid");
   await page.getByLabel("Password", { exact: true }).fill("test-only-password");
   await page.getByLabel("Password", { exact: true }).press("Enter");
@@ -62,7 +64,7 @@ test("failed sign-in retains email, prevents duplicates and keeps errors inline"
 });
 test("network failures remain retryable on a short mobile viewport", async ({ page }) => {
   await page.setViewportSize({ width: 393, height: 390 });
-  await page.goto("/sign-in?network");
+  await page.goto("/login?network");
   await page.getByLabel("Email", { exact: true }).fill("staff@example.invalid");
   await page.getByLabel("Password", { exact: true }).fill("test-only-password");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();

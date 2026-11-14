@@ -5,11 +5,13 @@ import { Pencil } from "lucide-react";
 import { FormDialog } from "../ui/form-dialog";
 import { MutationForm } from "../mutation-form";
 import { Input } from "../ui/primitives/input";
+import { Icon } from "../ui/icon";
 import { Select } from "../ui/select";
 import { decimal, scaled, isBaseUnitLocked, itemSchema, units, itemTypes, type InventoryItem } from "@/lib/inventory/domain";
 import { cents } from "@/lib/sales/domain";
 import { shopDate } from "@/lib/sales/period";
 import { saveInventory } from "@/lib/inventory/client";
+import { useCan } from "../access-context";
 
 export function InventoryItemDialog({
   item,
@@ -31,13 +33,14 @@ export function InventoryItemDialog({
   returnFocusRef?: RefObject<HTMLElement | null>;
 }) {
   const id = useRef(item?.id ?? crypto.randomUUID());
+  const canStock = useCan("inventory", "stock", true);
   const activeHelpId = useId();
   const [selectedType, setSelectedType] = useState<InventoryItem["item_type"]>(item?.item_type ?? "ingredient");
   const unitLocked = isBaseUnitLocked(item);
 
   return (
     <FormDialog
-      trigger={item && !triggerLabelText ? null : triggerLabelText ?? "Add Inventory Item"}
+      trigger={item && !triggerLabelText ? null : <><Icon name={item ? "edit" : "plus"} size={18} />{triggerLabelText ?? "Add Inventory Item"}</>}
       triggerLabel={item ? `Edit inventory item ${item.name}` : undefined}
       triggerClassName={triggerClassName ?? (item ? "secondary compact" : "accent")}
       tableAction={item && !triggerLabelText ? { icon: Pencil, tooltip: "Edit Item" } : undefined}
@@ -122,7 +125,7 @@ export function InventoryItemDialog({
           </div>
         </fieldset>
 
-        {!item && <details className="inventory-advanced-details"><summary>Initial Stock</summary><div className="inventory-form-grid"><label className="field">Initial Quantity<Input name="initial_quantity" inputMode="decimal"/></label><label className="field">Total Initial Stock Value (PHP)<Input name="initial_value" inputMode="decimal"/></label></div></details>}
+        {!item && canStock && <details className="inventory-advanced-details"><summary>Initial Stock</summary><div className="inventory-form-grid"><label className="field">Initial Quantity<Input name="initial_quantity" inputMode="decimal"/></label><label className="field">Total Initial Stock Value (PHP)<Input name="initial_value" inputMode="decimal"/></label></div></details>}
         <fieldset className="inventory-form-section">
           <legend>Additional Details</legend>
           <label className="field">

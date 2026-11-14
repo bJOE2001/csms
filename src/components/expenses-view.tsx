@@ -7,6 +7,7 @@ import { Card } from "./ui/card";
 import { DataTable } from "./ui/data-table";
 import { periodDates } from "@/lib/sales/period";
 import { useReportSnapshot } from "@/lib/use-report-snapshot";
+import { useCan } from "./access-context";
 
 export function ExpensesView({ expenses: loadedExpenses, shopId, founder, today, from, to, loadError }: {
   expenses: Expense[];
@@ -17,6 +18,7 @@ export function ExpensesView({ expenses: loadedExpenses, shopId, founder, today,
   to: string;
   loadError?: string;
 }) {
+  const canAdd = useCan("expenses", "create", founder), canEdit = useCan("expenses", "edit", founder), canDelete = useCan("expenses", "delete", founder);
   const report = useReportSnapshot(shopId, loadError ? null : { expenses: loadedExpenses, from, to });
   const expenses = report?.expenses ?? [];
   const appliedFrom = report?.from ?? from;
@@ -37,11 +39,11 @@ export function ExpensesView({ expenses: loadedExpenses, shopId, founder, today,
             action="/expenses"
             label="Filter expenses by date"
           />
-          {founder && <ExpenseDialog shopId={shopId} today={today} />}
+          {canAdd && <ExpenseDialog shopId={shopId} today={today} />}
         </div>
       {report && <p className="sales-period">Reporting period: <strong>{periodDates(appliedFrom, appliedTo)}</strong></p>}
       </header>
-      {!founder && <p className="hint m-0">You can view expenses. An owner manages expense records.</p>}
+      {!canAdd && !canEdit && !canDelete && <p className="hint m-0">You have view-only access to expenses.</p>}
       {report && <>
       <dl className="menu-overview expenses-overview" aria-label="Expenses overview">
         {[
@@ -59,23 +61,28 @@ export function ExpensesView({ expenses: loadedExpenses, shopId, founder, today,
           searchPlaceholder="Search expenses"
           emptyMessage="No expenses recorded for the selected period."
           columns={[
-            { key: "date", label: "Date", kind: "compact" },
-            { key: "description", label: "Description", kind: "primary" },
-            { key: "amount", label: "Amount", numeric: true },
+            { key: "date", label: "Date", kind: "compact", sortable: true },
+            { key: "description", label: "Description", kind: "primary", sortable: true },
+            { key: "amount", label: "Amount", numeric: true, sortable: true },
             { key: "status", label: "Status", kind: "status" },
-            ...(founder ? [{ key: "actions", label: "Actions", kind: "actions" as const }] : []),
+            ...(canEdit || canDelete ? [{ key: "actions", label: "Actions", kind: "actions" as const }] : []),
           ]}
           rows={expenses.map(expense => ({
             id: expense.id,
             search: `${expense.description} ${expense.spent_on} ${expense.voided ? "voided" : "active"}`,
+            sort: {
+              date: expense.spent_on,
+              description: expense.description,
+              amount: expense.amount_cents,
+            },
             cells: {
               date: new Intl.DateTimeFormat("en-PH", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(`${expense.spent_on}T00:00:00Z`)),
               description: <><strong>{expense.description}</strong>{expense.classification === "inventory_purchase" && <small className="cell-description">Inventory purchase · excluded from operating expenses</small>}</>,
               amount: <span className={expense.voided ? "line-through text-muted-foreground" : "font-semibold"}>{money(expense.amount_cents)}</span>,
               status: <span className={`menu-status ${expense.voided ? "" : "menu-status-available"}`}>{expense.voided ? "Voided" : "Active"}</span>,
               actions: !expense.voided && <div className="table-actions">
-                <ExpenseDialog expense={expense} shopId={shopId} today={today} />
-                <DeleteExpense expense={expense} shopId={shopId} />
+                {canEdit && <ExpenseDialog expense={expense} shopId={shopId} today={today} />}
+                {canDelete && <DeleteExpense expense={expense} shopId={shopId} />}
               </div>,
             },
           }))}

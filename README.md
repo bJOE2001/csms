@@ -1,10 +1,10 @@
 # Sip & Snap POS System
 
-A small online POS with five screens: **POS**, **Menu**, **Sales**, **Expenses** and **Libraries**. Manage product categories in Libraries and products, images, sizes, prices and direct costs in Menu, take cash or GCash payments, manage operating expenses in Expenses, then review date-filtered revenue, gross profit, net profit, expenses, receipts and full refunds in Sales.
+A small POS with five screens: **POS**, **Menu**, **Sales**, **Expenses** and **Libraries**. Manage product categories in Libraries and products, images, sizes, prices and direct costs in Menu, take cash or GCash payments, manage operating expenses in Expenses, then review date-filtered revenue, gross profit, net profit, expenses, receipts and full refunds in Sales. The installable POS supports offline cash sales and reconnect syncing; see [offline setup and rollout](docs/OFFLINE_POS.md).
 
-Stack: Next.js 15, React 19, Tailwind 3, shadcn/ui and Supabase Auth/PostgreSQL. There is no inventory, recipe, purchasing, budgeting, funding, staff administration, device pairing, cash shift or offline checkout module.
+Stack: Next.js 15, React 19, Tailwind 3, shadcn/ui and Supabase Auth/PostgreSQL. Inventory and recipes support checkout; purchasing, budgeting, funding, staff administration, device pairing and cash shifts are not exposed as separate modules.
 
-The **Sip & Snap — Warm Espresso & Caramel** theme shares the approved transparent artwork at `public/images/Logo.png`, centralized colors and accessible controls across all five modules and account screens. See [brand tokens, artwork rules and accessibility treatments](docs/BRANDING.md).
+The **Sip&Snap — Warm Espresso & Caramel** theme uses plain **Sip&Snap** text, centralized colors and accessible controls across all modules and account screens. See [brand tokens, text identity and accessibility treatments](docs/BRANDING.md).
 
 ## Run
 
@@ -26,9 +26,9 @@ The optional October development sample seed now requires `select set_config('co
 
 ## Behavior
 
-Checkout prices are verified server-side and saved in an atomic transaction. Receipts retain product, size, price and cost snapshots. Different sizes are separate cart lines. Menu changes never silently reprice an open cart; the cashier reviews changes or removes unavailable items. A single pending sale is saved in the browser before sending; a lost response is retried with the same ID to prevent duplicates. This is request recovery, not offline selling. Product management and refunds require owner access, checked again in SQL. Cross-shop access is checked through membership and RLS.
+Checkout prices are verified server-side and saved in an atomic transaction. Receipts retain product, size, price and cost snapshots. Different sizes are separate cart lines. Menu changes never silently reprice an open cart; the cashier reviews changes or removes unavailable items. Interrupted online requests retain their original ID for retry. Offline cash receipts are durably queued per cashier/shop in IndexedDB and sync when the POS reconnects; rejected receipts remain visible and exportable. Apply `202611130001_offline_sale_time.sql` before deploying this frontend to retain original sale dates and server acceptance audit times. Product management and refunds require owner access, checked again in SQL. Cross-shop access is checked through membership and RLS.
 
-Old unsent sales in the retired offline till are not imported by the SQL migration. Export and reconcile any old offline sales before switching versions; their existing IndexedDB storage is not erased. The old service-worker URL remains only to retire previous registrations.
+Old unsent sales in the retired offline till are not imported by the SQL migration. Export and reconcile any old offline sales before switching versions; their existing IndexedDB storage is not erased. The service-worker URL now serves the public POS shell; private APIs, authentication and reports remain network-only.
 
 ## Checks
 

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { redirect } from "next/navigation";
 import { requireMember } from "@/lib/auth/require-member";
 import { loadSalesReport } from "@/lib/sales/load-report";
 import { buildDashboard, previousPeriod } from "@/lib/sales/dashboard";
@@ -13,11 +12,9 @@ import { WorkspaceSkeleton } from "@/components/ui/workspace-skeleton";
 export default async function DashboardPage({ searchParams }: {
   searchParams: Promise<{ from?: string; to?: string; period?: string }>;
 }) {
-  const member = await requireMember();
-  // Business analytics follow the established founder-only business access policy.
-  if (member.role !== "founder") redirect("/pos");
+  const member = await requireMember("dashboard");
   const { from, to } = salesRange(await searchParams, shopDate(member.shop.timezone));
-  return <WorkspaceShell active="dashboard" shopName={member.shop.name}>
+  return <WorkspaceShell active="dashboard" shopName={member.shop.name} access={member.access}>
     <Suspense fallback={<WorkspaceSkeleton module="dashboard" />}>
       <DashboardReport member={member} from={from} to={to} />
     </Suspense>
