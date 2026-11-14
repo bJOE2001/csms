@@ -35,21 +35,11 @@ export function LandingScrollEffects() {
 
     delete siteRoot.dataset.reducedMotion;
 
-    if (main) {
-      delete main.dataset.pageEnter;
-      void main.offsetWidth;
-      main.dataset.pageEnter = "active";
-    }
-
-    const initialHeight = window.innerHeight || document.documentElement.clientHeight;
-    for (const element of revealElements) {
-      if (element.dataset.reveal === "visible") continue;
-      const rect = element.getBoundingClientRect();
-      element.dataset.reveal = rect.top < initialHeight * 0.78 ? "visible" : "ready";
-    }
-
     const parallaxElements = Array.from(siteRoot.querySelectorAll<HTMLElement>("[data-parallax]"));
+    let trackedRevealElements = revealElements;
     let frameId = 0;
+    let initFrameId = 0;
+    let revealObserver: IntersectionObserver | null = null;
 
     const syncScrollState = () => {
       frameId = 0;
@@ -68,7 +58,7 @@ export function LandingScrollEffects() {
         }
       }
 
-      for (const element of revealElements) {
+      for (const element of trackedRevealElements) {
         if (element.dataset.reveal !== "ready") continue;
         const rect = element.getBoundingClientRect();
         if (rect.top < viewportHeight - 40 && rect.bottom > 0) {
@@ -116,26 +106,44 @@ export function LandingScrollEffects() {
     window.addEventListener("scroll", scheduleSync, { passive: true });
     window.addEventListener("resize", scheduleSync, { passive: true });
 
-    let revealObserver: IntersectionObserver | null = null;
-    if (typeof IntersectionObserver !== "undefined") {
-      revealObserver = new IntersectionObserver(
-        (entries) => {
-          for (const entry of entries) {
-            if (!entry.isIntersecting) continue;
-            const target = entry.target as HTMLElement;
-            target.dataset.reveal = "visible";
-            revealObserver?.unobserve(target);
-          }
-        },
-        { threshold: 0.12, rootMargin: "0px 0px -40px 0px" },
-      );
+    const initRevealAndPageEnter = () => {
+      initFrameId = 0;
+      if (main) {
+        delete main.dataset.pageEnter;
+        void main.offsetWidth;
+        main.dataset.pageEnter = "active";
+      }
 
-      for (const element of revealElements) {
-        if (element.dataset.reveal === "ready") {
-          revealObserver.observe(element);
+      trackedRevealElements = Array.from(siteRoot.querySelectorAll<HTMLElement>("[data-reveal]"));
+      const initialHeight = window.innerHeight || document.documentElement.clientHeight;
+      for (const element of trackedRevealElements) {
+        if (element.dataset.reveal === "visible") continue;
+        const rect = element.getBoundingClientRect();
+        element.dataset.reveal = rect.top < initialHeight * 0.78 ? "visible" : "ready";
+      }
+
+      if (typeof IntersectionObserver !== "undefined") {
+        revealObserver = new IntersectionObserver(
+          (entries) => {
+            for (const entry of entries) {
+              if (!entry.isIntersecting) continue;
+              const target = entry.target as HTMLElement;
+              target.dataset.reveal = "visible";
+              revealObserver?.unobserve(target);
+            }
+          },
+          { threshold: 0.12, rootMargin: "0px 0px -40px 0px" },
+        );
+
+        for (const element of trackedRevealElements) {
+          if (element.dataset.reveal === "ready") {
+            revealObserver.observe(element);
+          }
         }
       }
-    }
+    };
+
+    initFrameId = window.requestAnimationFrame(initRevealAndPageEnter);
 
     const cleanupTilt: Array<() => void> = [];
     const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
@@ -238,6 +246,7 @@ export function LandingScrollEffects() {
     window.addEventListener("touchstart", cancelAnchorScroll, { passive: true });
 
     return () => {
+      if (initFrameId !== 0) window.cancelAnimationFrame(initFrameId);
       if (frameId !== 0) window.cancelAnimationFrame(frameId);
       cancelAnchorScroll();
       siteRoot.removeEventListener("click", handleAnchorClick);

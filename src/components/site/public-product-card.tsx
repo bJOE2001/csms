@@ -17,9 +17,9 @@ export function PublicProductCard({ product, featured = false, staggerIndex }: {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const price = <>{product.sizes.some(size => size.price !== product.price) ? "From " : ""}{money(product.price)}</>;
   const sizes = featured
-    ? "(min-width: 1400px) 302px, (min-width: 1200px) 23vw, (min-width: 640px) 46vw, calc(100vw - 40px)"
+    ? "(min-width: 1400px) 302px, (min-width: 1200px) 23vw, (min-width: 360px) 46vw, calc(100vw - 40px)"
     : "(min-width: 1400px) 411px, (min-width: 1200px) 31vw, (min-width: 640px) 46vw, calc(100vw - 40px)";
-  return <article className="site-product" id={`product-${product.id}`} data-reveal={featured ? "" : undefined} style={({ "--stagger-index": staggerIndex ?? 0 } as CSSProperties)}>
+  return <article className="site-product" id={`product-${product.id}`} data-reveal={featured ? "" : undefined} suppressHydrationWarning style={({ "--stagger-index": staggerIndex ?? 0 } as CSSProperties)}>
     <PublicProductImage product={product} sizes={sizes} />
     <div className="site-product-info">
       <div className="site-product-meta"><span>{product.category}</span><strong>{price}</strong></div>

@@ -34,7 +34,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 800
     await expect(page.locator(".site-featured .site-product")).toHaveCount(4);
     await expect(page.getByRole("list", { name: "Available sizes for Café Latte", exact: true })).toContainText("12 oz₱120.00");
     await expect(page.getByRole("list", { name: "Available sizes for Café Latte", exact: true })).toContainText("16 oz₱145.00");
-    const featuredColumns = viewport.width >= 1200 ? 4 : viewport.width >= 640 ? 2 : 1;
+    const featuredColumns = viewport.width >= 1200 ? 4 : viewport.width >= 360 ? 2 : 1;
     expect(await page.locator(".site-featured .site-product-grid").evaluate(el => getComputedStyle(el).gridTemplateColumns.split(" ").length)).toBe(featuredColumns);
     for (const photo of await page.locator(".site-featured .site-product-photo").all()) {
       const bounds = (await photo.boundingBox())!;
